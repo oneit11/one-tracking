@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ device.name }} - {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ device.name }}</h1>
+        <p class="page-subtitle">{{ device.client.company_name }}</p>
+    </div>
+    <a href="{{ url_for('admin.device_edit', did=device.id) }}" class="btn btn-secondary">✏️ تعديل</a>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">تفاصيل الجهاز</h3></div>
+        <div class="detail-row"><span class="detail-label">النوع</span><span class="detail-value">{{ device.device_type or '-' }}</span></div>
+        <div class="detail-row"><span class="detail-label">الماركة</span><span class="detail-value">{{ device.brand or '-' }}</span></div>
+        <div class="detail-row"><span class="detail-label">الموديل</span><span class="detail-value">{{ device.model or '-' }}</span></div>
+        <div class="detail-row"><span class="detail-label">السيريال</span><span class="detail-value" dir="ltr">{{ device.serial_number or '-' }}</span></div>
+        <div class="detail-row"><span class="detail-label">الموقع</span><span class="detail-value">{{ device.location or '-' }}</span></div>
+        <div class="detail-row"><span class="detail-label">تاريخ التركيب</span><span class="detail-value">{{ device.installation_date or '-' }}</span></div>
+        <div class="detail-row"><span class="detail-label">نهاية الضمان</span><span class="detail-value">{{ device.warranty_end or '-' }}</span></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">QR</h3></div>
+        {% if device.qr_code %}
+            <p>الجهاز مربوط بكود QR:</p>
+            <div class="badge badge-closed" dir="ltr" style="font-size:14px;padding:8px 16px;">{{ device.qr_code.code }}</div>
+            <p class="text-muted mt-4">تم الربط في: {{ device.qr_code.bound_at.strftime('%Y-%m-%d %H:%M') if device.qr_code.bound_at }}</p>
+        {% else %}
+            <p class="text-muted">الجهاز غير مربوط بأي QR</p>
+            <p class="form-hint">يمكن ربطه بعد المسح من قبل الفني</p>
+        {% endif %}
+
+        {% if device.photo_url %}
+            <hr style="margin:20px 0;border:none;border-top:1px solid var(--border);">
+            <p class="form-label mb-2">صورة الجهاز</p>
+            <img src="{{ device.photo_url }}" class="image-thumb" style="max-height:220px">
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">سجل الصيانة</h3></div>
+    {% if device.requests %}
+        <div class="table-wrap">
+            <table class="table">
+                <thead><tr><th>الرقم</th><th>العنوان</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
+                <tbody>
+                    {% for r in device.requests[:20] %}
+                    <tr>
+                        <td><strong>{{ r.request_number }}</strong></td>
+                        <td>{{ r.title }}</td>
+                        <td><span class="badge badge-{{ r.status }}">{{ r.status_label }}</span></td>
+                        <td>{{ r.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td><a class="btn btn-sm btn-secondary" href="{{ url_for('admin.request_view', rid=r.id) }}">فتح</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-muted">لا يوجد سجل صيانة</p>
+    {% endif %}
+</div>
+{% endblock %}

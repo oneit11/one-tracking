@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}ربط جهاز - {{ qr.code }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">ربط جهاز</h1>
+        <p class="page-subtitle" dir="ltr" style="text-align:start;">{{ qr.code }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <p class="text-muted">هذا الكود لم يتم ربطه بأي جهاز بعد. اختر جهاز موجود أو أنشئ جهاز جديد.</p>
+
+    <details style="margin-top:16px;">
+        <summary style="cursor:pointer;font-weight:600;">🔗 اربط بجهاز موجود</summary>
+        <form method="post" class="mt-4">
+            <div class="form-group">
+                <label class="form-label">اختر الجهاز</label>
+                <select class="form-select" name="existing_device_id" required>
+                    <option value="">--</option>
+                    {% for c in clients %}
+                        <optgroup label="{{ c.company_name }}">
+                            {% for d in c.devices %}
+                                {% if not d.qr_code %}
+                                <option value="{{ d.id }}">{{ d.name }} {% if d.location %}({{ d.location }}){% endif %}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </optgroup>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="btn btn-primary mt-4">ربط</button>
+        </form>
+    </details>
+
+    <details style="margin-top:16px;" open>
+        <summary style="cursor:pointer;font-weight:600;">➕ أنشئ جهاز جديد</summary>
+        <form method="post" class="mt-4">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">العميل <span class="req">*</span></label>
+                    <select class="form-select" name="client_id" required>
+                        <option value="">--</option>
+                        {% for c in clients %}<option value="{{ c.id }}">{{ c.company_name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">اسم الجهاز <span class="req">*</span></label>
+                    <input class="form-input" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">النوع</label>
+                    <select class="form-select" name="device_type">
+                        <option value="">--</option>
+                        {% for val, lbl in device_types %}
+                        <option value="{{ val }}">{{ lbl }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">الماركة</label>
+                    <input class="form-input" name="brand">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">الموديل</label>
+                    <input class="form-input" name="model">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">السيريال</label>
+                    <input class="form-input" name="serial_number" dir="ltr">
+                </div>
+                <div class="form-group full">
+                    <label class="form-label">الموقع داخل المكان</label>
+                    <input class="form-input" name="location" placeholder="مثال: الدور الثاني - المكتب الرئيسي">
+                </div>
+            </div>
+            <button class="btn btn-primary mt-4">إنشاء + ربط</button>
+        </form>
+    </details>
+</div>
+{% endblock %}

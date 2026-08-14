@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ batch.batch_code }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title" dir="ltr" style="text-align:start">{{ batch.batch_code }}</h1>
+        <p class="page-subtitle">{{ batch.notes or 'باتش QR' }}</p>
+    </div>
+    <a href="{{ url_for('admin.qr_home') }}" class="btn btn-secondary">← رجوع</a>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card primary"><span class="stat-label">إجمالي الأكواد</span><span class="stat-value">{{ batch.count }}</span></div>
+    <div class="stat-card success"><span class="stat-label">مستخدم</span><span class="stat-value">{{ batch.used_count }}</span></div>
+    <div class="stat-card warning"><span class="stat-label">فاضي</span><span class="stat-value">{{ batch.unused_count }}</span></div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h3 class="card-title">تحميل PDF للطباعة</h3></div>
+    <p class="text-muted">اختر المقاس المناسب لطباعة اللصقات:</p>
+    <div class="d-flex gap-2 flex-wrap mt-4">
+        {% for key, cfg in sizes.items() %}
+        <a href="{{ url_for('admin.qr_batch_pdf', bid=batch.id, size=key) }}" class="btn btn-primary">
+            📄 PDF {{ {'small':'صغير','medium':'متوسط','large':'كبير'}[key] }} ({{ cfg.label }})
+        </a>
+        {% endfor %}
+    </div>
+    <p class="form-hint mt-4">
+        صغير: 8×12 لصقة/صفحة · متوسط: 5×8 لصقة/صفحة · كبير: 3×5 لصقة/صفحة
+    </p>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">قائمة الأكواد</h3></div>
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>الكود</th><th>الحالة</th><th>الجهاز</th><th>تاريخ الربط</th></tr></thead>
+            <tbody>
+                {% for c in batch.codes %}
+                <tr>
+                    <td dir="ltr"><strong>{{ c.code }}</strong></td>
+                    <td>
+                        {% if c.is_bound %}
+                            <span class="badge badge-closed">مربوط</span>
+                        {% else %}
+                            <span class="badge">فاضي</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if c.device %}
+                            <a href="{{ url_for('admin.device_view', did=c.device.id) }}">{{ c.device.name }}</a>
+                            <span class="text-muted">({{ c.device.client.company_name }})</span>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>{{ c.bound_at.strftime('%Y-%m-%d') if c.bound_at else '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}طلب صيانة جديد - {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">طلب صيانة جديد</h1>
+    <a href="{{ url_for('admin.requests_list') }}" class="btn btn-secondary">← رجوع</a>
+</div>
+
+<div class="card">
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">العميل <span class="req">*</span></label>
+                <select id="client_id_selector" class="form-select" name="client_id" required>
+                    <option value="">-- اختر --</option>
+                    {% for c in clients %}
+                    <option value="{{ c.id }}">{{ c.company_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">الجهاز (اختياري)</label>
+                <select id="device_id_selector" class="form-select" name="device_id">
+                    <option value="">(بدون جهاز)</option>
+                </select>
+            </div>
+            <div class="form-group full">
+                <label class="form-label">العنوان <span class="req">*</span></label>
+                <input class="form-input" name="title" required placeholder="مثال: الكاميرا رقم 3 لا تعمل">
+            </div>
+            <div class="form-group full">
+                <label class="form-label">الوصف</label>
+                <textarea class="form-textarea" name="description" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">الأولوية</label>
+                <select class="form-select" name="priority">
+                    <option value="low">منخفض</option>
+                    <option value="normal" selected>عادي</option>
+                    <option value="high">عالي</option>
+                    <option value="urgent">عاجل</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">صورة (اختياري)</label>
+                <input class="form-input" type="file" name="photo" accept="image/*">
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-primary">📤 إرسال</button>
+            <a href="{{ url_for('admin.requests_list') }}" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

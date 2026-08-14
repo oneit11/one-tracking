@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block body_class %}auth-body{% endblock %}
+{% block title %}تسجيل الدخول - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+    <h1 class="auth-title">{{ APP_NAME }}</h1>
+    <p class="auth-sub">نظام إدارة الصيانة والدعم الفني</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+            <div class="flash flash-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <form method="post" action="{{ url_for('auth.login') }}">
+        <div class="form-group">
+            <label class="form-label">البريد الإلكتروني</label>
+            <input class="form-input" type="email" name="email" required autofocus>
+        </div>
+        <div class="form-group mt-4">
+            <label class="form-label">كلمة المرور</label>
+            <input class="form-input" type="password" name="password" required>
+        </div>
+        <div class="form-group mt-4">
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;">
+                <input type="checkbox" name="remember"> تذكرني
+            </label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg mt-4">دخول</button>
+    </form>
+</div>
+{% endblock %}

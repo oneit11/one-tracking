@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}بوابتي - {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">مرحباً، {{ client.company_name }}</h1>
+        <p class="page-subtitle">بوابة إدارة الصيانة والدعم</p>
+    </div>
+    <a href="{{ url_for('portal.request_new') }}" class="btn btn-primary">+ طلب صيانة</a>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card primary"><span class="stat-label">أجهزتي</span><span class="stat-value">{{ stats.devices }}</span></div>
+    <div class="stat-card warning"><span class="stat-label">طلبات مفتوحة</span><span class="stat-value">{{ stats.open_requests }}</span></div>
+    <div class="stat-card success"><span class="stat-label">طلبات مغلقة</span><span class="stat-value">{{ stats.closed_requests }}</span></div>
+    {% if client.active_amc %}
+    <div class="stat-card accent"><span class="stat-label">عقد AMC ساري</span><span class="stat-value" style="font-size:16px;">حتى {{ client.active_amc.end_date }}</span></div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">أحدث طلباتي</h3>
+        <a href="{{ url_for('portal.requests_list') }}" class="btn btn-sm btn-secondary">عرض الكل</a>
+    </div>
+    {% if recent %}
+        {% for r in recent %}
+        <div class="detail-row">
+            <span>
+                <strong>{{ r.request_number }}</strong> - {{ r.title }}<br>
+                <span class="text-muted">{{ r.created_at.strftime('%Y-%m-%d') }}</span>
+            </span>
+            <span>
+                <span class="badge badge-{{ r.status }}">{{ r.status_label }}</span>
+                <a href="{{ url_for('portal.request_view', rid=r.id) }}" class="btn btn-sm btn-secondary">فتح</a>
+            </span>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty">
+            <h3>لا يوجد طلبات</h3>
+            <a href="{{ url_for('portal.request_new') }}" class="btn btn-primary mt-2">+ أول طلب صيانة</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

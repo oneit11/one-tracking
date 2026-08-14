@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}كود غير صالح{% endblock %}
+{% block content %}
+<div class="card text-center" style="max-width:500px;margin:60px auto;">
+    <h1>❌ كود QR غير معروف</h1>
+    <p class="text-muted" dir="ltr">{{ code }}</p>
+    <p>هذا الكود غير مسجل في النظام.</p>
+    <a href="/" class="btn btn-primary mt-4">الرئيسية</a>
+</div>
+{% endblock %}

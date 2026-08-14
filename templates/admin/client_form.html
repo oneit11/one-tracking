@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ 'تعديل عميل' if client else 'عميل جديد' }} - {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">{{ 'تعديل: ' ~ client.company_name if client else 'عميل جديد' }}</h1>
+    <a href="{{ url_for('admin.clients_list') }}" class="btn btn-secondary">← رجوع</a>
+</div>
+
+<div class="card">
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">اسم الشركة <span class="req">*</span></label>
+                <input class="form-input" name="company_name" required value="{{ client.company_name if client }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">المسؤول</label>
+                <input class="form-input" name="contact_person" value="{{ client.contact_person if client }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">التليفون <span class="req">*</span></label>
+                <input class="form-input" name="phone" required dir="ltr" value="{{ client.phone if client }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">WhatsApp (لو مختلف)</label>
+                <input class="form-input" name="whatsapp" dir="ltr" value="{{ client.whatsapp if client }}">
+                <span class="form-hint">لو فاضي هيستخدم رقم التليفون فوق للإشعارات</span>
+            </div>
+            <div class="form-group">
+                <label class="form-label">الإيميل</label>
+                <input class="form-input" type="email" name="email" value="{{ client.email if client }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">المدينة</label>
+                <input class="form-input" name="city" value="{{ client.city if client }}">
+            </div>
+            <div class="form-group full">
+                <label class="form-label">العنوان</label>
+                <textarea class="form-textarea" name="address">{{ client.address if client }}</textarea>
+            </div>
+            <div class="form-group full">
+                <label class="form-label">ملاحظات</label>
+                <textarea class="form-textarea" name="notes">{{ client.notes if client }}</textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">شعار العميل (اختياري)</label>
+                <input class="form-input" type="file" name="logo" accept="image/*">
+                {% if client and client.logo_url %}
+                    <img src="{{ client.logo_url }}" class="image-thumb mt-2" style="max-height:60px">
+                {% endif %}
+            </div>
+            {% if client %}
+            <div class="form-group">
+                <label class="form-label">الحالة</label>
+                <label style="display:flex;gap:8px;align-items:center;">
+                    <input type="checkbox" name="active" {% if client.active %}checked{% endif %}>
+                    نشط
+                </label>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">💾 حفظ</button>
+            <a href="{{ url_for('admin.clients_list') }}" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

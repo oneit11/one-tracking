@@ -1,0 +1,113 @@
+from datetime import datetime
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
+from flask_login import login_required, current_user
+from sqlalchemy import desc
+from models import db
+from models.client import Client
+from models.device import Device
+from models.request import MaintenanceRequest
+from utils.decorators import client_required
+from utils.helpers import save_upload, next_sequence
+from services import whatsapp as wa
+
+portal_bp = Blueprint("portal", __name__)
+
+
+def _my_client():
+    if not current_user.client_id:
+        return None
+    return Client.query.get(current_user.client_id)
+
+
+@portal_bp.route("/")
+@client_required
+def dashboard():
+    client = _my_client()
+    if not client:
+        flash("حسابك غير مرتبط بعميل. تواصل مع الإدارة.", "warning")
+        return redirect(url_for("auth.logout"))
+
+    stats = {
+        "devices": Device.query.filter_by(client_id=client.id, active=True).count(),
+        "open_requests": MaintenanceRequest.query.filter(
+            MaintenanceRequest.client_id == client.id,
+            MaintenanceRequest.status.in_(["new", "assigned", "in_progress", "report_ready"])
+        ).count(),
+        "closed_requests": MaintenanceRequest.query.filter(
+            MaintenanceRequest.client_id == client.id,
+            MaintenanceRequest.status == "closed"
+        ).count(),
+    }
+    recent = MaintenanceRequest.query.filter_by(client_id=client.id)\
+        .order_by(desc(MaintenanceRequest.created_at)).limit(5).all()
+    return render_template("portal/dashboard.html", client=client, stats=stats, recent=recent)
+
+
+@portal_bp.route("/devices")
+@client_required
+def devices():
+    client = _my_client()
+    if not client:
+        abort(403)
+    devices = Device.query.filter_by(client_id=client.id).order_by(Device.name).all()
+    return render_template("portal/devices.html", client=client, devices=devices)
+
+
+@portal_bp.route("/requests")
+@client_required
+def requests_list():
+    client = _my_client()
+    if not client:
+        abort(403)
+    reqs = MaintenanceRequest.query.filter_by(client_id=client.id)\
+        .order_by(desc(MaintenanceRequest.created_at)).all()
+    return render_template("portal/requests_list.html", client=client, requests=reqs)
+
+
+@portal_bp.route("/requests/new", methods=["GET", "POST"])
+@client_required
+def request_new():
+    client = _my_client()
+    if not client:
+        abort(403)
+    devices = Device.query.filter_by(client_id=client.id, active=True).order_by(Device.name).all()
+
+    if request.method == "POST":
+        req = MaintenanceRequest(
+            request_number=next_sequence(MaintenanceRequest, "request_number", "MR"),
+            client_id=client.id,
+            device_id=int(request.form.get("device_id")) if request.form.get("device_id") else None,
+            title=request.form.get("title", "").strip(),
+            description=request.form.get("description", "").strip(),
+            priority=request.form.get("priority", "normal"),
+            created_by=current_user.id,
+        )
+        if "photo" in request.files and request.files["photo"].filename:
+            p = save_upload(request.files["photo"], subfolder="reports", prefix="req_")
+            if p:
+                req.submitted_photo_url = p
+        db.session.add(req)
+        db.session.commit()
+        wa.notify_request_received(req)
+        flash(f"تم إرسال طلبك رقم {req.request_number}", "success")
+        return redirect(url_for("portal.request_view", rid=req.id))
+
+    return render_template("portal/request_form.html", client=client, devices=devices)
+
+
+@portal_bp.route("/requests/<int:rid>")
+@client_required
+def request_view(rid):
+    client = _my_client()
+    req = MaintenanceRequest.query.get_or_404(rid)
+    if req.client_id != client.id:
+        abort(403)
+    # Timeline steps for step-by-step visualization
+    steps = [
+        {"key": "new", "label": "تم استلام الطلب", "at": req.created_at, "done": True},
+        {"key": "assigned", "label": "تعيين فني", "at": req.assigned_at, "done": bool(req.assigned_at)},
+        {"key": "in_progress", "label": "قيد التنفيذ", "at": req.started_at, "done": bool(req.started_at)},
+        {"key": "report_ready", "label": "التقرير جاهز", "at": req.reported_at, "done": bool(req.reported_at)},
+        {"key": "closed", "label": "تم الإغلاق", "at": req.closed_at, "done": bool(req.closed_at)},
+    ]
+    return render_template("portal/request_view.html", client=client, req=req, steps=steps)

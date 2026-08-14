@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ 'تعديل جهاز' if device else 'جهاز جديد' }} - {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">{{ 'تعديل: ' ~ device.name if device else 'جهاز جديد' }}</h1>
+    <a href="{{ url_for('admin.devices_list') }}" class="btn btn-secondary">← رجوع</a>
+</div>
+
+<div class="card">
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">العميل <span class="req">*</span></label>
+                <select class="form-select" name="client_id" required>
+                    <option value="">-- اختر --</option>
+                    {% for c in clients %}
+                    <option value="{{ c.id }}"
+                        {% if device and device.client_id == c.id %}selected{% endif %}
+                        {% if preselected_client_id == c.id %}selected{% endif %}>
+                        {{ c.company_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">اسم الجهاز <span class="req">*</span></label>
+                <input class="form-input" name="name" required value="{{ device.name if device }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">النوع</label>
+                <select class="form-select" name="device_type">
+                    <option value="">--</option>
+                    {% for val, lbl in device_types %}
+                    <option value="{{ val }}" {% if device and device.device_type == val %}selected{% endif %}>{{ lbl }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">الماركة</label>
+                <input class="form-input" name="brand" value="{{ device.brand if device }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">الموديل</label>
+                <input class="form-input" name="model" value="{{ device.model if device }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">السيريال</label>
+                <input class="form-input" name="serial_number" dir="ltr" value="{{ device.serial_number if device }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">الموقع داخل المكان</label>
+                <input class="form-input" name="location" placeholder="مثلاً: الدور الثاني - المكتب الرئيسي" value="{{ device.location if device }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">تاريخ التركيب</label>
+                <input class="form-input" type="date" name="installation_date" value="{{ device.installation_date if device and device.installation_date }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">نهاية الضمان</label>
+                <input class="form-input" type="date" name="warranty_end" value="{{ device.warranty_end if device and device.warranty_end }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">صورة الجهاز</label>
+                <input class="form-input" type="file" name="photo" accept="image/*">
+                {% if device and device.photo_url %}<img src="{{ device.photo_url }}" class="image-thumb mt-2" style="max-height:80px">{% endif %}
+            </div>
+            {% if not device %}
+            <div class="form-group">
+                <label class="form-label">كود QR (اختياري - للربط الفوري)</label>
+                <input class="form-input" name="qr_code" dir="ltr" placeholder="ONE-QR-2026-000001">
+                <span class="form-hint">اتركه فاضي لو مش هتربطه بكود QR الآن</span>
+            </div>
+            {% endif %}
+            <div class="form-group full">
+                <label class="form-label">ملاحظات</label>
+                <textarea class="form-textarea" name="notes">{{ device.notes if device }}</textarea>
+            </div>
+            {% if device %}
+            <div class="form-group">
+                <label style="display:flex;gap:8px;align-items:center;">
+                    <input type="checkbox" name="active" {% if device.active %}checked{% endif %}>
+                    نشط
+                </label>
+            </div>
+            {% endif %}
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-primary">💾 حفظ</button>
+            <a href="{{ url_for('admin.devices_list') }}" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

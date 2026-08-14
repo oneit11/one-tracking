@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}طلب صيانة جديد{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">طلب صيانة جديد</h1>
+    <a href="{{ url_for('portal.requests_list') }}" class="btn btn-secondary">← رجوع</a>
+</div>
+
+<div class="card">
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">الجهاز (اختياري)</label>
+                <select class="form-select" name="device_id">
+                    <option value="">-- طلب عام --</option>
+                    {% for d in devices %}
+                    <option value="{{ d.id }}">{{ d.name }} {% if d.location %}({{ d.location }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">الأولوية</label>
+                <select class="form-select" name="priority">
+                    <option value="low">منخفض</option>
+                    <option value="normal" selected>عادي</option>
+                    <option value="high">عالي</option>
+                    <option value="urgent">عاجل</option>
+                </select>
+            </div>
+            <div class="form-group full">
+                <label class="form-label">العنوان <span class="req">*</span></label>
+                <input class="form-input" name="title" required placeholder="مثال: الكاميرا في المدخل لا تعمل">
+            </div>
+            <div class="form-group full">
+                <label class="form-label">وصف المشكلة</label>
+                <textarea class="form-textarea" name="description" rows="4" placeholder="اذكر أي تفاصيل تساعد الفني..."></textarea>
+            </div>
+            <div class="form-group full">
+                <label class="form-label">صورة المشكلة</label>
+                <input class="form-input" type="file" name="photo" accept="image/*" capture="environment">
+                <span class="form-hint">تساعد الفني في تشخيص المشكلة قبل الزيارة</span>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-primary btn-lg">📤 إرسال الطلب</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

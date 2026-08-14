@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}تذكرة دعم جديدة{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">تذكرة دعم جديدة</h1>
+    <a href="{{ url_for('admin.tickets_list') }}" class="btn btn-secondary">← رجوع</a>
+</div>
+<div class="card">
+    <form method="post">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">العميل <span class="req">*</span></label>
+                <select class="form-select" name="client_id" required>
+                    <option value="">--</option>
+                    {% for c in clients %}<option value="{{ c.id }}">{{ c.company_name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">الأولوية</label>
+                <select class="form-select" name="priority">
+                    <option value="low">منخفض</option><option value="normal" selected>عادي</option>
+                    <option value="high">عالي</option><option value="urgent">عاجل</option>
+                </select>
+            </div>
+            <div class="form-group full">
+                <label class="form-label">الموضوع <span class="req">*</span></label>
+                <input class="form-input" name="subject" required>
+            </div>
+            <div class="form-group full">
+                <label class="form-label">الوصف</label>
+                <textarea class="form-textarea" name="description" rows="4"></textarea>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-primary">💾 حفظ</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

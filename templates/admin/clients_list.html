@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}العملاء - {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">العملاء</h1>
+        <p class="page-subtitle">{{ clients|length }} عميل</p>
+    </div>
+    <a href="{{ url_for('admin.client_new') }}" class="btn btn-primary">+ عميل جديد</a>
+</div>
+
+<div class="card">
+    <form method="get" class="d-flex gap-2 mb-4">
+        <input class="form-input" name="q" placeholder="بحث بالاسم، التليفون، الكود..." value="{{ q }}">
+        <button class="btn btn-secondary">بحث</button>
+    </form>
+
+    {% if clients %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>الكود</th>
+                    <th>اسم الشركة</th>
+                    <th>المسؤول</th>
+                    <th>التليفون</th>
+                    <th>المدينة</th>
+                    <th>الأجهزة</th>
+                    <th>AMC</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in clients %}
+                <tr>
+                    <td><strong>{{ c.code }}</strong></td>
+                    <td>{{ c.company_name }}</td>
+                    <td>{{ c.contact_person }}</td>
+                    <td dir="ltr">{{ c.phone }}</td>
+                    <td>{{ c.city }}</td>
+                    <td>{{ c.devices|length }}</td>
+                    <td>
+                        {% if c.active_amc %}
+                            <span class="badge badge-closed">فعال</span>
+                        {% else %}
+                            <span class="badge">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('admin.client_view', cid=c.id) }}" class="btn btn-sm btn-secondary">فتح</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">
+        <h3>لا يوجد عملاء</h3>
+        <a href="{{ url_for('admin.client_new') }}" class="btn btn-primary mt-2">+ إضافة أول عميل</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

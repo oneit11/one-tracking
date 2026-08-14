@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}إدارة QR{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">إدارة QR Codes</h1>
+</div>
+
+<div class="card">
+    <div class="card-header"><h3 class="card-title">توليد باتش جديد</h3></div>
+    <form method="post" action="{{ url_for('admin.qr_batch_new') }}">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">عدد الأكواد <span class="req">*</span></label>
+                <input class="form-input" type="number" name="count" min="1" max="5000" value="50" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">المقاس الافتراضي</label>
+                <select class="form-select" name="size">
+                    {% for key, cfg in sizes.items() %}
+                    <option value="{{ key }}" {% if key == 'medium' %}selected{% endif %}>
+                        {{ {'small':'صغير','medium':'متوسط','large':'كبير'}[key] }} ({{ cfg.label }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group full">
+                <label class="form-label">ملاحظات</label>
+                <input class="form-input" name="notes" placeholder="مثال: باتش يناير - كاميرات">
+            </div>
+        </div>
+        <button class="btn btn-primary mt-4">📦 توليد الباتش</button>
+    </form>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">الباتشات السابقة</h3></div>
+    {% if batches %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>الكود</th><th>العدد</th><th>مستخدم</th><th>فاضي</th><th>التاريخ</th><th></th></tr></thead>
+            <tbody>
+                {% for b in batches %}
+                <tr>
+                    <td><strong dir="ltr">{{ b.batch_code }}</strong></td>
+                    <td>{{ b.count }}</td>
+                    <td>{{ b.used_count }}</td>
+                    <td>{{ b.unused_count }}</td>
+                    <td>{{ b.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td><a href="{{ url_for('admin.qr_batch_view', bid=b.id) }}" class="btn btn-sm btn-secondary">عرض</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p class="text-muted">لم يتم توليد أي باتش بعد</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}{{ req.request_number }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ req.request_number }}</h1>
+        <p class="page-subtitle">{{ req.title }}</p>
+    </div>
+    <span class="badge badge-{{ req.status }}" style="font-size:14px;padding:8px 16px;">{{ req.status_label }}</span>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">حالة الطلب</h3></div>
+        <div class="timeline">
+            {% for step in steps %}
+            <div class="timeline-step {{ 'done' if step.done }}">
+                <div class="timeline-dot">{% if step.done %}✓{% else %}{{ loop.index }}{% endif %}</div>
+                <div class="timeline-content">
+                    <div class="timeline-label">{{ step.label }}</div>
+                    {% if step.at %}
+                    <div class="timeline-time">{{ step.at.strftime('%Y-%m-%d %H:%M') }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">التفاصيل</h3></div>
+        <div class="detail-row"><span class="detail-label">الجهاز</span><span class="detail-value">{{ req.device.name if req.device else '-' }}</span></div>
+        <div class="detail-row"><span class="detail-label">الأولوية</span><span class="detail-value"><span class="badge badge-{{ req.priority }}">{{ req.priority_label }}</span></span></div>
+        <div class="detail-row"><span class="detail-label">الفني المعين</span><span class="detail-value">{{ req.technician.name if req.technician else 'لم يتم التعيين بعد' }}</span></div>
+
+        {% if req.description %}
+        <div class="mt-4">
+            <p class="form-label">تفاصيل المشكلة:</p>
+            <p style="white-space:pre-wrap;">{{ req.description }}</p>
+        </div>
+        {% endif %}
+
+        {% if req.submitted_photo_url %}
+        <div class="mt-4">
+            <p class="form-label mb-2">صورتك:</p>
+            <a href="{{ req.submitted_photo_url }}" target="_blank"><img src="{{ req.submitted_photo_url }}" class="image-thumb" style="max-height:180px"></a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if req.visit_report %}
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">📋 تقرير الفني</h3></div>
+    <div class="detail-row"><span class="detail-label">الفني</span><span class="detail-value">{{ req.visit_report.technician.name }}</span></div>
+    <div class="detail-row"><span class="detail-label">تاريخ الزيارة</span><span class="detail-value">{{ req.visit_report.visit_date.strftime('%Y-%m-%d %H:%M') }}</span></div>
+    <div class="detail-row">
+        <span class="detail-label">نتيجة الزيارة</span>
+        <span class="detail-value">
+            {% if req.visit_report.resolved %}
+                <span class="badge badge-closed">تم الحل ✓</span>
+            {% else %}
+                <span class="badge badge-in_progress">يحتاج متابعة</span>
+            {% endif %}
+        </span>
+    </div>
+
+    {% if req.visit_report.diagnosis %}
+        <div class="mt-4"><p class="form-label">التشخيص:</p><p style="white-space:pre-wrap;">{{ req.visit_report.diagnosis }}</p></div>
+    {% endif %}
+    {% if req.visit_report.actions_taken %}
+        <div class="mt-4"><p class="form-label">الإجراءات المتخذة:</p><p style="white-space:pre-wrap;">{{ req.visit_report.actions_taken }}</p></div>
+    {% endif %}
+    {% if req.visit_report.spare_parts %}
+        <div class="mt-4"><p class="form-label">قطع الغيار:</p><p style="white-space:pre-wrap;">{{ req.visit_report.spare_parts }}</p></div>
+    {% endif %}
+    {% if req.visit_report.recommendations %}
+        <div class="mt-4"><p class="form-label">التوصيات:</p><p style="white-space:pre-wrap;">{{ req.visit_report.recommendations }}</p></div>
+    {% endif %}
+    {% if req.visit_report.photo_url %}
+        <div class="mt-4"><p class="form-label mb-2">صورة من الزيارة:</p><a href="{{ req.visit_report.photo_url }}" target="_blank"><img src="{{ req.visit_report.photo_url }}" class="image-thumb" style="max-height:220px"></a></div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

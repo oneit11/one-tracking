@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}الأجهزة - {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">الأجهزة ({{ devices|length }})</h1>
+    <a href="{{ url_for('admin.device_new') }}" class="btn btn-primary">+ جهاز جديد</a>
+</div>
+
+<div class="card">
+    <form method="get" class="d-flex gap-2 mb-4">
+        <input class="form-input" name="q" placeholder="بحث بالاسم، السيريال، الموديل..." value="{{ q }}">
+        <button class="btn btn-secondary">بحث</button>
+    </form>
+
+    {% if devices %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr><th>الاسم</th><th>العميل</th><th>النوع</th><th>الموديل</th><th>الموقع</th><th>QR</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for d in devices %}
+                <tr>
+                    <td><strong>{{ d.name }}</strong></td>
+                    <td>{{ d.client.company_name }}</td>
+                    <td>{{ d.device_type }}</td>
+                    <td>{{ d.brand }} {{ d.model }}</td>
+                    <td>{{ d.location or '-' }}</td>
+                    <td>{% if d.qr_code %}<span class="badge badge-closed" dir="ltr" style="font-size:11px">{{ d.qr_code.code }}</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                    <td><a class="btn btn-sm btn-secondary" href="{{ url_for('admin.device_view', did=d.id) }}">فتح</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <div class="empty">
+            <h3>لا توجد أجهزة</h3>
+            <a href="{{ url_for('admin.device_new') }}" class="btn btn-primary mt-2">+ أول جهاز</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
