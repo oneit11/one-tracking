@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}بحث: {{ q }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1 class="page-title">🔍 نتائج البحث: "{{ q }}"</h1></div>
+
+<div class="card">
+    <form method="get" class="d-flex gap-2">
+        <input class="form-input" name="q" value="{{ q }}" placeholder="بحث...">
+        <button class="btn btn-primary">بحث</button>
+    </form>
+</div>
+
+{% if q %}
+    {% if results.clients %}
+    <div class="card mt-4"><h3>عملاء ({{ results.clients|length }})</h3>
+        {% for c in results.clients %}
+        <div class="detail-row"><span><strong>{{ c.company_name }}</strong> — {{ c.code }}</span>
+            <a href="{{ url_for('admin.client_view', cid=c.id) }}" class="btn btn-sm btn-secondary">فتح</a></div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if results.devices %}
+    <div class="card mt-4"><h3>أجهزة ({{ results.devices|length }})</h3>
+        {% for d in results.devices %}
+        <div class="detail-row"><span><strong>{{ d.name }}</strong> — {{ d.client.company_name }}</span>
+            <a href="{{ url_for('admin.device_view', did=d.id) }}" class="btn btn-sm btn-secondary">فتح</a></div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if results.requests %}
+    <div class="card mt-4"><h3>طلبات ({{ results.requests|length }})</h3>
+        {% for r in results.requests %}
+        <div class="detail-row"><span><strong>{{ r.request_number }}</strong> — {{ r.title[:50] }}</span>
+            <a href="{{ url_for('admin.request_view', rid=r.id) }}" class="btn btn-sm btn-secondary">فتح</a></div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if not results.clients and not results.devices and not results.requests %}
+    <div class="card mt-4"><div class="empty"><h3>لا يوجد نتائج</h3></div></div>
+    {% endif %}
+{% endif %}
+{% endblock %}

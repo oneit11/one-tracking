@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}قوالب رسايل واتس{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">💬 قوالب رسايل WhatsApp</h1>
+    <a href="{{ url_for('settings.home') }}" class="btn btn-secondary">← الإعدادات</a>
+</div>
+
+<div class="card">
+    <p class="text-muted">القوالب دي بتتبعت تلقائياً حسب الأحداث. تقدر تعدل النص وتستخدم متغيرات زي <code>{اسم_العميل}</code>.</p>
+
+    <div class="table-wrap mt-4">
+        <table class="table">
+            <thead><tr><th>الكود</th><th>الاسم</th><th>الوصف</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+                {% for t in templates %}
+                <tr>
+                    <td dir="ltr"><small>{{ t.code }}</small></td>
+                    <td><strong>{{ t.name }}</strong></td>
+                    <td class="text-muted"><small>{{ t.description }}</small></td>
+                    <td>
+                        {% if t.active %}<span class="badge badge-closed">مفعّل</span>
+                        {% else %}<span class="badge badge-cancelled">معطّل</span>{% endif %}
+                    </td>
+                    <td><a class="btn btn-sm btn-secondary" href="{{ url_for('settings.template_edit', tid=t.id) }}">تعديل</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

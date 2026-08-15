@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}المخزون{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">📦 مخزون قطع الغيار</h1>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('inventory.movements') }}" class="btn btn-secondary">سجل الحركات</a>
+        <a href="{{ url_for('inventory.part_new') }}" class="btn btn-primary">+ قطعة جديدة</a>
+    </div>
+</div>
+
+{% if low_stock %}
+<div class="card" style="border:1px solid var(--warning)">
+    <h3>⚠️ تحذير: {{ low_stock|length }} قطعة تحت الحد الأدنى</h3>
+    <ul>{% for p in low_stock %}<li><strong>{{ p.name }}</strong> — الكمية: {{ p.quantity }} (الحد: {{ p.min_quantity }})</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="card">
+    <form method="get" class="d-flex gap-2 mb-4">
+        <input class="form-input" name="q" placeholder="بحث..." value="{{ q }}">
+        <button class="btn btn-secondary">🔍</button>
+    </form>
+
+    {% if parts %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>SKU</th><th>الاسم</th><th>الفئة</th><th>الكمية</th><th>السعر</th><th>الموقع</th><th></th></tr></thead>
+            <tbody>
+                {% for p in parts %}
+                <tr>
+                    <td dir="ltr"><small>{{ p.sku or '-' }}</small></td>
+                    <td><strong>{{ p.name }}</strong></td>
+                    <td>{{ p.category or '-' }}</td>
+                    <td>
+                        {{ p.quantity }} {{ p.unit }}
+                        {% if p.quantity is not none and p.min_quantity and p.quantity <= p.min_quantity %}
+                            <span class="badge badge-cancelled">منخفض</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ p.unit_price }} ج.م</td>
+                    <td>{{ p.location or '-' }}</td>
+                    <td><a class="btn btn-sm btn-secondary" href="{{ url_for('inventory.part_edit', pid=p.id) }}">فتح</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}<div class="empty"><h3>لا يوجد قطع</h3></div>{% endif %}
+</div>
+{% endblock %}

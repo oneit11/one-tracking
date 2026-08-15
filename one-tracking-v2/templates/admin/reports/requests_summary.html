@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}ملخص طلبات الصيانة{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">📋 ملخص طلبات الصيانة</h1>
+        <p class="page-subtitle">من {{ frm }} إلى {{ to }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.requests_summary_pdf', **{'from': frm, 'to': to}) }}" class="btn btn-primary">📄 تصدير PDF</a>
+        <a href="{{ url_for('reports.home') }}" class="btn btn-secondary">← رجوع</a>
+    </div>
+</div>
+
+<div class="card">
+    <form method="get" class="d-flex gap-2 mb-4 flex-wrap">
+        <div class="form-group"><label class="form-label">من</label><input class="form-input" type="date" name="from" value="{{ frm }}"></div>
+        <div class="form-group"><label class="form-label">إلى</label><input class="form-input" type="date" name="to" value="{{ to }}"></div>
+        <button class="btn btn-primary" style="align-self:end">تحديث</button>
+    </form>
+
+    <div class="stats-grid">
+        {% for st, count in status_counts.items() %}
+        <div class="stat-card">
+            <span class="stat-label">{{ {'new':'جديد','assigned':'تم التعيين','in_progress':'قيد التنفيذ','report_ready':'تقرير جاهز','closed':'مغلق','cancelled':'ملغي'}.get(st, st) }}</span>
+            <span class="stat-value">{{ count }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="table-wrap mt-4">
+        <table class="table">
+            <thead><tr><th>الرقم</th><th>العميل</th><th>العنوان</th><th>الأولوية</th><th>الحالة</th><th>الفني</th><th>تاريخ</th></tr></thead>
+            <tbody>
+                {% for r in reqs %}
+                <tr>
+                    <td><strong>{{ r.request_number }}</strong></td>
+                    <td>{{ r.client.company_name }}</td>
+                    <td>{{ r.title[:40] }}</td>
+                    <td><span class="badge badge-{{ r.priority }}">{{ r.priority_label }}</span></td>
+                    <td><span class="badge badge-{{ r.status }}">{{ r.status_label }}</span></td>
+                    <td>{{ r.technician.name if r.technician else '-' }}</td>
+                    <td>{{ r.created_at.strftime('%Y-%m-%d') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

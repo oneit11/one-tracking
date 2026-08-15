@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}{{ 'تعديل قطعة' if part else 'قطعة جديدة' }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">{{ 'تعديل: ' ~ part.name if part else 'قطعة جديدة' }}</h1>
+    <a href="{{ url_for('inventory.parts_list') }}" class="btn btn-secondary">← رجوع</a>
+</div>
+
+<div class="card">
+    <form method="post">
+        <div class="form-grid">
+            <div class="form-group"><label class="form-label">SKU</label><input class="form-input" name="sku" dir="ltr" value="{{ part.sku if part else '' }}"></div>
+            <div class="form-group"><label class="form-label">الاسم *</label><input class="form-input" name="name" required value="{{ part.name if part else '' }}"></div>
+            <div class="form-group"><label class="form-label">الفئة</label><input class="form-input" name="category" value="{{ part.category if part else '' }}"></div>
+            <div class="form-group"><label class="form-label">الوحدة</label><input class="form-input" name="unit" value="{{ part.unit if part else 'قطعة' }}"></div>
+            {% if not part %}
+            <div class="form-group"><label class="form-label">الكمية الأولية</label><input class="form-input" type="number" step="0.01" name="quantity" value="0"></div>
+            {% endif %}
+            <div class="form-group"><label class="form-label">الحد الأدنى</label><input class="form-input" type="number" step="0.01" name="min_quantity" value="{{ part.min_quantity if part else 0 }}"></div>
+            <div class="form-group"><label class="form-label">سعر الوحدة</label><input class="form-input" type="number" step="0.01" name="unit_price" value="{{ part.unit_price if part else 0 }}"></div>
+            <div class="form-group"><label class="form-label">الموقع</label><input class="form-input" name="location" value="{{ part.location if part else '' }}"></div>
+            <div class="form-group full"><label class="form-label">ملاحظات</label><textarea class="form-textarea" name="notes">{{ part.notes if part else '' }}</textarea></div>
+            {% if part %}
+            <div class="form-group"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="active" {% if part.active %}checked{% endif %}> نشط</label></div>
+            {% endif %}
+        </div>
+        <div class="form-actions"><button class="btn btn-primary">💾 حفظ</button></div>
+    </form>
+</div>
+
+{% if part %}
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">تسجيل حركة مخزنية</h3></div>
+    <p><strong>الكمية الحالية:</strong> {{ part.quantity }} {{ part.unit }}</p>
+    <form method="post" action="{{ url_for('inventory.add_movement', pid=part.id) }}">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">النوع</label>
+                <select class="form-select" name="kind">
+                    <option value="in">إضافة (وارد)</option>
+                    <option value="out">صرف (منصرف)</option>
+                    <option value="adjust">ضبط الكمية</option>
+                </select>
+            </div>
+            <div class="form-group"><label class="form-label">الكمية</label><input class="form-input" type="number" step="0.01" name="quantity" required></div>
+            <div class="form-group"><label class="form-label">مرجع (رقم الطلب...)</label><input class="form-input" name="reference"></div>
+            <div class="form-group full"><label class="form-label">ملاحظات</label><input class="form-input" name="notes"></div>
+        </div>
+        <button class="btn btn-primary mt-4">تسجيل الحركة</button>
+    </form>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">سجل الحركات</h3></div>
+    {% if part.movements %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>التاريخ</th><th>النوع</th><th>الكمية</th><th>مرجع</th><th>ملاحظات</th></tr></thead>
+            <tbody>
+                {% for m in part.movements|sort(attribute='created_at', reverse=true) %}
+                <tr>
+                    <td>{{ m.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{% if m.kind == 'in' %}<span class="badge badge-closed">وارد</span>
+                        {% elif m.kind == 'out' %}<span class="badge badge-cancelled">صرف</span>
+                        {% else %}<span class="badge">ضبط</span>{% endif %}</td>
+                    <td>{{ m.quantity }}</td>
+                    <td dir="ltr">{{ m.reference or '-' }}</td>
+                    <td>{{ m.notes or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}<p class="text-muted">لا يوجد حركات</p>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

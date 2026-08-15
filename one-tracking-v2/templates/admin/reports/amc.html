@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}تقرير AMC{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">📜 تقرير عقود AMC</h1>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.amc_report_pdf') }}" class="btn btn-primary">📄 PDF</a>
+        <a href="{{ url_for('reports.home') }}" class="btn btn-secondary">← رجوع</a>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card success"><span class="stat-label">عقود نشطة</span><span class="stat-value">{{ active|length }}</span></div>
+    <div class="stat-card warning"><span class="stat-label">تنتهي خلال 30 يوم</span><span class="stat-value">{{ expiring_soon|length }}</span></div>
+    <div class="stat-card danger"><span class="stat-label">منتهية</span><span class="stat-value">{{ expired|length }}</span></div>
+</div>
+
+{% if expiring_soon %}
+<div class="card">
+    <div class="card-header"><h3 class="card-title">⚠️ تنتهي قريباً</h3></div>
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>العميل</th><th>رقم العقد</th><th>الانتهاء</th></tr></thead>
+            <tbody>
+                {% for a in expiring_soon %}
+                <tr><td>{{ a.client.company_name }}</td><td>{{ a.contract_number or '-' }}</td><td>{{ a.end_date }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">النشطة</h3></div>
+    {% if active %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>العميل</th><th>رقم العقد</th><th>القيمة</th><th>الانتهاء</th></tr></thead>
+            <tbody>
+                {% for a in active %}
+                <tr><td>{{ a.client.company_name }}</td><td>{{ a.contract_number or '-' }}</td><td>{{ a.contract_value }}</td><td>{{ a.end_date }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}<div class="empty"><h3>لا يوجد عقود نشطة</h3></div>{% endif %}
+</div>
+{% endblock %}

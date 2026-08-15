@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}طلبات الصيانة{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">طلبات الصيانة</h1>
+    <a href="{{ url_for('admin.request_new') }}" class="btn btn-primary">+ طلب جديد</a>
+</div>
+
+<div class="card">
+    <form method="get" class="d-flex gap-2 flex-wrap mb-4">
+        <select class="form-select" name="status" onchange="this.form.submit()" style="max-width:150px">
+            <option value="">كل الحالات</option>
+            {% for key, label in status_labels.items() %}
+            <option value="{{ key }}" {% if status == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <select class="form-select" name="priority" onchange="this.form.submit()" style="max-width:150px">
+            <option value="">كل الأولويات</option>
+            <option value="urgent" {% if priority == 'urgent' %}selected{% endif %}>عاجل</option>
+            <option value="high" {% if priority == 'high' %}selected{% endif %}>عالي</option>
+            <option value="normal" {% if priority == 'normal' %}selected{% endif %}>عادي</option>
+            <option value="low" {% if priority == 'low' %}selected{% endif %}>منخفض</option>
+        </select>
+        <select class="form-select" name="tech" onchange="this.form.submit()" style="max-width:180px">
+            <option value="">كل الفنيين</option>
+            {% for t in techs %}
+            <option value="{{ t.id }}" {% if tech_id == t.id %}selected{% endif %}>{{ t.name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
+    {% if requests %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>الرقم</th><th>العميل</th><th>العنوان</th><th>الأولوية</th><th>الحالة</th><th>SLA</th><th>الفني</th><th>التاريخ</th><th></th></tr></thead>
+            <tbody>
+                {% for r in requests %}
+                <tr>
+                    <td><strong>{{ r.request_number }}</strong></td>
+                    <td>{{ r.client.company_name }}</td>
+                    <td>{{ r.title[:35] }}</td>
+                    <td><span class="badge badge-{{ r.priority }}">{{ r.priority_label }}</span></td>
+                    <td><span class="badge badge-{{ r.status }}">{{ r.status_label }}</span></td>
+                    <td>
+                        {% set st = sla_map.get(r.id) %}
+                        <span class="sla-{{ st }}"><small>
+                            {% if st == 'breached' %}⚠️ {% elif st == 'warning' %}⏰ {% elif st == 'ok' %}✅ {% endif %}
+                            {{ sla_time.get(r.id, '-') }}
+                        </small></span>
+                    </td>
+                    <td>{{ r.technician.name if r.technician else '-' }}</td>
+                    <td>{{ r.created_at.strftime('%m-%d') }}</td>
+                    <td><a class="btn btn-sm btn-secondary" href="{{ url_for('admin.request_view', rid=r.id) }}">فتح</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}<div class="empty"><h3>لا توجد طلبات</h3></div>{% endif %}
+</div>
+{% endblock %}

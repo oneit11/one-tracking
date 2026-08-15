@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}سجل الحركات المخزنية{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">📋 سجل الحركات المخزنية</h1>
+    <a href="{{ url_for('inventory.parts_list') }}" class="btn btn-secondary">← رجوع</a>
+</div>
+<div class="card">
+    {% if movements %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>التاريخ</th><th>القطعة</th><th>النوع</th><th>الكمية</th><th>مرجع</th></tr></thead>
+            <tbody>
+                {% for m in movements %}
+                <tr>
+                    <td>{{ m.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ m.part.name if m.part else '-' }}</td>
+                    <td>{% if m.kind == 'in' %}<span class="badge badge-closed">وارد</span>
+                        {% elif m.kind == 'out' %}<span class="badge badge-cancelled">صرف</span>
+                        {% else %}<span class="badge">ضبط</span>{% endif %}</td>
+                    <td>{{ m.quantity }}</td>
+                    <td dir="ltr">{{ m.reference or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}<div class="empty"><h3>لا يوجد حركات</h3></div>{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}الإعدادات{% endblock %}
+{% block content %}
+<div class="page-header"><h1 class="page-title">إعدادات النظام</h1></div>
+
+<div class="settings-layout">
+    <aside class="settings-nav">
+        <a href="{{ url_for('settings.branding') }}">🎨 الهوية والشكل</a>
+        <a href="{{ url_for('settings.company') }}">🏢 بيانات الشركة</a>
+        <a href="{{ url_for('settings.hours') }}">⏰ ساعات العمل و SLA</a>
+        <a href="{{ url_for('settings.templates_list') }}">💬 قوالب رسايل واتس</a>
+        <a href="{{ url_for('admin.wa_home') }}">📱 ربط WhatsApp</a>
+        <a href="{{ url_for('settings.roles_list') }}">🔐 الأدوار والصلاحيات</a>
+        <a href="{{ url_for('audit.logs') }}">📋 سجل التتبع (Audit)</a>
+    </aside>
+
+    <div>
+        <div class="card">
+            <h3>مرحباً في مركز الإعدادات</h3>
+            <p class="text-muted">اختر قسم من القائمة الجانبية لبدء التعديل.</p>
+
+            <div class="grid-2 mt-4">
+                <div class="stat-card primary">
+                    <span class="stat-label">اسم البرنامج الحالي</span>
+                    <span class="stat-value" style="font-size:18px">{{ APP_NAME }}</span>
+                </div>
+                <div class="stat-card accent">
+                    <span class="stat-label">اسم الشركة</span>
+                    <span class="stat-value" style="font-size:16px">{{ COMPANY_NAME }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

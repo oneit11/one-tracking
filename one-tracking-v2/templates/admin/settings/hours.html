@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}ساعات العمل و SLA{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">⏰ ساعات العمل و SLA</h1>
+    <a href="{{ url_for('settings.home') }}" class="btn btn-secondary">← الإعدادات</a>
+</div>
+
+<div class="card">
+    <form method="post">
+        <div class="card-header"><h3 class="card-title">ساعات العمل</h3></div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">بداية العمل</label>
+                <input class="form-input" type="time" name="biz_hours_start" value="{{ hours.get('biz_hours_start', '09:00') }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">نهاية العمل</label>
+                <input class="form-input" type="time" name="biz_hours_end" value="{{ hours.get('biz_hours_end', '18:00') }}">
+            </div>
+            <div class="form-group full">
+                <label class="form-label">أيام العطلة</label>
+                <input class="form-input" name="biz_weekend" value="{{ hours.get('biz_weekend', 'Friday,Saturday') }}">
+                <span class="form-hint">افصل بفاصلة (Friday,Saturday)</span>
+            </div>
+        </div>
+
+        <div class="card-header mt-4"><h3 class="card-title">SLA — زمن الاستجابة المستهدف (بالساعات)</h3></div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">🚨 عاجل (urgent)</label>
+                <input class="form-input" type="number" min="1" name="sla_urgent_hours" value="{{ sla.get('sla_urgent_hours', '2') }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">⚡ عالي (high)</label>
+                <input class="form-input" type="number" min="1" name="sla_high_hours" value="{{ sla.get('sla_high_hours', '8') }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">🔵 عادي (normal)</label>
+                <input class="form-input" type="number" min="1" name="sla_normal_hours" value="{{ sla.get('sla_normal_hours', '24') }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">🌙 منخفض (low)</label>
+                <input class="form-input" type="number" min="1" name="sla_low_hours" value="{{ sla.get('sla_low_hours', '72') }}">
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn btn-primary">💾 حفظ</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

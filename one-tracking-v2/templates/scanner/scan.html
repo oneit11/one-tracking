@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}ماسح QR{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">📷 ماسح QR</h1>
+</div>
+
+<div class="scanner-wrap">
+    <div class="card">
+        <p class="text-muted mb-4">امسح QR الملصق على الجهاز للفتح المباشر.</p>
+        <div id="reader"></div>
+        <div id="scanResult" class="mt-4" style="display:none"></div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button id="startBtn" class="btn btn-primary btn-block">▶️ بدء المسح</button>
+            <button id="stopBtn" class="btn btn-secondary btn-block" style="display:none">⏸ إيقاف</button>
+        </div>
+
+        <hr style="margin:20px 0;border:none;border-top:1px solid var(--border)">
+        <p class="form-label">أو ادخل الكود يدوياً:</p>
+        <form onsubmit="manualScan(event)" class="d-flex gap-2">
+            <input type="text" id="manualCode" class="form-input" placeholder="ONE-QR-2026-000001" dir="ltr">
+            <button class="btn btn-primary">بحث</button>
+        </form>
+    </div>
+</div>
+
+<script>
+let html5QrCode = null;
+
+function showResult(html, ok = true) {
+    const el = document.getElementById('scanResult');
+    el.style.display = 'block';
+    el.className = 'card ' + (ok ? '' : 'flash-danger');
+    el.innerHTML = html;
+}
+
+async function handleScan(code) {
+    try {
+        const r = await fetch('/api/scan-lookup?code=' + encodeURIComponent(code));
+        const d = await r.json();
+        if (r.ok && d.found) {
+            if (d.bound) {
+                showResult(`
+                    <h3>✅ تم العثور على الجهاز</h3>
+                    <p><strong>${d.device_name}</strong></p>
+                    <p class="text-muted">${d.client_name}</p>
+                    <a href="${d.redirect}" class="btn btn-primary btn-block mt-2">افتح الجهاز</a>
+                `);
+            } else {
+                showResult(`
+                    <h3>⚠️ الكود غير مربوط بجهاز</h3>
+                    <p>الكود: <code>${d.code}</code></p>
+                    <a href="${d.redirect}" class="btn btn-primary btn-block mt-2">اربط بجهاز</a>
+                `);
+            }
+        } else {
+            showResult(`<h3>❌ كود غير معروف</h3><p><code>${code}</code></p>`, false);
+        }
+    } catch (e) {
+        showResult(`<h3>خطأ في الاتصال</h3><p>${e.message}</p>`, false);
+    }
+}
+
+function manualScan(e) {
+    e.preventDefault();
+    const code = document.getElementById('manualCode').value.trim();
+    if (code) handleScan(code);
+}
+
+document.getElementById('startBtn').onclick = async function() {
+    if (!html5QrCode) html5QrCode = new Html5Qrcode('reader');
+    try {
+        await html5QrCode.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 240, height: 240 } },
+            function(text) {
+                html5QrCode.stop();
+                document.getElementById('startBtn').style.display = 'inline-flex';
+                document.getElementById('stopBtn').style.display = 'none';
+                handleScan(text);
+            },
+            function(err) {}
+        );
+        document.getElementById('startBtn').style.display = 'none';
+        document.getElementById('stopBtn').style.display = 'inline-flex';
+    } catch (e) {
+        showResult(`<h3>خطأ في الكاميرا</h3><p>${e.message}</p><p class="text-muted">تأكد من إذن الكاميرا</p>`, false);
+    }
+};
+
+document.getElementById('stopBtn').onclick = async function() {
+    if (html5QrCode) {
+        await html5QrCode.stop();
+        document.getElementById('startBtn').style.display = 'inline-flex';
+        document.getElementById('stopBtn').style.display = 'none';
+    }
+};
+</script>
+{% endblock %}

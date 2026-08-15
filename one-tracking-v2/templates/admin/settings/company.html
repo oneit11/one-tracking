@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}بيانات الشركة{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">🏢 بيانات الشركة</h1>
+    <a href="{{ url_for('settings.home') }}" class="btn btn-secondary">← الإعدادات</a>
+</div>
+<div class="card">
+    <form method="post">
+        <div class="form-grid">
+            <div class="form-group full">
+                <label class="form-label">اسم الشركة</label>
+                <input class="form-input" name="company_name" value="{{ s.get('company_name', '') }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">التليفون الأساسي</label>
+                <input class="form-input" name="company_phone" dir="ltr" value="{{ s.get('company_phone', '') }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">تليفون احتياطي</label>
+                <input class="form-input" name="company_phone_alt" dir="ltr" value="{{ s.get('company_phone_alt', '') }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">الإيميل</label>
+                <input class="form-input" type="email" name="company_email" dir="ltr" value="{{ s.get('company_email', '') }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">الموقع الإلكتروني</label>
+                <input class="form-input" name="company_website" dir="ltr" value="{{ s.get('company_website', '') }}">
+            </div>
+            <div class="form-group full">
+                <label class="form-label">العنوان</label>
+                <textarea class="form-textarea" name="company_address">{{ s.get('company_address', '') }}</textarea>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-primary">💾 حفظ</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ 'تعديل دور' if role else 'دور جديد' }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">{{ 'تعديل: ' ~ role.name if role else 'دور جديد' }}</h1>
+    <a href="{{ url_for('settings.roles_list') }}" class="btn btn-secondary">← رجوع</a>
+</div>
+
+<div class="card">
+    <form method="post">
+        <div class="form-grid">
+            {% if not role or not role.is_system %}
+            <div class="form-group">
+                <label class="form-label">الكود <span class="req">*</span></label>
+                <input class="form-input" name="code" required dir="ltr" placeholder="مثال: field_supervisor" value="{{ role.code if role else '' }}" {% if role %}disabled{% endif %}>
+                <span class="form-hint">حروف إنجليزية صغيرة و_ فقط</span>
+            </div>
+            <div class="form-group">
+                <label class="form-label">الاسم <span class="req">*</span></label>
+                <input class="form-input" name="name" required value="{{ role.name if role else '' }}">
+            </div>
+            <div class="form-group full">
+                <label class="form-label">الوصف</label>
+                <input class="form-input" name="description" value="{{ role.description if role else '' }}">
+            </div>
+            {% else %}
+            <div class="form-group">
+                <label class="form-label">الكود</label>
+                <input class="form-input" value="{{ role.code }}" disabled dir="ltr">
+            </div>
+            <div class="form-group">
+                <label class="form-label">الاسم</label>
+                <input class="form-input" value="{{ role.name }}" disabled>
+            </div>
+            {% endif %}
+        </div>
+
+        <h3 class="mt-4 mb-2">الصلاحيات</h3>
+        <p class="text-muted">اختر الصلاحيات المسموحة لهذا الدور.</p>
+
+        {% set current_perms = role.permissions_list if role else [] %}
+
+        {% for group_name, perms in catalog.items() %}
+        <div class="perm-group">
+            <div class="perm-group-title">
+                {{ {'clients':'العملاء','devices':'الأجهزة','requests':'طلبات الصيانة',
+                    'tickets':'التذاكر','amc':'عقود AMC','qr':'أكواد QR',
+                    'inventory':'المخزون','pm':'الصيانة الوقائية','reports':'التقارير',
+                    'users':'المستخدمين','settings':'الإعدادات','audit':'سجل التتبع',
+                    'system':'النظام'}.get(group_name, group_name) }}
+            </div>
+            {% for code, label in perms %}
+            <label class="perm-check">
+                <input type="checkbox" name="permissions" value="{{ code }}"
+                       {% if code in current_perms %}checked{% endif %}>
+                {{ label }} <small class="text-muted" dir="ltr">({{ code }})</small>
+            </label>
+            {% endfor %}
+        </div>
+        {% endfor %}
+
+        <div class="form-actions">
+            <button class="btn btn-primary">💾 حفظ</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

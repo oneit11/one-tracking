@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}الأدوار والصلاحيات{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">🔐 الأدوار والصلاحيات</h1>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('settings.role_new') }}" class="btn btn-primary">+ دور جديد</a>
+        <a href="{{ url_for('settings.home') }}" class="btn btn-secondary">← الإعدادات</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>الكود</th><th>الاسم</th><th>الوصف</th><th>عدد الصلاحيات</th><th>النوع</th><th></th></tr></thead>
+            <tbody>
+                {% for r in roles %}
+                <tr>
+                    <td dir="ltr"><small>{{ r.code }}</small></td>
+                    <td><strong>{{ r.name }}</strong></td>
+                    <td class="text-muted"><small>{{ r.description }}</small></td>
+                    <td>{{ r.permissions_list|length }}</td>
+                    <td>{% if r.is_system %}<span class="badge">نظام</span>{% else %}<span class="badge badge-in_progress">مخصّص</span>{% endif %}</td>
+                    <td><a class="btn btn-sm btn-secondary" href="{{ url_for('settings.role_edit', rid=r.id) }}">تعديل</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

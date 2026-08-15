@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}التقارير{% endblock %}
+{% block content %}
+<div class="page-header"><h1 class="page-title">📊 التقارير</h1></div>
+
+<div class="grid-2">
+    <a href="{{ url_for('reports.requests_summary') }}" class="card" style="text-decoration:none;color:inherit">
+        <h3>📋 ملخص طلبات الصيانة</h3>
+        <p class="text-muted">قائمة كل الطلبات في فترة زمنية محددة، مع تصدير PDF</p>
+    </a>
+    <a href="{{ url_for('reports.tech_performance') }}" class="card" style="text-decoration:none;color:inherit">
+        <h3>👨‍🔧 أداء الفنيين</h3>
+        <p class="text-muted">عدد المهام لكل فني ومعدل الإغلاق</p>
+    </a>
+    <a href="{{ url_for('reports.amc_report') }}" class="card" style="text-decoration:none;color:inherit">
+        <h3>📜 عقود AMC</h3>
+        <p class="text-muted">العقود النشطة، المنتهية، والتي تنتهي قريباً</p>
+    </a>
+    <a href="{{ url_for('reports.ratings_report') }}" class="card" style="text-decoration:none;color:inherit">
+        <h3>⭐ تقييمات العملاء</h3>
+        <p class="text-muted">متوسط التقييم وتعليقات العملاء</p>
+    </a>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">تقارير فردية</h3></div>
+    <p class="text-muted">من صفحة أي عميل أو جهاز أو طلب، فيه زرار "تصدير PDF" في يمين الشاشة.</p>
+</div>
+{% endblock %}

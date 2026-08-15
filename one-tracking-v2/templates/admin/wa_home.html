@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}إدارة WhatsApp{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">إدارة WhatsApp</h1>
+    <a href="{{ url_for('admin.wa_logs') }}" class="btn btn-secondary">📋 سجل الرسائل</a>
+</div>
+
+{% if not sidecar_configured %}
+<div class="card">
+    <div class="empty">
+        <h3>⚠️ لم يتم إعداد خدمة WhatsApp</h3>
+        <p class="text-muted">أضف المتغيرات التالية في Railway → Variables:</p>
+        <pre style="text-align:start;background:var(--bg);padding:12px;border-radius:8px;direction:ltr">
+WA_ENABLED=true
+WA_SIDECAR_URL=https://one-tracking-wa.up.railway.app
+WA_SIDECAR_API_KEY=ONE-Tracking-WA-Secret-2026</pre>
+    </div>
+</div>
+{% else %}
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">حالة الاتصال</h3>
+            <span id="statusBadge" class="badge">جاري التحميل...</span>
+        </div>
+        <div id="qrArea" class="text-center" style="min-height:340px;padding:20px;">
+            <p class="text-muted">جاري التحقق...</p>
+        </div>
+        <div class="detail-row"><span class="detail-label">الرقم المتصل</span><span class="detail-value" dir="ltr" id="phoneField">-</span></div>
+        <div class="detail-row"><span class="detail-label">WA_ENABLED</span><span class="detail-value">{{ 'مفعّل' if wa_enabled else 'معطّل' }}</span></div>
+
+        <form method="post" action="{{ url_for('admin.wa_logout') }}" class="mt-4"
+              data-confirm="متأكد؟ ده هيقطع الاتصال ويحتاج مسح QR جديد.">
+            <button class="btn btn-danger btn-block">قطع الاتصال</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">اختبار الإرسال</h3></div>
+        <form method="post" action="{{ url_for('admin.wa_test') }}">
+            <div class="form-group">
+                <label class="form-label">رقم الاختبار <span class="req">*</span></label>
+                <input class="form-input" name="test_number" required dir="ltr" placeholder="01000000000">
+                <span class="form-hint">هيتم تحويله لصيغة دولية تلقائياً (+20)</span>
+            </div>
+            <div class="form-group mt-4">
+                <label class="form-label">الرسالة</label>
+                <textarea class="form-textarea" name="test_message" rows="3" placeholder="رسالة اختبار من ONE Tracking ✓"></textarea>
+            </div>
+            <button class="btn btn-primary btn-block mt-4">إرسال</button>
+        </form>
+
+        <hr style="margin:20px 0;border:none;border-top:1px solid var(--border)">
+        <h4 class="mb-2">التعليمات</h4>
+        <ol style="padding-inline-start:20px;line-height:2;">
+            <li>افتح WhatsApp على تليفون الشركة</li>
+            <li>الإعدادات → الأجهزة المرتبطة</li>
+            <li>ربط جهاز</li>
+            <li>امسح QR اللي ظاهر جنبك</li>
+            <li>لما يتحول لـ "متصل"، جرب إرسال</li>
+        </ol>
+    </div>
+</div>
+{% endif %}
+
+<script>
+{% if sidecar_configured %}
+async function refresh() {
+    try {
+        const r = await fetch("{{ url_for('admin.wa_qr_json') }}");
+        if (!r.ok) throw new Error('sidecar unreachable');
+        const d = await r.json();
+
+        const badge = document.getElementById('statusBadge');
+        const qrArea = document.getElementById('qrArea');
+        const phone = document.getElementById('phoneField');
+
+        badge.className = 'badge badge-' + (d.status === 'connected' ? 'closed' : d.status === 'qr' ? 'warning' : 'in_progress');
+        badge.textContent = {
+            'connected': 'متصل ✓',
+            'qr': 'في انتظار المسح',
+            'connecting': 'جاري الاتصال...',
+            'disconnected': 'غير متصل'
+        }[d.status] || d.status;
+
+        phone.textContent = d.phone || '-';
+
+        if (d.status === 'connected') {
+            qrArea.innerHTML = '<div style="padding:60px 20px;"><h2>✅ متصل بنجاح</h2><p class="text-muted mt-4">الرقم جاهز لإرسال الرسائل تلقائياً</p></div>';
+        } else if (d.qr) {
+            qrArea.innerHTML = '<img src="' + d.qr + '" style="max-width:280px;border-radius:12px;background:white;padding:12px" alt="QR"><p class="text-muted mt-4">امسح بواتس تليفون الشركة</p>';
+        } else {
+            qrArea.innerHTML = '<div style="padding:60px 20px;"><p class="text-muted">⏳ جاري التحضير...</p></div>';
+        }
+    } catch (e) {
+        document.getElementById('statusBadge').className = 'badge badge-cancelled';
+        document.getElementById('statusBadge').textContent = 'خدمة غير متاحة';
+        document.getElementById('qrArea').innerHTML = '<div style="padding:60px 20px"><p class="text-muted">❌ خدمة WhatsApp sidecar غير متاحة. تفقد إعدادات Railway.</p></div>';
+    }
+}
+refresh();
+setInterval(refresh, 5000);
+{% endif %}
+</script>
+{% endblock %}

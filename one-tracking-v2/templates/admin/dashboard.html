@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}لوحة التحكم - {{ APP_NAME }}{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">لوحة التحكم</h1>
+        <p class="page-subtitle">نظرة عامة على المؤشرات</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="get" action="{{ url_for('admin.global_search') }}" style="display:flex;gap:6px">
+            <input class="form-input" name="q" placeholder="بحث عام..." style="min-width:200px">
+            <button class="btn btn-secondary">🔍</button>
+        </form>
+        <a href="{{ url_for('admin.request_new') }}" class="btn btn-primary">+ طلب</a>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card primary"><span class="stat-label">العملاء</span><span class="stat-value">{{ stats.clients_total }}</span></div>
+    <div class="stat-card accent"><span class="stat-label">الأجهزة</span><span class="stat-value">{{ stats.devices_total }}</span></div>
+    <div class="stat-card warning"><span class="stat-label">طلبات مفتوحة</span><span class="stat-value">{{ stats.requests_open }}</span></div>
+    <div class="stat-card danger"><span class="stat-label">جديدة</span><span class="stat-value">{{ stats.requests_new }}</span></div>
+    <div class="stat-card danger"><span class="stat-label">⚠️ تجاوز SLA</span><span class="stat-value">{{ stats.sla_breached }}</span></div>
+    <div class="stat-card info"><span class="stat-label">اليوم</span><span class="stat-value">{{ stats.requests_today }}</span></div>
+    <div class="stat-card info"><span class="stat-label">الأسبوع</span><span class="stat-value">{{ stats.requests_week }}</span></div>
+    <div class="stat-card success"><span class="stat-label">مغلق (30 يوم)</span><span class="stat-value">{{ stats.requests_closed_month }}</span></div>
+    <div class="stat-card warning"><span class="stat-label">تذاكر</span><span class="stat-value">{{ stats.tickets_open }}</span></div>
+    <div class="stat-card primary"><span class="stat-label">الفنيين</span><span class="stat-value">{{ stats.technicians_total }}</span></div>
+    <div class="stat-card accent"><span class="stat-label">QR مستخدم</span><span class="stat-value">{{ stats.qr_codes_used }}/{{ stats.qr_codes_total }}</span></div>
+    <div class="stat-card success"><span class="stat-label">⭐ متوسط التقييم</span><span class="stat-value">{{ "%.1f"|format(stats.avg_rating) if stats.avg_rating else '-' }}</span></div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">📈 طلبات آخر 14 يوم</h3></div>
+        <div class="chart-container"><canvas id="chartTrend"></canvas></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">🎯 توزيع الحالات</h3></div>
+        <div class="chart-container"><canvas id="chartStatus"></canvas></div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h3 class="card-title">أحدث الطلبات</h3>
+        <a href="{{ url_for('admin.requests_list') }}" class="btn btn-sm btn-secondary">عرض الكل</a>
+    </div>
+    {% if recent_requests %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>الرقم</th><th>العميل</th><th>العنوان</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+                {% for r in recent_requests %}
+                <tr>
+                    <td><strong>{{ r.request_number }}</strong></td>
+                    <td>{{ r.client.company_name }}</td>
+                    <td>{{ r.title[:40] }}</td>
+                    <td><span class="badge badge-{{ r.status }}">{{ r.status_label }}</span></td>
+                    <td><a href="{{ url_for('admin.request_view', rid=r.id) }}" class="btn btn-sm btn-secondary">فتح</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}<div class="empty"><h3>لا يوجد طلبات</h3></div>{% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+
+    new Chart(document.getElementById('chartTrend'), {
+        type: 'line',
+        data: {
+            labels: {{ chart_labels|tojson }},
+            datasets: [{
+                label: 'طلبات', data: {{ chart_data|tojson }},
+                borderColor: primary, backgroundColor: primary + '20',
+                fill: true, tension: 0.35,
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+
+    const statusData = {{ status_counts|tojson }};
+    const statusLabels = {'new':'جديد','assigned':'تم التعيين','in_progress':'قيد التنفيذ','report_ready':'تقرير جاهز','closed':'مغلق','cancelled':'ملغي'};
+    const colors = ['#3b82f6','#f59e0b','#f97316','#8b5cf6','#10b981','#ef4444'];
+    new Chart(document.getElementById('chartStatus'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(statusData).map(k => statusLabels[k] || k),
+            datasets: [{ data: Object.values(statusData), backgroundColor: colors }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}تقييمات العملاء{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">⭐ تقييمات العملاء</h1>
+    <a href="{{ url_for('reports.home') }}" class="btn btn-secondary">← رجوع</a>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card success"><span class="stat-label">متوسط التقييم</span><span class="stat-value">{{ "%.1f"|format(avg) if avg else '-' }}/5</span></div>
+    {% for star, count in counts.items() %}
+    <div class="stat-card"><span class="stat-label">{{ star }} نجوم</span><span class="stat-value">{{ count }}</span></div>
+    {% endfor %}
+</div>
+
+<div class="card">
+    <div class="card-header"><h3 class="card-title">التقييمات ({{ ratings|length }})</h3></div>
+    {% if ratings %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>رقم الطلب</th><th>التقييم</th><th>التعليق</th><th>التاريخ</th></tr></thead>
+            <tbody>
+                {% for r in ratings %}
+                <tr>
+                    <td>{{ r.request.request_number if r.request else '-' }}</td>
+                    <td><span class="rating-stars">{% for _ in range(r.stars) %}★{% endfor %}{% for _ in range(5-r.stars) %}☆{% endfor %}</span></td>
+                    <td>{{ r.comment or '-' }}</td>
+                    <td>{{ r.rated_at.strftime('%Y-%m-%d') if r.rated_at else '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}<div class="empty"><h3>لا يوجد تقييمات بعد</h3></div>{% endif %}
+</div>
+{% endblock %}

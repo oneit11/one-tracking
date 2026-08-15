@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}الصيانة الوقائية{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">🔧 الصيانة الوقائية (PM)</h1>
+    <a href="{{ url_for('pm.schedule_new') }}" class="btn btn-primary">+ جدول جديد</a>
+</div>
+
+<div class="card">
+    <p class="text-muted">جداول تلقائية لتوليد طلبات صيانة دورية.</p>
+    {% if schedules %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>الاسم</th><th>العميل</th><th>الجهاز</th><th>الفترة</th><th>موعد الطلب التالي</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+                {% for s in schedules %}
+                <tr>
+                    <td><strong>{{ s.name }}</strong></td>
+                    <td>{{ s.client.company_name if s.client else '-' }}</td>
+                    <td>{{ s.device.name if s.device else 'كل الأجهزة' }}</td>
+                    <td>كل {{ s.interval_days }} يوم</td>
+                    <td>
+                        {{ s.next_run.strftime('%Y-%m-%d') if s.next_run else '-' }}
+                        {% if s.next_run and s.next_run <= today %}<span class="badge badge-cancelled">مستحق</span>{% endif %}
+                    </td>
+                    <td>{% if s.active %}<span class="badge badge-closed">نشط</span>{% else %}<span class="badge">متوقف</span>{% endif %}</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <form method="post" action="{{ url_for('pm.run_now', sid=s.id) }}" style="display:inline">
+                                <button class="btn btn-sm btn-primary">▶️ توليد الآن</button>
+                            </form>
+                            <form method="post" action="{{ url_for('pm.toggle', sid=s.id) }}" style="display:inline">
+                                <button class="btn btn-sm btn-secondary">{{ 'إيقاف' if s.active else 'تفعيل' }}</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}<div class="empty"><h3>لا يوجد جداول</h3><a class="btn btn-primary mt-2" href="{{ url_for('pm.schedule_new') }}">+ إنشاء جدول</a></div>{% endif %}
+</div>
+{% endblock %}

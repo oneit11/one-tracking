@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}سجل رسائل WhatsApp{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">سجل رسائل WhatsApp</h1>
+    <a href="{{ url_for('admin.wa_home') }}" class="btn btn-secondary">← رجوع</a>
+</div>
+
+<div class="card">
+    {% if logs %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr><th>الوقت</th><th>الرقم</th><th>النوع</th><th>الحالة</th><th>الرسالة</th><th>خطأ</th></tr>
+            </thead>
+            <tbody>
+                {% for l in logs %}
+                <tr>
+                    <td>{{ l.sent_at.strftime('%m-%d %H:%M') }}</td>
+                    <td dir="ltr">{{ l.to_number }}</td>
+                    <td><small>{{ l.event_type or '-' }}</small></td>
+                    <td>
+                        {% if l.status == 'sent' %}<span class="badge badge-closed">تم</span>
+                        {% elif l.status == 'failed' %}<span class="badge badge-cancelled">فشل</span>
+                        {% elif l.status == 'pending' %}<span class="badge badge-in_progress">قيد الإرسال</span>
+                        {% else %}<span class="badge">{{ l.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td><small>{{ l.message_body[:60] }}{% if l.message_body|length > 60 %}...{% endif %}</small></td>
+                    <td><small class="text-muted">{{ l.error_message[:80] if l.error_message else '' }}</small></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <div class="empty"><h3>لا يوجد رسائل بعد</h3></div>
+    {% endif %}
+</div>
+{% endblock %}
