@@ -1,31 +1,72 @@
 {% extends "base.html" %}
-{% block title %}قيّم الخدمة{% endblock %}
+{% block title %}{{ t('rating.title') }}{% endblock %}
 {% block content %}
-<div class="card" style="max-width:520px;margin:40px auto;text-align:center">
-    <h1>⭐ قيّم خدمتنا</h1>
-    <p class="text-muted">تقييمك يساعدنا نطور خدماتنا</p>
+<div class="card" style="max-width:600px;margin:40px auto;">
+    <div class="text-center">
+        <h1>⭐ {{ t('rating.title') }}</h1>
+        <p class="text-muted">{{ t('rating.subtitle') }}</p>
+        {% if rating.request %}
+        <p><strong>{{ rating.request.request_number }}</strong> — {{ rating.request.title }}</p>
+        {% endif %}
+    </div>
 
-    {% if rating.stars %}
+    {% if rating.stars or rating.tech_stars %}
         <div class="mt-4">
-            <p>تقييمك السابق:</p>
-            <div class="rating-stars" style="font-size:40px">
-                {% for _ in range(rating.stars) %}★{% endfor %}{% for _ in range(5-rating.stars) %}☆{% endfor %}
+            <p>{{ t('rating.previous') }}</p>
+            {% if rating.stars %}
+            <div class="rating-section">
+                <h4>{{ t('rating.company_section') }}</h4>
+                <div class="rating-stars" style="font-size:36px">
+                    {% for _ in range(rating.stars) %}★{% endfor %}{% for _ in range(5-rating.stars) %}☆{% endfor %}
+                </div>
+                {% if rating.comment %}<p class="text-muted mt-2">"{{ rating.comment }}"</p>{% endif %}
             </div>
-            {% if rating.comment %}<p class="text-muted mt-2">"{{ rating.comment }}"</p>{% endif %}
+            {% endif %}
+            {% if rating.tech_stars %}
+            <div class="rating-section">
+                <h4>{{ t('rating.tech_section') }}
+                    {% if rating.request and rating.request.technician %} — {{ rating.request.technician.name }}{% endif %}
+                </h4>
+                <div class="rating-stars" style="font-size:36px">
+                    {% for _ in range(rating.tech_stars) %}★{% endfor %}{% for _ in range(5-rating.tech_stars) %}☆{% endfor %}
+                </div>
+                {% if rating.tech_comment %}<p class="text-muted mt-2">"{{ rating.tech_comment }}"</p>{% endif %}
+            </div>
+            {% endif %}
         </div>
     {% else %}
     <form method="post" class="mt-4">
-        <div class="star-rate">
-            {% for i in [5,4,3,2,1] %}
-            <input type="radio" id="star{{ i }}" name="stars" value="{{ i }}" required>
-            <label for="star{{ i }}">★</label>
-            {% endfor %}
+        <!-- Company / Service rating -->
+        <div class="rating-section">
+            <h3>{{ t('rating.company_section') }}</h3>
+            <div class="star-rate">
+                {% for i in [5,4,3,2,1] %}
+                <input type="radio" id="stars{{ i }}" name="stars" value="{{ i }}" required>
+                <label for="stars{{ i }}">★</label>
+                {% endfor %}
+            </div>
+            <div class="form-group mt-4">
+                <textarea class="form-textarea" name="comment" rows="2" placeholder="{{ t('rating.comment_placeholder') }}"></textarea>
+            </div>
         </div>
-        <div class="form-group mt-4">
-            <label class="form-label">تعليقك (اختياري)</label>
-            <textarea class="form-textarea" name="comment" rows="4" placeholder="شاركنا رأيك..."></textarea>
+
+        <!-- Technician rating -->
+        {% if rating.request and rating.request.technician %}
+        <div class="rating-section">
+            <h3>{{ t('rating.tech_section') }} — {{ rating.request.technician.name }}</h3>
+            <div class="star-rate">
+                {% for i in [5,4,3,2,1] %}
+                <input type="radio" id="techstars{{ i }}" name="tech_stars" value="{{ i }}" required>
+                <label for="techstars{{ i }}">★</label>
+                {% endfor %}
+            </div>
+            <div class="form-group mt-4">
+                <textarea class="form-textarea" name="tech_comment" rows="2" placeholder="{{ t('rating.comment_placeholder') }}"></textarea>
+            </div>
         </div>
-        <button class="btn btn-primary btn-lg btn-block mt-4">إرسال التقييم</button>
+        {% endif %}
+
+        <button class="btn btn-primary btn-lg btn-block mt-4">{{ t('rating.submit') }}</button>
     </form>
     {% endif %}
 </div>
