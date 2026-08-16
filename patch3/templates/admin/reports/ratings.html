@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ t('reports.ratings_title') }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">⭐ {{ t('reports.ratings_title') }}</h1>
+    <a href="{{ url_for('reports.home') }}" class="btn btn-secondary">{{ t('btn.back') }}</a>
+</div>
+
+<div class="grid-2">
+    <div class="stat-card success">
+        <span class="stat-label">🏢 {{ t('reports.company_rating') }}</span>
+        <span class="stat-value">{{ "%.1f"|format(avg_company) if avg_company else '-' }}/5</span>
+        <span class="stat-label">{{ company_count }} تقييم</span>
+    </div>
+    <div class="stat-card primary">
+        <span class="stat-label">👨‍🔧 {{ t('reports.tech_rating') }}</span>
+        <span class="stat-value">{{ "%.1f"|format(avg_tech) if avg_tech else '-' }}/5</span>
+        <span class="stat-label">{{ tech_count }} تقييم</span>
+    </div>
+</div>
+
+{% if tech_summary %}
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">👨‍🔧 متوسط تقييم كل فني</h3></div>
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>الفني</th><th>عدد التقييمات</th><th>المتوسط</th></tr></thead>
+            <tbody>
+                {% for name, (avg, count) in tech_summary.items() %}
+                <tr>
+                    <td><strong>{{ name }}</strong></td>
+                    <td>{{ count }}</td>
+                    <td>
+                        <span class="rating-stars">
+                            {% set full = avg|int %}
+                            {% for _ in range(full) %}★{% endfor %}{% for _ in range(5-full) %}☆{% endfor %}
+                        </span>
+                        <strong>{{ "%.1f"|format(avg) }}</strong>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">كل التقييمات ({{ ratings|length }})</h3></div>
+    {% if ratings %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>الطلب</th>
+                    <th>العميل</th>
+                    <th>الفني</th>
+                    <th>تقييم الشركة</th>
+                    <th>تقييم الفني</th>
+                    <th>التعليق</th>
+                    <th>التاريخ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in ratings %}
+                <tr>
+                    <td>{{ r.request.request_number if r.request else '-' }}</td>
+                    <td>{{ r.request.client.company_name if r.request and r.request.client else '-' }}</td>
+                    <td>{{ r.request.technician.name if r.request and r.request.technician else '-' }}</td>
+                    <td>
+                        {% if r.stars %}
+                        <span class="rating-stars">{% for _ in range(r.stars) %}★{% endfor %}{% for _ in range(5-r.stars) %}☆{% endfor %}</span>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>
+                        {% if r.tech_stars %}
+                        <span class="rating-stars">{% for _ in range(r.tech_stars) %}★{% endfor %}{% for _ in range(5-r.tech_stars) %}☆{% endfor %}</span>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>
+                        {% if r.comment %}<div>🏢 {{ r.comment }}</div>{% endif %}
+                        {% if r.tech_comment %}<div>👨‍🔧 {{ r.tech_comment }}</div>{% endif %}
+                        {% if not r.comment and not r.tech_comment %}-{% endif %}
+                    </td>
+                    <td>{{ r.rated_at.strftime('%Y-%m-%d') if r.rated_at else '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <div class="empty"><h3>{{ t('reports.no_ratings') }}</h3></div>
+    {% endif %}
+</div>
+{% endblock %}
