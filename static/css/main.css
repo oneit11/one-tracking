@@ -818,3 +818,40 @@ a:hover { color: var(--primary-hover); }
     color: #fbbf24;
     font-size: 20px;
 }
+
+/* ========== LTR support (English) ========== */
+html[dir="ltr"] body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+html[dir="ltr"] .nav-user-name,
+html[dir="ltr"] .brand-text {
+    /* keep original */
+}
+
+.lang-toggle {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 6px 10px;
+    border-radius: 6px;
+    text-decoration: none;
+    color: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    margin-inline-start: 8px;
+    transition: background 0.15s;
+}
+.lang-toggle:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Dual rating layout */
+.rating-section {
+    padding: 20px;
+    background: var(--bg);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    border-inline-start: 4px solid var(--primary);
+}
+.rating-section h3 {
+    margin: 0 0 12px 0;
+    color: var(--primary);
+}
