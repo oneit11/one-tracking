@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{{ current_lang }}" dir="{{ 'rtl' if is_rtl else 'ltr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -35,37 +35,40 @@
             <span class="brand-text">{{ APP_NAME }}</span>
         </a>
 
-        <button class="menu-toggle" id="menuToggle" aria-label="القائمة">
+        <button class="menu-toggle" id="menuToggle" aria-label="Menu">
             <span></span><span></span><span></span>
         </button>
 
         <div class="nav-links" id="navLinks">
             {% if current_user.is_admin %}
-                <a href="{{ url_for('admin.dashboard') }}">لوحة التحكم</a>
-                <a href="{{ url_for('admin.requests_list') }}">الطلبات</a>
-                <a href="{{ url_for('admin.tickets_list') }}">التذاكر</a>
-                <a href="{{ url_for('admin.clients_list') }}">العملاء</a>
-                <a href="{{ url_for('admin.devices_list') }}">الأجهزة</a>
-                <a href="{{ url_for('scanner.scan_page') }}">📷 مسح</a>
-                <a href="{{ url_for('admin.qr_home') }}">QR</a>
-                <a href="{{ url_for('reports.home') }}">تقارير</a>
-                <a href="{{ url_for('inventory.parts_list') }}">مخزون</a>
-                <a href="{{ url_for('pm.schedules_list') }}">PM</a>
-                <a href="{{ url_for('admin.users_list') }}">مستخدمين</a>
-                <a href="{{ url_for('admin.wa_home') }}">واتس</a>
-                <a href="{{ url_for('settings.home') }}">⚙️</a>
+                <a href="{{ url_for('admin.dashboard') }}">{{ t('nav.dashboard') }}</a>
+                <a href="{{ url_for('admin.requests_list') }}">{{ t('nav.requests') }}</a>
+                <a href="{{ url_for('admin.tickets_list') }}">{{ t('nav.tickets') }}</a>
+                <a href="{{ url_for('admin.clients_list') }}">{{ t('nav.clients') }}</a>
+                <a href="{{ url_for('admin.devices_list') }}">{{ t('nav.devices') }}</a>
+                <a href="{{ url_for('scanner.scan_page') }}">{{ t('nav.scan') }}</a>
+                <a href="{{ url_for('admin.qr_home') }}">{{ t('nav.qr') }}</a>
+                <a href="{{ url_for('reports.home') }}">{{ t('nav.reports') }}</a>
+                <a href="{{ url_for('inventory.parts_list') }}">{{ t('nav.inventory') }}</a>
+                <a href="{{ url_for('pm.schedules_list') }}">{{ t('nav.pm') }}</a>
+                <a href="{{ url_for('admin.users_list') }}">{{ t('nav.users') }}</a>
+                <a href="{{ url_for('admin.wa_home') }}">{{ t('nav.whatsapp') }}</a>
+                <a href="{{ url_for('settings.home') }}">{{ t('nav.settings') }}</a>
             {% elif current_user.is_technician %}
-                <a href="{{ url_for('tech.dashboard') }}">مهامي</a>
-                <a href="{{ url_for('scanner.scan_page') }}">📷 مسح</a>
+                <a href="{{ url_for('tech.dashboard') }}">{{ t('nav.mytasks') }}</a>
+                <a href="{{ url_for('scanner.scan_page') }}">{{ t('nav.scan') }}</a>
             {% elif current_user.is_client %}
-                <a href="{{ url_for('portal.dashboard') }}">الرئيسية</a>
-                <a href="{{ url_for('portal.devices') }}">أجهزتي</a>
-                <a href="{{ url_for('portal.requests_list') }}">طلباتي</a>
-                <a href="{{ url_for('portal.request_new') }}" class="cta">+ طلب صيانة</a>
+                <a href="{{ url_for('portal.dashboard') }}">{{ t('nav.portal_home') }}</a>
+                <a href="{{ url_for('portal.devices') }}">{{ t('nav.my_devices') }}</a>
+                <a href="{{ url_for('portal.requests_list') }}">{{ t('nav.my_requests') }}</a>
+                <a href="{{ url_for('portal.request_new') }}" class="cta">{{ t('nav.new_request') }}</a>
             {% endif %}
 
+            <a href="{{ url_for('public.switch_lang', lang='en' if current_lang == 'ar' else 'ar') }}"
+               class="lang-toggle" title="Language">{{ t('nav.language') }}</a>
+
             <div class="nav-notif">
-                <button class="notif-bell" id="notifBell" aria-label="التنبيهات">
+                <button class="notif-bell" id="notifBell" aria-label="Notifications">
                     🔔
                     <span class="notif-badge" id="notifBadge" {% if not nav_unread %}style="display:none"{% endif %}>
                         {{ nav_unread or 0 }}
@@ -73,25 +76,31 @@
                 </button>
                 <div class="notif-panel" id="notifPanel">
                     <div class="notif-panel-header">
-                        <strong>التنبيهات</strong>
-                        <button id="notifReadAll" class="btn btn-sm btn-secondary">علّم الكل مقروء</button>
+                        <strong>{{ t('nav.notifications') }}</strong>
+                        <button id="notifReadAll" class="btn btn-sm btn-secondary">{{ t('nav.mark_all_read') }}</button>
                     </div>
                     <div class="notif-list" id="notifList">
-                        <div class="text-center text-muted" style="padding:20px">جارٍ التحميل...</div>
+                        <div class="text-center text-muted" style="padding:20px">...</div>
                     </div>
-                    <a href="{{ url_for('notifications.list_all') }}" class="notif-see-all">عرض الكل</a>
+                    <a href="{{ url_for('notifications.list_all') }}" class="notif-see-all">{{ t('nav.view_all') }}</a>
                 </div>
             </div>
 
             <span class="nav-user">
                 <span class="nav-user-name">{{ current_user.name }}</span>
-                <a href="{{ url_for('auth.logout') }}" class="logout-link">خروج</a>
+                <a href="{{ url_for('auth.logout') }}" class="logout-link">{{ t('nav.logout') }}</a>
             </span>
 
-            <button id="installBtn" class="btn btn-sm btn-secondary" style="display:none">📱 تثبيت</button>
+            <button id="installBtn" class="btn btn-sm btn-secondary" style="display:none">{{ t('nav.install_app') }}</button>
         </div>
     </div>
 </nav>
+{% else %}
+<!-- Non-authenticated: just show lang toggle in top corner -->
+<div style="position:fixed;top:10px;{{ 'left' if is_rtl else 'right' }}:10px;z-index:100">
+    <a href="{{ url_for('public.switch_lang', lang='en' if current_lang == 'ar' else 'ar') }}"
+       class="btn btn-sm btn-secondary">{{ t('nav.language') }}</a>
+</div>
 {% endif %}
 
 <main class="container">

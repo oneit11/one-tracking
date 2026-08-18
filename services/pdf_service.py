@@ -21,26 +21,49 @@ from bidi.algorithm import get_display
 
 # Register Arabic font (fallback to Helvetica if not found)
 _FONT_NAME = None
+_FONT_BOLD_NAME = None
 
 
 def _register_font():
-    global _FONT_NAME
+    """Register bundled Amiri fonts (Arabic-optimized). Falls back to system fonts."""
+    global _FONT_NAME, _FONT_BOLD_NAME
     if _FONT_NAME:
         return _FONT_NAME
     try:
-        candidates = [
+        # Look for bundled fonts in static/fonts/ (relative to app root)
+        # __file__ is services/pdf_service.py → parent is services → parent is app root
+        app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        candidates_reg = [
+            os.path.join(app_root, "static", "fonts", "Amiri-Regular.ttf"),
+            os.path.join(app_root, "static", "fonts", "DejaVuSans.ttf"),
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
             "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
             "/System/Library/Fonts/Supplemental/Arial.ttf",
         ]
-        for path in candidates:
+        candidates_bold = [
+            os.path.join(app_root, "static", "fonts", "Amiri-Bold.ttf"),
+            os.path.join(app_root, "static", "fonts", "DejaVuSans.ttf"),
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        ]
+
+        for path in candidates_reg:
             if os.path.exists(path):
                 pdfmetrics.registerFont(TTFont("Arabic", path))
                 _FONT_NAME = "Arabic"
-                return _FONT_NAME
-    except Exception:
-        pass
+                break
+
+        for path in candidates_bold:
+            if os.path.exists(path):
+                pdfmetrics.registerFont(TTFont("Arabic-Bold", path))
+                _FONT_BOLD_NAME = "Arabic-Bold"
+                break
+
+        if _FONT_NAME:
+            return _FONT_NAME
+    except Exception as e:
+        print(f"Font registration failed: {e}")
     _FONT_NAME = "Helvetica"
+    _FONT_BOLD_NAME = "Helvetica-Bold"
     return _FONT_NAME
 
 

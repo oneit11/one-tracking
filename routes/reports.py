@@ -334,12 +334,26 @@ def request_pdf(rid):
 @reports_bp.route("/ratings")
 @admin_required
 def ratings_report():
-    ratings = Rating.query.filter(Rating.stars != None).order_by(desc(Rating.rated_at)).all()  # noqa: E711
-    avg = 0
-    if ratings:
-        avg = sum(r.stars for r in ratings) / len(ratings)
-    counts = {i: 0 for i in range(1, 6)}
-    for r in ratings:
-        counts[r.stars] = counts.get(r.stars, 0) + 1
+    ratings = Rating.query.filter(
+        (Rating.stars != None) | (Rating.tech_stars != None)  # noqa: E711
+    ).order_by(desc(Rating.rated_at)).all()
+
+    company_ratings = [r for r in ratings if r.stars]
+    tech_ratings = [r for r in ratings if r.tech_stars]
+
+    avg_company = sum(r.stars for r in company_ratings) / len(company_ratings) if company_ratings else 0
+    avg_tech = sum(r.tech_stars for r in tech_ratings) / len(tech_ratings) if tech_ratings else 0
+
+    # Per-technician average
+    tech_avgs = {}
+    for r in tech_ratings:
+        if r.request and r.request.technician:
+            name = r.request.technician.name
+            tech_avgs.setdefault(name, []).append(r.tech_stars)
+    tech_summary = {name: (sum(scores)/len(scores), len(scores)) for name, scores in tech_avgs.items()}
+
     return render_template("admin/reports/ratings.html",
-                           ratings=ratings, avg=avg, counts=counts)
+                           ratings=ratings,
+                           avg_company=avg_company, avg_tech=avg_tech,
+                           company_count=len(company_ratings), tech_count=len(tech_ratings),
+                           tech_summary=tech_summary)

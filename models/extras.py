@@ -41,15 +41,21 @@ class Comment(db.Model):
 
 
 class Rating(db.Model):
-    """Post-visit rating from client."""
+    """Post-visit rating from client. Separate scores for company and technician."""
     __tablename__ = "ratings"
     id = db.Column(db.Integer, primary_key=True)
     request_id = db.Column(db.Integer, db.ForeignKey("maintenance_requests.id"), nullable=False, unique=True)
     token = db.Column(db.String(40), unique=True, index=True)  # for anonymous access
+    # Company/service rating
     stars = db.Column(db.Integer, nullable=True)  # 1-5
     comment = db.Column(db.Text, default="")
+    # Technician rating
+    tech_stars = db.Column(db.Integer, nullable=True)
+    tech_comment = db.Column(db.Text, default="")
     rated_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    request = db.relationship("MaintenanceRequest", backref=db.backref("rating", uselist=False))
 
 
 class SparePart(db.Model):

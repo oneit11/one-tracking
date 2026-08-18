@@ -114,13 +114,23 @@ def rate(token):
     r = Rating.query.filter_by(token=token).first_or_404()
     if request.method == "POST":
         try:
-            stars = int(request.form.get("stars"))
+            stars = int(request.form.get("stars", 0))
             if 1 <= stars <= 5:
                 r.stars = stars
                 r.comment = request.form.get("comment", "").strip()
-                r.rated_at = datetime.utcnow()
-                db.session.commit()
-                return render_template("portal/rating/thanks.html")
+            # Optional technician rating
+            tech_val = request.form.get("tech_stars")
+            if tech_val:
+                try:
+                    ts = int(tech_val)
+                    if 1 <= ts <= 5:
+                        r.tech_stars = ts
+                        r.tech_comment = request.form.get("tech_comment", "").strip()
+                except (ValueError, TypeError):
+                    pass
+            r.rated_at = datetime.utcnow()
+            db.session.commit()
+            return render_template("portal/rating/thanks.html")
         except (ValueError, TypeError):
             flash("رجاءً اختر تقييم من 1 إلى 5", "warning")
     return render_template("portal/rating/form.html", rating=r)

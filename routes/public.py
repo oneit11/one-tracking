@@ -5,8 +5,16 @@ from sqlalchemy import text
 from models import db
 from models.device import QRCode, Device
 from models.client import Client
+from utils.i18n import set_lang
 
 public_bp = Blueprint("public", __name__)
+
+
+@public_bp.route("/set-lang/<lang>")
+def switch_lang(lang):
+    """Toggle UI language."""
+    set_lang(lang)
+    return redirect(request.referrer or url_for("index"))
 
 
 @public_bp.route("/health")
@@ -109,6 +117,8 @@ def emergency_migrate():
             "ALTER TABLE maintenance_requests ADD COLUMN IF NOT EXISTS sla_breached BOOLEAN DEFAULT FALSE",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS role_code VARCHAR(30) DEFAULT ''",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255) DEFAULT ''",
+            "ALTER TABLE ratings ADD COLUMN IF NOT EXISTS tech_stars INTEGER",
+            "ALTER TABLE ratings ADD COLUMN IF NOT EXISTS tech_comment TEXT DEFAULT ''",
         ]
         results = []
         for sql in migrations:

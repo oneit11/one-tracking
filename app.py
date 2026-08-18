@@ -91,6 +91,7 @@ def create_app():
     def inject_globals():
         from services.settings_service import get_setting
         from services.notifications import unread_count
+        from utils.i18n import t, get_current_lang, is_rtl, AVAILABLE_LANGS
         ctx = {
             "APP_NAME": get_setting("app_name", app.config["APP_NAME"]),
             "APP_SHORT_NAME": get_setting("app_short_name", "ONE Track"),
@@ -101,6 +102,10 @@ def create_app():
             "COMPANY_PHONE": get_setting("company_phone", app.config["COMPANY_PHONE"]),
             "COMPANY_EMAIL": get_setting("company_email", app.config["COMPANY_EMAIL"]),
             "COMPANY_ADDRESS": get_setting("company_address", ""),
+            "t": t,
+            "current_lang": get_current_lang(),
+            "is_rtl": is_rtl(),
+            "available_langs": AVAILABLE_LANGS,
         }
         if current_user.is_authenticated:
             try:
