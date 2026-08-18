@@ -21,7 +21,7 @@ pwa_bp = Blueprint("pwa", __name__)
 def scan_page():
     """Camera scanner page for staff. Uses html5-qrcode."""
     if current_user.role not in ("admin", "technician"):
-        flash("غير مصرح", "danger")
+        flash("ØºÙØ± ÙØµØ±Ø­", "danger")
         return redirect(url_for("index"))
     return render_template("scanner/scan.html")
 
@@ -132,7 +132,7 @@ def rate(token):
             db.session.commit()
             return render_template("portal/rating/thanks.html")
         except (ValueError, TypeError):
-            flash("رجاءً اختر تقييم من 1 إلى 5", "warning")
+            flash("Ø±Ø¬Ø§Ø¡Ù Ø§Ø®ØªØ± ØªÙÙÙÙ ÙÙ 1 Ø¥ÙÙ 5", "warning")
     return render_template("portal/rating/form.html", rating=r)
 
 
@@ -147,7 +147,7 @@ def manifest():
     return jsonify({
         "name": app_name,
         "short_name": short_name,
-        "description": "نظام إدارة الصيانة والدعم الفني",
+        "description": "ÙØ¸Ø§Ù Ø¥Ø¯Ø§Ø±Ø© Ø§ÙØµÙØ§ÙØ© ÙØ§ÙØ¯Ø¹Ù Ø§ÙÙÙÙ",
         "start_url": "/",
         "display": "standalone",
         "orientation": "portrait-primary",
@@ -161,8 +161,8 @@ def manifest():
             {"src": "/static/img/pwa/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
         ],
         "shortcuts": [
-            {"name": "لوحة التحكم", "url": "/admin/"},
-            {"name": "ماسح QR", "url": "/scan"},
+            {"name": "ÙÙØ­Ø© Ø§ÙØªØ­ÙÙ", "url": "/admin/"},
+            {"name": "ÙØ§Ø³Ø­ QR", "url": "/scan"},
         ],
     })
 
@@ -200,3 +200,4 @@ self.addEventListener('fetch', e => {
 });
 """
     return Response(sw, mimetype="application/javascript")
+from datetime import datetime

@@ -23,7 +23,7 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
-    login_manager.login_message = "يرجى تسجيل الدخول للوصول لهذه الصفحة"
+    login_manager.login_message = "ÙØ±Ø¬Ù ØªØ³Ø¬ÙÙ Ø§ÙØ¯Ø®ÙÙ ÙÙÙØµÙÙ ÙÙØ°Ù Ø§ÙØµÙØ­Ø©"
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -86,7 +86,7 @@ def create_app():
     def forbidden(_):
         return render_template("errors/403.html"), 403
 
-    # Template context — pull dynamic branding/company from DB
+    # Template context â pull dynamic branding/company from DB
     @app.context_processor
     def inject_globals():
         from services.settings_service import get_setting
