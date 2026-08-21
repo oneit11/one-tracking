@@ -15,12 +15,12 @@ class Setting(db.Model):
 
     @classmethod
     def get(cls, key, default=""):
-        s = cls.query.get(key)
+        s = db.session.get(cls, key)
         return s.value if s else default
 
     @classmethod
     def set(cls, key, value, category="general"):
-        s = cls.query.get(key)
+        s = db.session.get(cls, key)
         if s:
             s.value = str(value) if value is not None else ""
             s.category = category
@@ -37,7 +37,7 @@ class Setting(db.Model):
     def seed_defaults(cls, defaults_dict):
         """Seed defaults for keys that don't exist yet."""
         for key, (value, category) in defaults_dict.items():
-            if not cls.query.get(key):
+            if not db.session.get(cls, key):
                 db.session.add(cls(key=key, value=str(value), category=category))
         db.session.commit()
 

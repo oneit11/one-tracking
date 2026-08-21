@@ -80,6 +80,11 @@ def create_app():
 
     @app.errorhandler(500)
     def server_error(_):
+        # Roll back any aborted transaction so the error page (and next request) is clean.
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
         return render_template("errors/500.html"), 500
 
     @app.errorhandler(403)
@@ -89,28 +94,48 @@ def create_app():
     # Template context — pull dynamic branding/company from DB
     @app.context_processor
     def inject_globals():
-        from services.settings_service import get_setting
-        from services.notifications import unread_count
         from utils.i18n import t, get_current_lang, is_rtl, AVAILABLE_LANGS
+        # Hard defaults — used if the DB is unreachable or the transaction is aborted,
+        # so even the 500 error page always renders.
         ctx = {
-            "APP_NAME": get_setting("app_name", app.config["APP_NAME"]),
-            "APP_SHORT_NAME": get_setting("app_short_name", "ONE Track"),
-            "LOGO_URL": get_setting("logo_url", ""),
-            "PRIMARY_COLOR": get_setting("primary_color", "#0b3d91"),
-            "ACCENT_COLOR": get_setting("accent_color", "#14b8a6"),
-            "COMPANY_NAME": get_setting("company_name", app.config["COMPANY_NAME"]),
-            "COMPANY_PHONE": get_setting("company_phone", app.config["COMPANY_PHONE"]),
-            "COMPANY_EMAIL": get_setting("company_email", app.config["COMPANY_EMAIL"]),
-            "COMPANY_ADDRESS": get_setting("company_address", ""),
+            "APP_NAME": app.config["APP_NAME"],
+            "APP_SHORT_NAME": "ONE Track",
+            "LOGO_URL": "",
+            "PRIMARY_COLOR": "#0b3d91",
+            "ACCENT_COLOR": "#14b8a6",
+            "COMPANY_NAME": app.config["COMPANY_NAME"],
+            "COMPANY_PHONE": app.config["COMPANY_PHONE"],
+            "COMPANY_EMAIL": app.config["COMPANY_EMAIL"],
+            "COMPANY_ADDRESS": "",
             "t": t,
             "current_lang": get_current_lang(),
             "is_rtl": is_rtl(),
             "available_langs": AVAILABLE_LANGS,
+            "nav_unread": 0,
         }
+        try:
+            from services.settings_service import get_setting
+            ctx.update({
+                "APP_NAME": get_setting("app_name", app.config["APP_NAME"]),
+                "APP_SHORT_NAME": get_setting("app_short_name", "ONE Track"),
+                "LOGO_URL": get_setting("logo_url", ""),
+                "PRIMARY_COLOR": get_setting("primary_color", "#0b3d91"),
+                "ACCENT_COLOR": get_setting("accent_color", "#14b8a6"),
+                "COMPANY_NAME": get_setting("company_name", app.config["COMPANY_NAME"]),
+                "COMPANY_PHONE": get_setting("company_phone", app.config["COMPANY_PHONE"]),
+                "COMPANY_EMAIL": get_setting("company_email", app.config["COMPANY_EMAIL"]),
+                "COMPANY_ADDRESS": get_setting("company_address", ""),
+            })
+        except Exception as e:
+            db.session.rollback()
+            app.logger.warning(f"inject_globals settings failed: {str(e)[:120]}")
+
         if current_user.is_authenticated:
             try:
+                from services.notifications import unread_count
                 ctx["nav_unread"] = unread_count(current_user.id)
             except Exception:
+                db.session.rollback()
                 ctx["nav_unread"] = 0
         return ctx
 
@@ -162,15 +187,64 @@ def seed_defaults(app):
 
 
 def _light_migrate(app):
-    """Best-effort schema catch-up for prod DBs missing new columns/tables."""
+    """Automatic schema catch-up so deploys never leave the DB behind.
+
+    1. create_all() adds any brand-new tables (e.g. followups).
+    2. For every model table that already exists, compare the model's columns
+       against the live DB and ALTER TABLE ADD COLUMN for anything missing.
+       This auto-heals schema drift for present AND future columns.
+
+    Runs on every startup. Each statement is isolated in its own transaction
+    and rolled back on failure, so one problem can never poison later queries.
+    Column-adding via ALTER TABLE is only attempted on PostgreSQL (prod);
+    the SQLite dev DB is fully (re)built by create_all().
+    """
     from sqlalchemy import inspect, text
-    insp = inspect(db.engine)
-    # Ensure 'followups' table exists
-    if not insp.has_table("followups"):
+
+    # 1) Create any missing tables outright.
+    try:
+        db.create_all()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.warning(f"create_all warning: {str(e)[:150]}")
+
+    if db.engine.dialect.name != "postgresql":
+        return
+
+    # 2) Auto-add missing columns on existing tables.
+    try:
+        insp = inspect(db.engine)
+        existing_tables = set(insp.get_table_names())
+    except Exception as e:
+        db.session.rollback()
+        app.logger.warning(f"inspect failed: {str(e)[:150]}")
+        return
+
+    for table in db.metadata.sorted_tables:
+        if table.name not in existing_tables:
+            continue  # create_all handles brand-new tables
         try:
-            db.create_all()
+            db_cols = {c["name"] for c in insp.get_columns(table.name)}
         except Exception as e:
-            app.logger.warning(f"followups table create warning: {e}")
+            db.session.rollback()
+            app.logger.warning(f"columns({table.name}) failed: {str(e)[:120]}")
+            continue
+
+        for col in table.columns:
+            if col.name in db_cols:
+                continue
+            try:
+                col_type = col.type.compile(dialect=db.engine.dialect)
+            except Exception:
+                col_type = "TEXT"
+            ddl = f'ALTER TABLE {table.name} ADD COLUMN IF NOT EXISTS "{col.name}" {col_type}'
+            try:
+                db.session.execute(text(ddl))
+                db.session.commit()
+                app.logger.info(f"migrate: added {table.name}.{col.name}")
+            except Exception as e:
+                db.session.rollback()
+                app.logger.warning(f"migrate skip {table.name}.{col.name}: {str(e)[:120]}")
 
 
 app = create_app()

@@ -26,7 +26,7 @@
                 {% for row in rows %}
                 <tr>
                     <td><strong>{{ row.name }}</strong></td>
-                    <td>{{ row.total }}</td>
+                    <td>{{ row.assigned }}</td>
                     <td>{{ row.closed }}</td>
                     <td>{{ "%.0f"|format(row.rate) }}%</td>
                 </tr>

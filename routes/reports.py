@@ -120,8 +120,9 @@ def tech_performance():
             MaintenanceRequest.status == "closed",
             MaintenanceRequest.closed_at.between(frm_dt, to_dt)
         ).count()
+        rate = (closed / assigned * 100) if assigned else 0
         rows.append({"name": t.name, "assigned": assigned, "closed": closed,
-                     "rate": f"{(closed/assigned*100):.0f}%" if assigned else "-"})
+                     "rate": rate})
     return render_template("admin/reports/tech_performance.html", rows=rows, frm=frm, to=to)
 
 
