@@ -1,5 +1,5 @@
 import os
-from flask import Flask, redirect, url_for, render_template, request as flask_request, jsonify
+from flask import Flask, redirect, url_for, render_template, request as flask_request, jsonify, send_from_directory, abort
 from flask_login import LoginManager, current_user
 from config import Config
 from models import db
@@ -12,6 +12,15 @@ login_manager = LoginManager()
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # Cache-busting version for static assets: mtime of main.css. Changes on
+    # every deploy that touches the CSS, so browsers always fetch the fresh file
+    # instead of a stale cached copy (which breaks the layout after a redesign).
+    try:
+        css_path = os.path.join(app.root_path, "static", "css", "main.css")
+        app.config["ASSET_VERSION"] = str(int(os.path.getmtime(css_path)))
+    except Exception:
+        app.config["ASSET_VERSION"] = "2"
 
     # Ensure folders exist
     os.makedirs(os.path.join(app.root_path, "instance"), exist_ok=True)
@@ -61,6 +70,17 @@ def create_app():
     app.register_blueprint(audit_bp, url_prefix="/admin/audit")
     app.register_blueprint(rating_bp)
     app.register_blueprint(pwa_bp)
+
+    # Serve uploaded files from UPLOAD_FOLDER (works whether that's the default
+    # static path or a mounted Railway volume). Shadows the default /static
+    # handler for this subpath so existing /static/uploads/... URLs keep working.
+    @app.route("/static/uploads/<path:filename>")
+    def uploaded_file(filename):
+        folder = app.config["UPLOAD_FOLDER"]
+        full = os.path.join(folder, filename)
+        if not os.path.isfile(full):
+            abort(404)
+        return send_from_directory(folder, filename)
 
     # Root
     @app.route("/")
@@ -112,13 +132,21 @@ def create_app():
             "is_rtl": is_rtl(),
             "available_langs": AVAILABLE_LANGS,
             "nav_unread": 0,
+            "ASSET_VERSION": app.config.get("ASSET_VERSION", "1"),
         }
         try:
             from services.settings_service import get_setting
+            logo_url = get_setting("logo_url", "")
+            # Drop a dead local logo path (file wiped by an ephemeral deploy)
+            # so the page never requests a 404 image — falls back to the mark.
+            if logo_url.startswith("/static/uploads/"):
+                rel = logo_url[len("/static/uploads/"):]
+                if not os.path.isfile(os.path.join(app.config["UPLOAD_FOLDER"], rel)):
+                    logo_url = ""
             ctx.update({
                 "APP_NAME": get_setting("app_name", app.config["APP_NAME"]),
                 "APP_SHORT_NAME": get_setting("app_short_name", "ONE Track"),
-                "LOGO_URL": get_setting("logo_url", ""),
+                "LOGO_URL": logo_url,
                 "PRIMARY_COLOR": get_setting("primary_color", "#0b3d91"),
                 "ACCENT_COLOR": get_setting("accent_color", "#14b8a6"),
                 "COMPANY_NAME": get_setting("company_name", app.config["COMPANY_NAME"]),

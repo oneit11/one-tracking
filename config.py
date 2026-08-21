@@ -24,7 +24,9 @@ class Config:
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True, "pool_recycle": 300}
 
     # Uploads
-    UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
+    # On Railway (or any ephemeral host) set UPLOAD_FOLDER to a mounted volume
+    # path (e.g. /data/uploads) so uploaded logos/photos survive redeploys.
+    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", os.path.join(BASE_DIR, "static", "uploads"))
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp", "pdf", "docx", "xlsx", "doc", "xls"}
 

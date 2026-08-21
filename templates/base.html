@@ -9,7 +9,7 @@
     <title>{% block title %}{{ APP_NAME }}{% endblock %}</title>
 
     <link rel="manifest" href="/manifest.json">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v={{ ASSET_VERSION }}">
     <link rel="icon" type="image/png" href="{{ LOGO_URL or url_for('static', filename='img/favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ LOGO_URL or '/static/img/pwa/icon-192.png' }}">
 
@@ -28,7 +28,8 @@
     <div class="topbar-inner">
         <a href="{{ url_for('index') }}" class="brand">
             {% if LOGO_URL %}
-                <img src="{{ LOGO_URL }}" class="brand-logo" alt="{{ APP_NAME }}">
+                <img src="{{ LOGO_URL }}" class="brand-logo" alt="{{ APP_NAME }}"
+                     onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span class=\'brand-mark\'>◆</span>');">
             {% else %}
                 <span class="brand-mark">◆</span>
             {% endif %}
@@ -121,10 +122,10 @@
     {{ COMPANY_NAME }} &middot; <a href="tel:{{ COMPANY_PHONE }}" dir="ltr">{{ COMPANY_PHONE }}</a>
 </footer>
 
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}?v={{ ASSET_VERSION }}"></script>
 {% if current_user.is_authenticated %}
-<script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
+<script src="{{ url_for('static', filename='js/notifications.js') }}?v={{ ASSET_VERSION }}"></script>
+<script src="{{ url_for('static', filename='js/pwa.js') }}?v={{ ASSET_VERSION }}"></script>
 {% endif %}
 {% block scripts %}{% endblock %}
 </body>
