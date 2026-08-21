@@ -1,10 +1,89 @@
 {% extends "base.html" %}
-{% block title %}شكراً{% endblock %}
+{% block title %}{{ t('rating.thanks_title') }}{% endblock %}
+{% block head_extra %}
+<style>
+  @media print {
+    .no-print { display: none !important; }
+    .topbar, .footer, nav { display: none !important; }
+    body { background: white !important; }
+    .thanks-card { box-shadow: none !important; border: 1px solid #ccc !important; }
+  }
+  .thanks-card { max-width: 640px; margin: 40px auto; padding: 32px; }
+  .rating-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; margin: 20px 0; text-align: {{ 'right' if is_rtl else 'left' }}; }
+  .rating-summary .lbl { color: #64748b; font-size: 13px; }
+  .rating-summary .val { font-weight: 600; }
+  .rating-summary .full { grid-column: 1 / -1; }
+  .stars-lg { font-size: 32px; color: #f59e0b; letter-spacing: 4px; }
+  .comment-box { background: #f8fafc; padding: 10px 14px; border-radius: 8px; margin-top: 6px; font-style: italic; color: #475569; }
+</style>
+{% endblock %}
 {% block content %}
-<div class="card text-center" style="max-width:520px;margin:60px auto">
-    <h1 style="font-size:60px;margin:0">✅</h1>
-    <h2>شكراً لك!</h2>
-    <p class="text-muted">تم تسجيل تقييمك بنجاح.</p>
-    <p>نحن نقدّر وقتك ورأيك يساعدنا في تحسين خدماتنا.</p>
+<div class="card thanks-card">
+    <div class="text-center">
+        <h1 style="font-size:60px;margin:0">✅</h1>
+        <h2 style="margin:8px 0">{{ t('rating.thanks_title') }}</h2>
+        <p class="text-muted">{{ t('rating.thanks_body') }}</p>
+    </div>
+
+    {% if rating %}
+    <hr style="margin:20px 0;border:none;border-top:1px solid #e5e7eb">
+
+    <div class="rating-summary">
+        {% if rating.request %}
+        <div>
+            <div class="lbl">{{ t('rating.request_num') }}</div>
+            <div class="val">{{ rating.request.request_number }}</div>
+        </div>
+        <div>
+            <div class="lbl">{{ t('rating.date') }}</div>
+            <div class="val">{{ rating.rated_at.strftime('%Y-%m-%d %H:%M') if rating.rated_at else '-' }}</div>
+        </div>
+        {% if rating.request.client %}
+        <div>
+            <div class="lbl">{{ t('rating.client') }}</div>
+            <div class="val">{{ rating.request.client.company_name }}</div>
+        </div>
+        <div>
+            <div class="lbl">{{ COMPANY_NAME }}</div>
+            <div class="val" dir="ltr">{{ COMPANY_PHONE }}</div>
+        </div>
+        {% endif %}
+        {% if rating.request.title %}
+        <div class="full">
+            <div class="lbl">{{ t('rating.service_title') }}</div>
+            <div class="val">{{ rating.request.title }}</div>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        {% if rating.stars %}
+        <div class="full">
+            <div class="lbl">{{ t('rating.company_section') }}</div>
+            <div class="stars-lg">
+                {% for _ in range(rating.stars) %}★{% endfor %}{% for _ in range(5-rating.stars) %}☆{% endfor %}
+                <span style="font-size:18px;color:#64748b">({{ rating.stars }}/5)</span>
+            </div>
+            {% if rating.comment %}<div class="comment-box">"{{ rating.comment }}"</div>{% endif %}
+        </div>
+        {% endif %}
+
+        {% if rating.tech_stars %}
+        <div class="full">
+            <div class="lbl">{{ t('rating.tech_section') }}
+                {% if rating.request and rating.request.technician %} — {{ rating.request.technician.name }}{% endif %}
+            </div>
+            <div class="stars-lg">
+                {% for _ in range(rating.tech_stars) %}★{% endfor %}{% for _ in range(5-rating.tech_stars) %}☆{% endfor %}
+                <span style="font-size:18px;color:#64748b">({{ rating.tech_stars }}/5)</span>
+            </div>
+            {% if rating.tech_comment %}<div class="comment-box">"{{ rating.tech_comment }}"</div>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="text-center no-print mt-4">
+        <button onclick="window.print()" class="btn btn-primary">{{ t('rating.print') }}</button>
+    </div>
 </div>
 {% endblock %}

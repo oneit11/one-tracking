@@ -24,7 +24,7 @@ def health():
 
 @public_bp.route("/d/<code>")
 def scan(code):
-    """QR scan endpoint. Public entry â routes to appropriate view."""
+    """QR scan endpoint. Public entry — routes to appropriate view."""
     qr = QRCode.query.filter_by(code=code).first()
     if not qr:
         return render_template("public/qr_invalid.html", code=code), 404
@@ -36,7 +36,7 @@ def scan(code):
 
     # Not bound: require auth to bind
     if not current_user.is_authenticated:
-        flash("Ø§ÙØ³Ø­ QR ÙÙÙ Ø¨ØªØ³Ø¬ÙÙ Ø§ÙØ¯Ø®ÙÙ ÙØ±Ø¨Ø·Ù Ø¨Ø¬ÙØ§Ø²", "info")
+        flash("امسح QR وقم بتسجيل الدخول لربطه بجهاز", "info")
         return redirect(url_for("auth.login", next=request.path))
 
     if current_user.role not in ("admin", "technician"):
@@ -52,7 +52,7 @@ def bind_qr(code):
         abort(403)
     qr = QRCode.query.filter_by(code=code).first_or_404()
     if qr.is_bound:
-        flash("ÙØ°Ø§ Ø§ÙÙ QR ÙØ±Ø¨ÙØ· Ø¨Ø§ÙÙØ¹Ù", "info")
+        flash("هذا الـ QR مربوط بالفعل", "info")
         return redirect(url_for("public.scan", code=code))
 
     clients = Client.query.filter_by(active=True).order_by(Client.company_name).all()
@@ -64,10 +64,10 @@ def bind_qr(code):
         if existing_device_id:
             d = Device.query.get(int(existing_device_id))
             if not d:
-                flash("Ø¬ÙØ§Ø² ØºÙØ± ÙÙØ¬ÙØ¯", "danger")
+                flash("جهاز غير موجود", "danger")
                 return redirect(url_for("public.bind_qr", code=code))
             if d.qr_code:
-                flash("ÙØ°Ø§ Ø§ÙØ¬ÙØ§Ø² ÙØ±Ø¨ÙØ· Ø¨Ù QR Ø¢Ø®Ø± Ø¨Ø§ÙÙØ¹Ù", "warning")
+                flash("هذا الجهاز مربوط بـ QR آخر بالفعل", "warning")
                 return redirect(url_for("public.bind_qr", code=code))
             qr.device_id = d.id
         else:
@@ -87,7 +87,7 @@ def bind_qr(code):
 
         qr.bound_at = datetime.utcnow()
         db.session.commit()
-        flash(f"ØªÙ Ø±Ø¨Ø· Ø§ÙØ¬ÙØ§Ø² Ø¨Ù {qr.code}", "success")
+        flash(f"تم ربط الجهاز بـ {qr.code}", "success")
         return redirect(url_for("public.scan", code=code))
 
     return render_template("public/qr_bind.html", qr=qr, clients=clients,
@@ -96,7 +96,7 @@ def bind_qr(code):
 
 @public_bp.route("/api/emergency/migrate", methods=["POST"])
 def emergency_migrate():
-    """Manual migration endpoint - for adding columns beed deploy."""
+    """Manual migration endpoint - for adding columns after deploy."""
     secret = request.headers.get("X-Emergency-Secret") or request.json.get("secret") if request.is_json else None
     if not secret:
         secret = request.form.get("secret")
