@@ -120,6 +120,7 @@ def create_app():
             db.create_all()
             seed_default_admin(app)
             seed_defaults(app)
+            _light_migrate(app)
         except Exception as e:
             app.logger.error(f"Startup DB error: {e}")
 
@@ -158,6 +159,18 @@ def seed_defaults(app):
             r.permissions_list = data["permissions"]
             db.session.add(r)
     db.session.commit()
+
+
+def _light_migrate(app):
+    """Best-effort schema catch-up for prod DBs missing new columns/tables."""
+    from sqlalchemy import inspect, text
+    insp = inspect(db.engine)
+    # Ensure 'followups' table exists
+    if not insp.has_table("followups"):
+        try:
+            db.create_all()
+        except Exception as e:
+            app.logger.warning(f"followups table create warning: {e}")
 
 
 app = create_app()

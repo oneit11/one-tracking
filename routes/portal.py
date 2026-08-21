@@ -38,8 +38,11 @@ def dashboard():
             MaintenanceRequest.status == "closed"
         ).count(),
     }
-    recent = MaintenanceRequest.query.filter_by(client_id=client.id)\
-        .order_by(desc(MaintenanceRequest.created_at)).limit(5).all()
+    # Only open requests in "recent" — closed ones have their own tab
+    recent = MaintenanceRequest.query.filter(
+        MaintenanceRequest.client_id == client.id,
+        MaintenanceRequest.status.in_(["new", "assigned", "in_progress", "report_ready"]),
+    ).order_by(desc(MaintenanceRequest.created_at)).limit(5).all()
     return render_template("portal/dashboard.html", client=client, stats=stats, recent=recent)
 
 
@@ -59,9 +62,23 @@ def requests_list():
     client = _my_client()
     if not client:
         abort(403)
-    reqs = MaintenanceRequest.query.filter_by(client_id=client.id)\
-        .order_by(desc(MaintenanceRequest.created_at)).all()
-    return render_template("portal/requests_list.html", client=client, requests=reqs)
+    show = request.args.get("show", "open")  # open | closed | all
+    q = MaintenanceRequest.query.filter_by(client_id=client.id)
+    if show == "open":
+        q = q.filter(MaintenanceRequest.status.in_(["new", "assigned", "in_progress", "report_ready"]))
+    elif show == "closed":
+        q = q.filter(MaintenanceRequest.status.in_(["closed", "cancelled"]))
+    reqs = q.order_by(desc(MaintenanceRequest.created_at)).all()
+    counts = {
+        "open": MaintenanceRequest.query.filter(
+            MaintenanceRequest.client_id == client.id,
+            MaintenanceRequest.status.in_(["new", "assigned", "in_progress", "report_ready"])).count(),
+        "closed": MaintenanceRequest.query.filter(
+            MaintenanceRequest.client_id == client.id,
+            MaintenanceRequest.status.in_(["closed", "cancelled"])).count(),
+    }
+    return render_template("portal/requests_list.html", client=client,
+                           requests=reqs, show=show, counts=counts)
 
 
 @portal_bp.route("/requests/new", methods=["GET", "POST"])

@@ -91,6 +91,33 @@ class StockMovement(db.Model):
     part = db.relationship("SparePart", backref="movements")
 
 
+class Followup(db.Model):
+    """Follow-up appointment scheduled by admin/tech on a maintenance request that had a visit."""
+    __tablename__ = "followups"
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.Integer, db.ForeignKey("maintenance_requests.id"), nullable=False, index=True)
+    scheduled_at = db.Column(db.DateTime, nullable=False, index=True)
+    technician_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    notes = db.Column(db.Text, default="")
+    status = db.Column(db.String(20), default="scheduled")  # scheduled, done, cancelled
+    created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    done_at = db.Column(db.DateTime, nullable=True)
+
+    request = db.relationship("MaintenanceRequest", backref=db.backref("followups", cascade="all, delete-orphan"))
+    technician = db.relationship("User", foreign_keys=[technician_id])
+
+    STATUS_LABELS = {
+        "scheduled": "مجدول",
+        "done": "تم",
+        "cancelled": "ملغي",
+    }
+
+    @property
+    def status_label(self):
+        return self.STATUS_LABELS.get(self.status, self.status)
+
+
 class PMSchedule(db.Model):
     """Preventive Maintenance schedule (auto-generates requests)."""
     __tablename__ = "pm_schedules"

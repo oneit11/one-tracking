@@ -40,8 +40,14 @@
                 <label class="form-label">صورة (اختياري)</label>
                 <input class="form-input" type="file" name="photo" accept="image/*" capture="environment">
                 {% if req.visit_report and req.visit_report.photo_url %}
-                    <img src="{{ req.visit_report.photo_url }}" class="image-thumb mt-2" style="max-height:80px">
+                    <img src="{{ req.visit_report.photo_url }}" class="image-thumb mt-2 clickable-image" style="max-height:80px">
                 {% endif %}
+            </div>
+            <div class="form-group full" style="border-top:1px dashed var(--border);padding-top:14px;margin-top:6px;">
+                <label class="form-label">📅 جدولة متابعة (اختياري)</label>
+                <p class="text-muted" style="font-size:12px;margin:0 0 6px">لو المشكلة محتاجة زيارة متابعة، حدد الموعد الآن</p>
+                <input type="datetime-local" class="form-input" name="followup_at">
+                <input type="text" class="form-input mt-2" name="followup_notes" placeholder="ملاحظات المتابعة (اختياري)">
             </div>
         </div>
         <div class="form-actions">

@@ -4,6 +4,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import desc, or_
 from models import db
 from models.request import MaintenanceRequest, VisitReport
+from models.extras import Followup
 from utils.decorators import tech_required
 from utils.helpers import save_upload
 from services import whatsapp as wa
@@ -14,17 +15,28 @@ tech_bp = Blueprint("tech", __name__)
 @tech_bp.route("/")
 @tech_required
 def dashboard():
+    # Only OPEN requests assigned to this technician — closed ones are removed from view
     my_open = MaintenanceRequest.query.filter(
         MaintenanceRequest.technician_id == current_user.id,
         MaintenanceRequest.status.in_(["assigned", "in_progress", "report_ready"])
     ).order_by(desc(MaintenanceRequest.assigned_at)).all()
 
-    my_closed = MaintenanceRequest.query.filter(
-        MaintenanceRequest.technician_id == current_user.id,
-        MaintenanceRequest.status == "closed"
-    ).order_by(desc(MaintenanceRequest.closed_at)).limit(10).all()
+    # Upcoming follow-ups for this technician
+    my_followups = Followup.query.filter(
+        Followup.technician_id == current_user.id,
+        Followup.status == "scheduled",
+    ).order_by(Followup.scheduled_at.asc()).limit(20).all()
 
-    return render_template("tech/dashboard.html", open_reqs=my_open, closed_reqs=my_closed)
+    stats = {
+        "open_count": len(my_open),
+        "new": sum(1 for r in my_open if r.status == "assigned"),
+        "in_progress": sum(1 for r in my_open if r.status == "in_progress"),
+        "report_ready": sum(1 for r in my_open if r.status == "report_ready"),
+        "followups": len(my_followups),
+    }
+
+    return render_template("tech/dashboard.html", open_reqs=my_open,
+                           followups=my_followups, stats=stats)
 
 
 @tech_bp.route("/requests/<int:rid>")
@@ -34,7 +46,12 @@ def request_view(rid):
     if req.technician_id != current_user.id:
         flash("هذا الطلب ليس معيناً عليك", "warning")
         return redirect(url_for("tech.dashboard"))
-    return render_template("tech/request_view.html", req=req)
+    # If the admin closed the request, remove it from the tech's view entirely
+    if req.status == "closed":
+        flash("تم إغلاق هذا الطلب من قِبَل الإدارة", "info")
+        return redirect(url_for("tech.dashboard"))
+    followups = Followup.query.filter_by(request_id=rid).order_by(Followup.scheduled_at.desc()).all()
+    return render_template("tech/request_view.html", req=req, followups=followups)
 
 
 @tech_bp.route("/requests/<int:rid>/start", methods=["POST"])
@@ -79,6 +96,23 @@ def submit_report(rid):
 
         req.status = "report_ready"
         req.reported_at = datetime.utcnow()
+
+        # Optional: schedule a follow-up right from the report
+        followup_at = request.form.get("followup_at", "").strip()
+        if followup_at:
+            try:
+                fu_dt = datetime.strptime(followup_at, "%Y-%m-%dT%H:%M")
+                fu = Followup(
+                    request_id=req.id,
+                    scheduled_at=fu_dt,
+                    technician_id=current_user.id,
+                    notes=request.form.get("followup_notes", "").strip(),
+                    created_by=current_user.id,
+                )
+                db.session.add(fu)
+            except ValueError:
+                pass
+
         db.session.commit()
 
         wa.notify_report_ready(req)

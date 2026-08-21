@@ -13,5 +13,5 @@ from models.setting import Setting, MessageTemplate  # noqa: E402
 from models.permission import Role, UserPermissionOverride  # noqa: E402
 from models.extras import (  # noqa: E402
     Notification, AuditLog, Comment, Rating,
-    SparePart, StockMovement, PMSchedule,
+    SparePart, StockMovement, PMSchedule, Followup,
 )

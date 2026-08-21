@@ -2,44 +2,81 @@
 {% block title %}مهامي - {{ APP_NAME }}{% endblock %}
 {% block content %}
 <div class="page-header">
-    <h1 class="page-title">مهامي</h1>
+    <div>
+        <h1 class="page-title">مهامي</h1>
+        <p class="page-subtitle">الطلبات المسندة إليك — المفتوحة فقط</p>
+    </div>
+    <a href="{{ url_for('scanner.scan_page') }}" class="btn btn-secondary">📷 مسح QR</a>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card kpi-primary">
+        <div class="kpi-icon">📋</div>
+        <div class="kpi-body">
+            <div class="kpi-label">مهام مفتوحة</div>
+            <div class="kpi-value">{{ stats.open_count }}</div>
+        </div>
+    </div>
+    <div class="kpi-card kpi-warning">
+        <div class="kpi-icon">🆕</div>
+        <div class="kpi-body">
+            <div class="kpi-label">جديدة (لم تبدأ)</div>
+            <div class="kpi-value">{{ stats.new }}</div>
+        </div>
+    </div>
+    <div class="kpi-card kpi-info">
+        <div class="kpi-icon">🔧</div>
+        <div class="kpi-body">
+            <div class="kpi-label">قيد التنفيذ</div>
+            <div class="kpi-value">{{ stats.in_progress }}</div>
+        </div>
+    </div>
+    <div class="kpi-card kpi-accent">
+        <div class="kpi-icon">📅</div>
+        <div class="kpi-body">
+            <div class="kpi-label">مواعيد متابعة</div>
+            <div class="kpi-value">{{ stats.followups }}</div>
+        </div>
+    </div>
 </div>
 
 <div class="card">
     <div class="card-header"><h3 class="card-title">مهام مفتوحة ({{ open_reqs|length }})</h3></div>
     {% if open_reqs %}
         {% for r in open_reqs %}
-        <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;">
-            <div class="d-flex justify-between items-center flex-wrap gap-2">
-                <div>
-                    <strong>{{ r.request_number }}</strong> · {{ r.client.company_name }}<br>
-                    <span class="text-muted">{{ r.title }}</span>
-                </div>
-                <div class="d-flex gap-2 items-center">
-                    <span class="badge badge-{{ r.status }}">{{ r.status_label }}</span>
-                    <span class="badge badge-{{ r.priority }}">{{ r.priority_label }}</span>
-                    <a href="{{ url_for('tech.request_view', rid=r.id) }}" class="btn btn-sm btn-primary">فتح</a>
-                </div>
+        <div class="task-row">
+            <div class="task-row-main">
+                <strong>{{ r.request_number }}</strong> · {{ r.client.company_name }}<br>
+                <span class="text-muted">{{ r.title }}</span>
+                {% if r.client.phone %}
+                <br><small>📞 <a href="tel:{{ r.client.phone }}" dir="ltr">{{ r.client.phone }}</a></small>
+                {% endif %}
+            </div>
+            <div class="task-row-actions">
+                <span class="badge badge-{{ r.status }}">{{ r.status_label }}</span>
+                <span class="badge badge-{{ r.priority }}">{{ r.priority_label }}</span>
+                <a href="{{ url_for('tech.request_view', rid=r.id) }}" class="btn btn-sm btn-primary">فتح</a>
             </div>
         </div>
         {% endfor %}
     {% else %}
-        <div class="empty"><h3>لا توجد مهام مفتوحة حالياً</h3></div>
+        <div class="empty"><h3>✨ لا توجد مهام مفتوحة حالياً</h3></div>
     {% endif %}
 </div>
 
-{% if closed_reqs %}
+{% if followups %}
 <div class="card mt-4">
-    <div class="card-header"><h3 class="card-title">آخر 10 مهام مغلقة</h3></div>
-    {% for r in closed_reqs %}
-    <div class="detail-row">
-        <span>
-            <strong>{{ r.request_number }}</strong> · {{ r.client.company_name }}<br>
-            <span class="text-muted">{{ r.title }}</span>
-        </span>
-        <span>
-            <a href="{{ url_for('tech.request_view', rid=r.id) }}" class="btn btn-sm btn-secondary">عرض</a>
-        </span>
+    <div class="card-header"><h3 class="card-title">📅 مواعيد متابعة قادمة</h3></div>
+    {% for f in followups %}
+    <div class="task-row">
+        <div class="task-row-main">
+            <strong>{{ f.request.request_number }}</strong> · {{ f.request.client.company_name }}<br>
+            <span class="text-muted">📅 {{ f.scheduled_at.strftime('%Y-%m-%d %H:%M') }}</span>
+            {% if f.notes %}<br><small>{{ f.notes }}</small>{% endif %}
+        </div>
+        <div class="task-row-actions">
+            <a href="{{ url_for('tech.request_view', rid=f.request_id) }}" class="btn btn-sm btn-secondary">فتح الطلب</a>
+        </div>
     </div>
     {% endfor %}
 </div>

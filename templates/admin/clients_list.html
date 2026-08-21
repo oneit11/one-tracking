@@ -47,7 +47,13 @@
                         {% endif %}
                     </td>
                     <td>
-                        <a href="{{ url_for('admin.client_view', cid=c.id) }}" class="btn btn-sm btn-secondary">فتح</a>
+                        <div class="d-flex gap-1">
+                            <a href="{{ url_for('admin.client_view', cid=c.id) }}" class="btn btn-sm btn-primary">فتح</a>
+                            <form method="post" action="{{ url_for('admin.client_delete', cid=c.id) }}"
+                                  data-confirm="متأكد من حذف {{ c.company_name }}؟ سيتم فصل كل المستخدمين المرتبطين." style="display:inline">
+                                <button class="btn btn-sm btn-danger" type="submit">🗑️</button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}

@@ -50,7 +50,15 @@
                     </td>
                     <td>{{ r.technician.name if r.technician else '-' }}</td>
                     <td>{{ r.created_at.strftime('%m-%d') }}</td>
-                    <td><a class="btn btn-sm btn-secondary" href="{{ url_for('admin.request_view', rid=r.id) }}">فتح</a></td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a class="btn btn-sm btn-primary" href="{{ url_for('admin.request_view', rid=r.id) }}">فتح</a>
+                            <form method="post" action="{{ url_for('admin.request_delete', rid=r.id) }}"
+                                  data-confirm="متأكد من حذف الطلب {{ r.request_number }}؟ لا يمكن التراجع." style="display:inline">
+                                <button class="btn btn-sm btn-danger" type="submit">🗑️</button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

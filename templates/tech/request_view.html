@@ -26,7 +26,7 @@
     {% if req.submitted_photo_url %}
     <div class="mt-4">
         <p class="form-label mb-2">صورة من العميل:</p>
-        <a href="{{ req.submitted_photo_url }}" target="_blank"><img src="{{ req.submitted_photo_url }}" class="image-thumb" style="max-height:220px"></a>
+        <img src="{{ req.submitted_photo_url }}" class="image-thumb clickable-image" style="max-height:220px" alt="صورة العميل">
     </div>
     {% endif %}
 </div>
@@ -55,7 +55,24 @@
     {% if req.visit_report.diagnosis %}<div class="mt-4"><p class="form-label">التشخيص:</p><p style="white-space:pre-wrap">{{ req.visit_report.diagnosis }}</p></div>{% endif %}
     {% if req.visit_report.actions_taken %}<div class="mt-4"><p class="form-label">الإجراءات:</p><p style="white-space:pre-wrap">{{ req.visit_report.actions_taken }}</p></div>{% endif %}
     {% if req.visit_report.spare_parts %}<div class="mt-4"><p class="form-label">قطع الغيار:</p><p style="white-space:pre-wrap">{{ req.visit_report.spare_parts }}</p></div>{% endif %}
-    {% if req.visit_report.photo_url %}<div class="mt-4"><img src="{{ req.visit_report.photo_url }}" class="image-thumb" style="max-height:200px"></div>{% endif %}
+    {% if req.visit_report.photo_url %}
+    <div class="mt-4"><img src="{{ req.visit_report.photo_url }}" class="image-thumb clickable-image" style="max-height:200px" alt="صورة التقرير"></div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if followups %}
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">📅 مواعيد المتابعة</h3></div>
+    {% for f in followups %}
+    <div class="followup-item followup-{{ f.status }}">
+        <div>
+            <strong>📅 {{ f.scheduled_at.strftime('%Y-%m-%d %H:%M') }}</strong>
+            <span class="badge">{{ f.status_label }}</span>
+            {% if f.notes %}<br><small class="text-muted">{{ f.notes }}</small>{% endif %}
+        </div>
+    </div>
+    {% endfor %}
 </div>
 {% endif %}
 {% endblock %}

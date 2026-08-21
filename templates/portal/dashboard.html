@@ -9,36 +9,70 @@
     <a href="{{ url_for('portal.request_new') }}" class="btn btn-primary">+ طلب صيانة</a>
 </div>
 
-<div class="stats-grid">
-    <div class="stat-card primary"><span class="stat-label">أجهزتي</span><span class="stat-value">{{ stats.devices }}</span></div>
-    <div class="stat-card warning"><span class="stat-label">طلبات مفتوحة</span><span class="stat-value">{{ stats.open_requests }}</span></div>
-    <div class="stat-card success"><span class="stat-label">طلبات مغلقة</span><span class="stat-value">{{ stats.closed_requests }}</span></div>
+<div class="kpi-grid">
+    <a href="{{ url_for('portal.devices') }}" class="kpi-card kpi-primary">
+        <div class="kpi-icon">🖥️</div>
+        <div class="kpi-body">
+            <div class="kpi-label">أجهزتي</div>
+            <div class="kpi-value">{{ stats.devices }}</div>
+        </div>
+        <div class="kpi-arrow">←</div>
+    </a>
+    <a href="{{ url_for('portal.requests_list') }}?show=open" class="kpi-card kpi-warning">
+        <div class="kpi-icon">📋</div>
+        <div class="kpi-body">
+            <div class="kpi-label">طلبات مفتوحة</div>
+            <div class="kpi-value">{{ stats.open_requests }}</div>
+        </div>
+        <div class="kpi-arrow">←</div>
+    </a>
+    <a href="{{ url_for('portal.requests_list') }}?show=closed" class="kpi-card kpi-success">
+        <div class="kpi-icon">✅</div>
+        <div class="kpi-body">
+            <div class="kpi-label">طلبات مغلقة</div>
+            <div class="kpi-value">{{ stats.closed_requests }}</div>
+        </div>
+        <div class="kpi-arrow">←</div>
+    </a>
     {% if client.active_amc %}
-    <div class="stat-card accent"><span class="stat-label">عقد AMC ساري</span><span class="stat-value" style="font-size:16px;">حتى {{ client.active_amc.end_date }}</span></div>
+    <div class="kpi-card kpi-accent">
+        <div class="kpi-icon">📜</div>
+        <div class="kpi-body">
+            <div class="kpi-label">عقد AMC ساري</div>
+            <div class="kpi-value" style="font-size:16px;">حتى {{ client.active_amc.end_date }}</div>
+        </div>
+    </div>
     {% endif %}
+</div>
+
+<div class="quick-actions">
+    <a href="{{ url_for('portal.request_new') }}" class="qa-btn"><span>➕</span><small>طلب جديد</small></a>
+    <a href="{{ url_for('portal.requests_list') }}" class="qa-btn"><span>📋</span><small>طلباتي</small></a>
+    <a href="{{ url_for('portal.devices') }}" class="qa-btn"><span>🖥️</span><small>أجهزتي</small></a>
 </div>
 
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">أحدث طلباتي</h3>
-        <a href="{{ url_for('portal.requests_list') }}" class="btn btn-sm btn-secondary">عرض الكل</a>
+        <h3 class="card-title">أحدث طلباتي المفتوحة</h3>
+        <a href="{{ url_for('portal.requests_list') }}" class="btn btn-sm btn-secondary">عرض الكل ←</a>
     </div>
     {% if recent %}
         {% for r in recent %}
-        <div class="detail-row">
-            <span>
-                <strong>{{ r.request_number }}</strong> - {{ r.title }}<br>
-                <span class="text-muted">{{ r.created_at.strftime('%Y-%m-%d') }}</span>
-            </span>
-            <span>
-                <span class="badge badge-{{ r.status }}">{{ r.status_label }}</span>
-                <a href="{{ url_for('portal.request_view', rid=r.id) }}" class="btn btn-sm btn-secondary">فتح</a>
-            </span>
-        </div>
+        <a href="{{ url_for('portal.request_view', rid=r.id) }}" class="request-row-link">
+            <div class="detail-row">
+                <span>
+                    <strong>{{ r.request_number }}</strong> - {{ r.title }}<br>
+                    <span class="text-muted">{{ r.created_at.strftime('%Y-%m-%d') }}</span>
+                </span>
+                <span>
+                    <span class="badge badge-{{ r.status }}">{{ r.status_label }}</span>
+                </span>
+            </div>
+        </a>
         {% endfor %}
     {% else %}
         <div class="empty">
-            <h3>لا يوجد طلبات</h3>
+            <h3>لا يوجد طلبات مفتوحة</h3>
             <a href="{{ url_for('portal.request_new') }}" class="btn btn-primary mt-2">+ أول طلب صيانة</a>
         </div>
     {% endif %}

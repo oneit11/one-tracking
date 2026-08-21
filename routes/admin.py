@@ -10,7 +10,7 @@ from models.user import User
 from models.client import Client, AMCContract
 from models.device import Device, QRBatch, QRCode
 from models.request import MaintenanceRequest, VisitReport, SupportTicket
-from models.extras import Notification, Comment, Rating
+from models.extras import Notification, Comment, Rating, Followup
 from models.permission import Role
 from models.wa_log import WhatsAppLog
 from utils.decorators import admin_required, permission_required
@@ -354,8 +354,9 @@ def request_view(rid):
 
     technicians = User.query.filter_by(role="technician", active=True).all()
     comments = Comment.query.filter_by(request_id=req.id).order_by(Comment.created_at).all()
+    followups = Followup.query.filter_by(request_id=req.id).order_by(Followup.scheduled_at.desc()).all()
     return render_template("admin/request_view.html", req=req, technicians=technicians,
-                           comments=comments,
+                           comments=comments, followups=followups,
                            sla_status=sla_status(req), sla_time=format_time_remaining(req.sla_due_at))
 
 
@@ -655,3 +656,160 @@ def wa_test():
 def wa_logs():
     logs = WhatsAppLog.query.order_by(desc(WhatsAppLog.sent_at)).limit(200).all()
     return render_template("admin/wa_logs.html", logs=logs)
+
+
+# ================= Follow-up Appointments =================
+@admin_bp.route("/requests/<int:rid>/followups/new", methods=["POST"])
+@admin_required
+def followup_new(rid):
+    req = MaintenanceRequest.query.get_or_404(rid)
+    scheduled = request.form.get("scheduled_at", "").strip()
+    if not scheduled:
+        flash("حدد موعد المتابعة", "warning")
+        return redirect(url_for("admin.request_view", rid=rid))
+    try:
+        dt = datetime.strptime(scheduled, "%Y-%m-%dT%H:%M")
+    except ValueError:
+        try:
+            dt = datetime.strptime(scheduled, "%Y-%m-%d %H:%M")
+        except ValueError:
+            flash("صيغة التاريخ غير صحيحة", "danger")
+            return redirect(url_for("admin.request_view", rid=rid))
+    tech_id = request.form.get("technician_id")
+    fu = Followup(
+        request_id=req.id,
+        scheduled_at=dt,
+        technician_id=int(tech_id) if tech_id else (req.technician_id or None),
+        notes=request.form.get("notes", "").strip(),
+        created_by=current_user.id,
+    )
+    db.session.add(fu)
+    db.session.commit()
+    log_action("followup.created", entity_type="request", entity_id=rid,
+               details=dt.strftime("%Y-%m-%d %H:%M"))
+    if fu.technician_id:
+        notify_user(fu.technician_id, f"موعد متابعة جديد - {req.request_number}",
+                    f"{req.client.company_name} في {dt.strftime('%Y-%m-%d %H:%M')}",
+                    "📅", url_for("tech.request_view", rid=req.id))
+    flash("تم جدولة موعد المتابعة", "success")
+    return redirect(url_for("admin.request_view", rid=rid))
+
+
+@admin_bp.route("/followups/<int:fid>/done", methods=["POST"])
+@admin_required
+def followup_done(fid):
+    fu = Followup.query.get_or_404(fid)
+    fu.status = "done"
+    fu.done_at = datetime.utcnow()
+    db.session.commit()
+    log_action("followup.done", entity_type="request", entity_id=fu.request_id)
+    flash("تم تعليم المتابعة كمنجزة", "success")
+    return redirect(url_for("admin.request_view", rid=fu.request_id))
+
+
+@admin_bp.route("/followups/<int:fid>/cancel", methods=["POST"])
+@admin_required
+def followup_cancel(fid):
+    fu = Followup.query.get_or_404(fid)
+    fu.status = "cancelled"
+    db.session.commit()
+    log_action("followup.cancelled", entity_type="request", entity_id=fu.request_id)
+    flash("تم إلغاء موعد المتابعة", "info")
+    return redirect(url_for("admin.request_view", rid=fu.request_id))
+
+
+# ================= Delete (Admin only) =================
+@admin_bp.route("/users/<int:uid>/delete", methods=["POST"])
+@admin_required
+def user_delete(uid):
+    if uid == current_user.id:
+        flash("لا يمكنك حذف حسابك", "danger")
+        return redirect(url_for("admin.users_list"))
+    u = User.query.get_or_404(uid)
+    # Detach from requests instead of orphaning
+    for r in MaintenanceRequest.query.filter_by(technician_id=uid).all():
+        r.technician_id = None
+    for r in MaintenanceRequest.query.filter_by(created_by=uid).all():
+        r.created_by = None
+    for t in SupportTicket.query.filter_by(assigned_to=uid).all():
+        t.assigned_to = None
+    for t in SupportTicket.query.filter_by(created_by=uid).all():
+        t.created_by = None
+    name = u.name
+    db.session.delete(u)
+    db.session.commit()
+    log_action("user.deleted", entity_type="user", entity_id=uid, details=name)
+    flash(f"تم حذف المستخدم: {name}", "success")
+    return redirect(url_for("admin.users_list"))
+
+
+@admin_bp.route("/requests/<int:rid>/delete", methods=["POST"])
+@admin_required
+def request_delete(rid):
+    req = MaintenanceRequest.query.get_or_404(rid)
+    num = req.request_number
+    # Clean related items (comments, followups, ratings cascade via relationships or manual)
+    Comment.query.filter_by(request_id=rid).delete()
+    Followup.query.filter_by(request_id=rid).delete()
+    if req.visit_report:
+        db.session.delete(req.visit_report)
+    db.session.delete(req)
+    db.session.commit()
+    log_action("request.deleted", entity_type="request", entity_id=rid, details=num)
+    flash(f"تم حذف الطلب {num}", "success")
+    return redirect(url_for("admin.requests_list"))
+
+
+@admin_bp.route("/tickets/<int:tid>/delete", methods=["POST"])
+@admin_required
+def ticket_delete(tid):
+    t = SupportTicket.query.get_or_404(tid)
+    num = t.ticket_number
+    db.session.delete(t)
+    db.session.commit()
+    log_action("ticket.deleted", entity_type="ticket", entity_id=tid, details=num)
+    flash(f"تم حذف التذكرة {num}", "success")
+    return redirect(url_for("admin.tickets_list"))
+
+
+@admin_bp.route("/tickets/<int:tid>/close", methods=["POST"])
+@admin_required
+def ticket_close(tid):
+    t = SupportTicket.query.get_or_404(tid)
+    t.status = "closed"
+    t.closed_at = datetime.utcnow()
+    db.session.commit()
+    log_action("ticket.closed", entity_type="ticket", entity_id=tid)
+    flash("تم إغلاق التذكرة", "success")
+    return redirect(url_for("admin.tickets_list"))
+
+
+@admin_bp.route("/clients/<int:cid>/delete", methods=["POST"])
+@admin_required
+def client_delete(cid):
+    client = Client.query.get_or_404(cid)
+    name = client.company_name
+    # Detach linked users
+    for u in User.query.filter_by(client_id=cid).all():
+        u.client_id = None
+    db.session.delete(client)
+    db.session.commit()
+    log_action("client.deleted", entity_type="client", entity_id=cid, details=name)
+    flash(f"تم حذف العميل: {name}", "success")
+    return redirect(url_for("admin.clients_list"))
+
+
+@admin_bp.route("/devices/<int:did>/delete", methods=["POST"])
+@admin_required
+def device_delete(did):
+    d = Device.query.get_or_404(did)
+    name = d.name
+    # Unbind QR codes
+    for qr in QRCode.query.filter_by(device_id=did).all():
+        qr.device_id = None
+        qr.bound_at = None
+    db.session.delete(d)
+    db.session.commit()
+    log_action("device.deleted", entity_type="device", entity_id=did, details=name)
+    flash(f"تم حذف الجهاز: {name}", "success")
+    return redirect(url_for("admin.devices_list"))

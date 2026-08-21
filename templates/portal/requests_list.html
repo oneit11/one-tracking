@@ -5,6 +5,22 @@
     <h1 class="page-title">طلبات الصيانة</h1>
     <a href="{{ url_for('portal.request_new') }}" class="btn btn-primary">+ طلب جديد</a>
 </div>
+
+<div class="tabs mb-4">
+    <a href="{{ url_for('portal.requests_list', show='open') }}"
+       class="tab {% if show == 'open' %}active{% endif %}">
+        📋 المفتوحة ({{ counts.open }})
+    </a>
+    <a href="{{ url_for('portal.requests_list', show='closed') }}"
+       class="tab {% if show == 'closed' %}active{% endif %}">
+        ✅ المغلقة ({{ counts.closed }})
+    </a>
+    <a href="{{ url_for('portal.requests_list', show='all') }}"
+       class="tab {% if show == 'all' %}active{% endif %}">
+        الكل
+    </a>
+</div>
+
 <div class="card">
     {% if requests %}
     <div class="table-wrap">
@@ -26,8 +42,14 @@
     </div>
     {% else %}
         <div class="empty">
-            <h3>لا يوجد طلبات</h3>
-            <a href="{{ url_for('portal.request_new') }}" class="btn btn-primary mt-2">+ إنشاء أول طلب</a>
+            <h3>
+                {% if show == 'open' %}لا يوجد طلبات مفتوحة
+                {% elif show == 'closed' %}لا يوجد طلبات مغلقة
+                {% else %}لا يوجد طلبات{% endif %}
+            </h3>
+            {% if show != 'closed' %}
+            <a href="{{ url_for('portal.request_new') }}" class="btn btn-primary mt-2">+ إنشاء طلب</a>
+            {% endif %}
         </div>
     {% endif %}
 </div>
