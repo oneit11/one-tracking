@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}حسابي - {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="unlinked-wrap">
+    <div class="card unlinked-card">
+        <div class="unlinked-icon">🔗</div>
+        <h2>حسابك غير مرتبط بشركة بعد</h2>
+        <p class="text-muted">
+            مرحباً {{ current_user.name }}، حسابك تم إنشاؤه بنجاح لكنه لم يُربط
+            بملف شركة حتى الآن. تواصل مع إدارة {{ COMPANY_NAME }} لربط حسابك،
+            وبعدها ستتمكن من متابعة أجهزتك وطلبات الصيانة.
+        </p>
+        <div class="unlinked-contact">
+            {% if COMPANY_PHONE %}
+            <a href="tel:{{ COMPANY_PHONE }}" class="btn btn-primary">📞 اتصل بالإدارة</a>
+            {% endif %}
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary">تسجيل الخروج</a>
+        </div>
+    </div>
+</div>
+
+<style>
+.unlinked-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+}
+.unlinked-card {
+    max-width: 480px;
+    text-align: center;
+    padding: 40px 28px;
+}
+.unlinked-icon { font-size: 56px; margin-bottom: 12px; }
+.unlinked-card h2 { margin: 0 0 12px; color: var(--text); }
+.unlinked-card p { line-height: 1.8; margin-bottom: 24px; }
+.unlinked-contact {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+</style>
+{% endblock %}

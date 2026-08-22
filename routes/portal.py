@@ -24,8 +24,9 @@ def _my_client():
 def dashboard():
     client = _my_client()
     if not client:
-        flash("حسابك غير مرتبط بعميل. تواصل مع الإدارة.", "warning")
-        return redirect(url_for("auth.logout"))
+        # Do NOT log the user out (that made the portal "open then exit again").
+        # Show a friendly page while keeping the session alive.
+        return render_template("portal/unlinked.html")
 
     stats = {
         "devices": Device.query.filter_by(client_id=client.id, active=True).count(),
@@ -51,7 +52,7 @@ def dashboard():
 def devices():
     client = _my_client()
     if not client:
-        abort(403)
+        return redirect(url_for("portal.dashboard"))
     devices = Device.query.filter_by(client_id=client.id).order_by(Device.name).all()
     return render_template("portal/devices.html", client=client, devices=devices)
 
@@ -61,7 +62,7 @@ def devices():
 def requests_list():
     client = _my_client()
     if not client:
-        abort(403)
+        return redirect(url_for("portal.dashboard"))
     show = request.args.get("show", "open")  # open | closed | all
     q = MaintenanceRequest.query.filter_by(client_id=client.id)
     if show == "open":
@@ -86,7 +87,7 @@ def requests_list():
 def request_new():
     client = _my_client()
     if not client:
-        abort(403)
+        return redirect(url_for("portal.dashboard"))
     devices = Device.query.filter_by(client_id=client.id, active=True).order_by(Device.name).all()
 
     if request.method == "POST":
@@ -116,6 +117,8 @@ def request_new():
 @client_required
 def request_view(rid):
     client = _my_client()
+    if not client:
+        return redirect(url_for("portal.dashboard"))
     req = MaintenanceRequest.query.get_or_404(rid)
     if req.client_id != client.id:
         abort(403)
