@@ -98,20 +98,29 @@ def submit_report(rid):
         req.reported_at = datetime.utcnow()
 
         # Optional: schedule a follow-up right from the report
-        followup_at = request.form.get("followup_at", "").strip()
-        if followup_at:
+        fu_date = request.form.get("followup_date", "").strip()
+        fu_time = request.form.get("followup_time", "").strip() or "09:00"
+        followup_at = request.form.get("followup_at", "").strip()  # legacy field
+        fu_dt = None
+        if fu_date:
+            try:
+                fu_dt = datetime.strptime(f"{fu_date} {fu_time}", "%Y-%m-%d %H:%M")
+            except ValueError:
+                fu_dt = None
+        elif followup_at:
             try:
                 fu_dt = datetime.strptime(followup_at, "%Y-%m-%dT%H:%M")
-                fu = Followup(
-                    request_id=req.id,
-                    scheduled_at=fu_dt,
-                    technician_id=current_user.id,
-                    notes=request.form.get("followup_notes", "").strip(),
-                    created_by=current_user.id,
-                )
-                db.session.add(fu)
             except ValueError:
-                pass
+                fu_dt = None
+        if fu_dt:
+            fu = Followup(
+                request_id=req.id,
+                scheduled_at=fu_dt,
+                technician_id=current_user.id,
+                notes=request.form.get("followup_notes", "").strip(),
+                created_by=current_user.id,
+            )
+            db.session.add(fu)
 
         db.session.commit()
 

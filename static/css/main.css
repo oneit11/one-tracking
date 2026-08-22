@@ -1114,3 +1114,14 @@ html[dir="ltr"] .kpi-card:hover .kpi-arrow { transform: translateX(4px); }
     .kpi-value { font-size: 22px; }
     .quick-actions { justify-content: center; }
 }
+
+/* Follow-up scheduling form grid */
+.followup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.5fr;
+    gap: 12px;
+    align-items: end;
+}
+@media (max-width: 640px) {
+    .followup-grid { grid-template-columns: 1fr; }
+}

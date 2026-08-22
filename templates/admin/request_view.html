@@ -99,10 +99,15 @@
     </div>
 
     <form method="post" action="{{ url_for('admin.followup_new', rid=req.id) }}" class="followup-form">
-        <div class="grid-2" style="gap:12px;align-items:end;">
+        <div class="followup-grid">
             <div>
-                <label class="form-label">موعد المتابعة</label>
-                <input type="datetime-local" name="scheduled_at" class="form-input" required>
+                <label class="form-label">تاريخ المتابعة</label>
+                <input type="date" name="followup_date" class="form-input" required
+                       min="{{ today }}" value="{{ today }}">
+            </div>
+            <div>
+                <label class="form-label">الوقت</label>
+                <input type="time" name="followup_time" class="form-input" value="09:00">
             </div>
             <div>
                 <label class="form-label">الفني</label>

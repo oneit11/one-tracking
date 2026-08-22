@@ -10,7 +10,7 @@ from models.user import User
 from models.client import Client, AMCContract
 from models.device import Device, QRBatch, QRCode
 from models.request import MaintenanceRequest, VisitReport, SupportTicket
-from models.extras import Notification, Comment, Rating, Followup
+from models.extras import Notification, Comment, Rating, Followup, PMSchedule
 from models.permission import Role
 from models.wa_log import WhatsAppLog
 from utils.decorators import admin_required, permission_required
@@ -357,6 +357,7 @@ def request_view(rid):
     followups = Followup.query.filter_by(request_id=req.id).order_by(Followup.scheduled_at.desc()).all()
     return render_template("admin/request_view.html", req=req, technicians=technicians,
                            comments=comments, followups=followups,
+                           today=datetime.utcnow().strftime("%Y-%m-%d"),
                            sla_status=sla_status(req), sla_time=format_time_remaining(req.sla_due_at))
 
 
@@ -663,18 +664,31 @@ def wa_logs():
 @admin_required
 def followup_new(rid):
     req = MaintenanceRequest.query.get_or_404(rid)
+    # New split date + time fields (easy to fill), with backward-compat for the
+    # old single datetime-local field.
+    date_str = request.form.get("followup_date", "").strip()
+    time_str = request.form.get("followup_time", "").strip() or "09:00"
     scheduled = request.form.get("scheduled_at", "").strip()
-    if not scheduled:
-        flash("حدد موعد المتابعة", "warning")
+
+    dt = None
+    if date_str:
+        for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S"):
+            try:
+                dt = datetime.strptime(f"{date_str} {time_str}", fmt)
+                break
+            except ValueError:
+                continue
+    elif scheduled:
+        for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M"):
+            try:
+                dt = datetime.strptime(scheduled, fmt)
+                break
+            except ValueError:
+                continue
+
+    if dt is None:
+        flash("حدد تاريخ المتابعة", "warning")
         return redirect(url_for("admin.request_view", rid=rid))
-    try:
-        dt = datetime.strptime(scheduled, "%Y-%m-%dT%H:%M")
-    except ValueError:
-        try:
-            dt = datetime.strptime(scheduled, "%Y-%m-%d %H:%M")
-        except ValueError:
-            flash("صيغة التاريخ غير صحيحة", "danger")
-            return redirect(url_for("admin.request_view", rid=rid))
     tech_id = request.form.get("technician_id")
     fu = Followup(
         request_id=req.id,
@@ -736,11 +750,28 @@ def user_delete(uid):
     for t in SupportTicket.query.filter_by(created_by=uid).all():
         t.created_by = None
     name = u.name
-    db.session.delete(u)
-    db.session.commit()
+    try:
+        db.session.delete(u)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"user_delete failed: {e}")
+        flash("تعذّر حذف المستخدم بسبب بيانات مرتبطة به", "danger")
+        return redirect(url_for("admin.users_list"))
     log_action("user.deleted", entity_type="user", entity_id=uid, details=name)
     flash(f"تم حذف المستخدم: {name}", "success")
     return redirect(url_for("admin.users_list"))
+
+
+def _purge_requests(req_ids):
+    """Delete maintenance requests and every child row that references them."""
+    if not req_ids:
+        return
+    Comment.query.filter(Comment.request_id.in_(req_ids)).delete(synchronize_session=False)
+    Followup.query.filter(Followup.request_id.in_(req_ids)).delete(synchronize_session=False)
+    Rating.query.filter(Rating.request_id.in_(req_ids)).delete(synchronize_session=False)
+    VisitReport.query.filter(VisitReport.request_id.in_(req_ids)).delete(synchronize_session=False)
+    MaintenanceRequest.query.filter(MaintenanceRequest.id.in_(req_ids)).delete(synchronize_session=False)
 
 
 @admin_bp.route("/requests/<int:rid>/delete", methods=["POST"])
@@ -748,13 +779,14 @@ def user_delete(uid):
 def request_delete(rid):
     req = MaintenanceRequest.query.get_or_404(rid)
     num = req.request_number
-    # Clean related items (comments, followups, ratings cascade via relationships or manual)
-    Comment.query.filter_by(request_id=rid).delete()
-    Followup.query.filter_by(request_id=rid).delete()
-    if req.visit_report:
-        db.session.delete(req.visit_report)
-    db.session.delete(req)
-    db.session.commit()
+    try:
+        _purge_requests([rid])
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"request_delete failed: {e}")
+        flash("تعذّر حذف الطلب بسبب بيانات مرتبطة به", "danger")
+        return redirect(url_for("admin.request_view", rid=rid))
     log_action("request.deleted", entity_type="request", entity_id=rid, details=num)
     flash(f"تم حذف الطلب {num}", "success")
     return redirect(url_for("admin.requests_list"))
@@ -765,8 +797,14 @@ def request_delete(rid):
 def ticket_delete(tid):
     t = SupportTicket.query.get_or_404(tid)
     num = t.ticket_number
-    db.session.delete(t)
-    db.session.commit()
+    try:
+        db.session.delete(t)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"ticket_delete failed: {e}")
+        flash("تعذّر حذف التذكرة", "danger")
+        return redirect(url_for("admin.tickets_list"))
     log_action("ticket.deleted", entity_type="ticket", entity_id=tid, details=num)
     flash(f"تم حذف التذكرة {num}", "success")
     return redirect(url_for("admin.tickets_list"))
@@ -789,11 +827,32 @@ def ticket_close(tid):
 def client_delete(cid):
     client = Client.query.get_or_404(cid)
     name = client.company_name
-    # Detach linked users
-    for u in User.query.filter_by(client_id=cid).all():
-        u.client_id = None
-    db.session.delete(client)
-    db.session.commit()
+    try:
+        # 1) Requests (and all their children)
+        req_ids = [r.id for r in MaintenanceRequest.query.filter_by(client_id=cid).all()]
+        _purge_requests(req_ids)
+        # 2) Tickets
+        SupportTicket.query.filter_by(client_id=cid).delete(synchronize_session=False)
+        # 3) PM schedules for this client
+        PMSchedule.query.filter_by(client_id=cid).delete(synchronize_session=False)
+        # 4) Unbind QR codes from this client's devices
+        dev_ids = [d.id for d in Device.query.filter_by(client_id=cid).all()]
+        if dev_ids:
+            for qr in QRCode.query.filter(QRCode.device_id.in_(dev_ids)).all():
+                qr.device_id = None
+                qr.bound_at = None
+            PMSchedule.query.filter(PMSchedule.device_id.in_(dev_ids)).delete(synchronize_session=False)
+        # 5) Detach linked user accounts
+        for u in User.query.filter_by(client_id=cid).all():
+            u.client_id = None
+        # 6) Delete the client — devices + AMC contracts cascade via relationships
+        db.session.delete(client)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"client_delete failed: {e}")
+        flash("تعذّر حذف العميل بسبب بيانات مرتبطة به", "danger")
+        return redirect(url_for("admin.client_view", cid=cid))
     log_action("client.deleted", entity_type="client", entity_id=cid, details=name)
     flash(f"تم حذف العميل: {name}", "success")
     return redirect(url_for("admin.clients_list"))
@@ -804,12 +863,23 @@ def client_delete(cid):
 def device_delete(did):
     d = Device.query.get_or_404(did)
     name = d.name
-    # Unbind QR codes
-    for qr in QRCode.query.filter_by(device_id=did).all():
-        qr.device_id = None
-        qr.bound_at = None
-    db.session.delete(d)
-    db.session.commit()
+    try:
+        # Requests that reference this device (and their children)
+        req_ids = [r.id for r in MaintenanceRequest.query.filter_by(device_id=did).all()]
+        _purge_requests(req_ids)
+        # PM schedules on this device
+        PMSchedule.query.filter_by(device_id=did).delete(synchronize_session=False)
+        # Unbind QR codes
+        for qr in QRCode.query.filter_by(device_id=did).all():
+            qr.device_id = None
+            qr.bound_at = None
+        db.session.delete(d)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"device_delete failed: {e}")
+        flash("تعذّر حذف الجهاز بسبب بيانات مرتبطة به", "danger")
+        return redirect(url_for("admin.device_view", did=did))
     log_action("device.deleted", entity_type="device", entity_id=did, details=name)
     flash(f"تم حذف الجهاز: {name}", "success")
     return redirect(url_for("admin.devices_list"))
