@@ -1125,3 +1125,49 @@ html[dir="ltr"] .kpi-card:hover .kpi-arrow { transform: translateX(4px); }
 @media (max-width: 640px) {
     .followup-grid { grid-template-columns: 1fr; }
 }
+
+/* ========== Print styles ========== */
+.print-only { display: none; }
+
+@media print {
+    /* Hide interactive chrome */
+    .topbar, .footer, .menu-toggle, .nav-notif, .nav-user, .lang-toggle,
+    #installBtn, .no-print, .flashes, .lightbox-overlay,
+    form.d-flex, .page-header form, .page-header .btn, .btn,
+    .quick-actions, details summary {
+        display: none !important;
+    }
+
+    /* Reset layout for paper */
+    body { background: #fff !important; color: #000 !important; font-size: 12pt; }
+    .container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+    .card, .kpi-card {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+        break-inside: avoid;
+        background: #fff !important;
+        color: #000 !important;
+    }
+    .kpi-grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; }
+    .table { width: 100% !important; border-collapse: collapse !important; }
+    .table th, .table td { border: 1px solid #ccc !important; color: #000 !important; padding: 6px 8px !important; }
+    .badge { border: 1px solid #999 !important; color: #000 !important; background: #fff !important; }
+    a { color: #000 !important; text-decoration: none !important; }
+    .page-title, .card-title, .detail-label, .detail-value, p, span, td, th, h1, h2, h3, strong {
+        color: #000 !important;
+    }
+    .chart-container { display: none !important; }  /* canvas charts don't print well */
+
+    /* Print-only header on every printed page */
+    .print-only { display: block !important; }
+    .print-header {
+        text-align: center;
+        border-bottom: 2px solid #000;
+        padding-bottom: 8px;
+        margin-bottom: 16px;
+    }
+    .print-header .ph-company { font-size: 18pt; font-weight: 800; }
+    .print-header .ph-sub { font-size: 11pt; color: #333 !important; }
+
+    @page { margin: 1.4cm; }
+}

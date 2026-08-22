@@ -5,6 +5,7 @@
     <h1 class="page-title">📜 تقرير عقود AMC</h1>
     <div class="d-flex gap-2">
         <a href="{{ url_for('reports.amc_report_pdf') }}" class="btn btn-primary">📄 PDF</a>
+        <button type="button" class="btn btn-secondary no-print" onclick="window.print()">🖨️ طباعة</button>
         <a href="{{ url_for('reports.home') }}" class="btn btn-secondary">← رجوع</a>
     </div>
 </div>

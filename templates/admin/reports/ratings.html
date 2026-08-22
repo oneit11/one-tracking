@@ -3,7 +3,10 @@
 {% block content %}
 <div class="page-header">
     <h1 class="page-title">⭐ {{ t('reports.ratings_title') }}</h1>
-    <a href="{{ url_for('reports.home') }}" class="btn btn-secondary">{{ t('btn.back') }}</a>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-secondary no-print" onclick="window.print()">🖨️ طباعة</button>
+        <a href="{{ url_for('reports.home') }}" class="btn btn-secondary">{{ t('btn.back') }}</a>
+    </div>
 </div>
 
 <div class="grid-2">

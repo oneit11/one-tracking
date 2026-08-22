@@ -5,6 +5,7 @@
     <div><h1 class="page-title">{{ t('reports.tech_perf') }}</h1><p class="page-subtitle">{{ t('reports.from') }} {{ frm }} — {{ t('reports.to') }} {{ to }}</p></div>
     <div class="d-flex gap-2">
         <a href="{{ url_for('reports.tech_performance_pdf', **{'from': frm, 'to': to}) }}" class="btn btn-primary">{{ t('btn.export_pdf') }}</a>
+        <button type="button" class="btn btn-secondary no-print" onclick="window.print()">🖨️ طباعة</button>
         <a href="{{ url_for('reports.home') }}" class="btn btn-secondary">{{ t('btn.back') }}</a>
     </div>
 </div>

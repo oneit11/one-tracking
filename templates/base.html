@@ -108,6 +108,10 @@
 {% endif %}
 
 <main class="container">
+    <div class="print-only print-header">
+        <div class="ph-company">{{ COMPANY_NAME }}</div>
+        <div class="ph-sub">{{ APP_NAME }}{% if COMPANY_PHONE %} · {{ COMPANY_PHONE }}{% endif %}</div>
+    </div>
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="flashes">

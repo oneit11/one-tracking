@@ -8,6 +8,7 @@
     </div>
     <div class="d-flex gap-2 flex-wrap">
         <a href="{{ url_for('reports.request_pdf', rid=req.id) }}" class="btn btn-primary">📄 PDF</a>
+        <button type="button" class="btn btn-secondary no-print" onclick="window.print()">🖨️ طباعة</button>
         <span class="badge badge-{{ req.status }}" style="font-size:14px;padding:6px 14px;">{{ req.status_label }}</span>
         <span class="badge badge-{{ req.priority }}" style="font-size:14px;padding:6px 14px;">{{ req.priority_label }}</span>
         <form method="post" action="{{ url_for('admin.request_delete', rid=req.id) }}"
