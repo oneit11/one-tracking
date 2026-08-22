@@ -78,7 +78,10 @@
                 <div class="notif-panel" id="notifPanel">
                     <div class="notif-panel-header">
                         <strong>{{ t('nav.notifications') }}</strong>
-                        <button id="notifReadAll" class="btn btn-sm btn-secondary">{{ t('nav.mark_all_read') }}</button>
+                        <span class="d-flex gap-1">
+                            <button id="notifSoundToggle" class="btn btn-sm btn-secondary" title="الصوت" type="button">🔊</button>
+                            <button id="notifReadAll" class="btn btn-sm btn-secondary">{{ t('nav.mark_all_read') }}</button>
+                        </span>
                     </div>
                     <div class="notif-list" id="notifList">
                         <div class="text-center text-muted" style="padding:20px">...</div>

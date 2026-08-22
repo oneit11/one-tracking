@@ -107,6 +107,13 @@ def request_new():
         db.session.add(req)
         db.session.commit()
         wa.notify_request_received(req)
+        # In-app notification for admins (drives the bell + sound alert)
+        from services.notifications import notify_admins
+        notify_admins(
+            f"طلب صيانة جديد من العميل {req.request_number}",
+            f"{client.company_name} — {req.title}",
+            "📥", url_for("admin.request_view", rid=req.id),
+        )
         flash(f"تم إرسال طلبك رقم {req.request_number}", "success")
         return redirect(url_for("portal.request_view", rid=req.id))
 

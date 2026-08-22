@@ -56,13 +56,17 @@ def company():
                     "company_email", "company_address", "company_website"]:
             val = request.form.get(key, "").strip()
             Setting.set(key, val, "company")
+        # Extra WhatsApp recipients for request/report alerts (like admin)
+        Setting.set("notify_extra_numbers",
+                    request.form.get("notify_extra_numbers", "").strip(), "whatsapp")
         db.session.commit()
         log_action("settings.company_updated")
         flash("تم حفظ بيانات الشركة", "success")
         return redirect(url_for("settings.company"))
 
     s = get_settings_by_category("company")
-    return render_template("admin/settings/company.html", s=s)
+    extra_numbers = get_all_settings().get("notify_extra_numbers", "")
+    return render_template("admin/settings/company.html", s=s, extra_numbers=extra_numbers)
 
 
 # ============ Business Hours + SLA ============

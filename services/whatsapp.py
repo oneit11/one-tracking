@@ -68,6 +68,29 @@ def send_wa(to_number, message, event_type="", entity_type="", entity_id=None, a
     threading.Thread(target=worker, daemon=True).start()
 
 
+def get_extra_recipients():
+    """Extra phone numbers (besides admins) that receive request/report alerts."""
+    raw = get_setting("notify_extra_numbers", "") or ""
+    nums = [n.strip() for n in raw.replace("\n", ",").replace(";", ",").split(",")]
+    return [n for n in nums if n]
+
+
+def _notify_admins_and_extras(message, event_type, entity_id, app):
+    """Send a message to every active admin (with a phone) plus the extra numbers."""
+    from models.user import User
+    sent = set()
+    for admin in User.query.filter_by(role="admin", active=True).all():
+        if admin.phone and admin.phone not in sent:
+            sent.add(admin.phone)
+            send_wa(admin.phone, message, event_type=event_type,
+                    entity_type="request", entity_id=entity_id, app=app)
+    for num in get_extra_recipients():
+        if num not in sent:
+            sent.add(num)
+            send_wa(num, message, event_type=event_type,
+                    entity_type="request", entity_id=entity_id, app=app)
+
+
 def render_template_msg(code, **kwargs):
     """Render a template by code with variables. Returns None if template not found."""
     tpl = MessageTemplate.query.filter_by(code=code, active=True).first()
@@ -143,10 +166,7 @@ def notify_request_received(request, app=None):
                 event_type="request_received", entity_type="request", entity_id=request.id, app=_app)
 
     if admin_msg:
-        for admin in User.query.filter_by(role="admin", active=True).all():
-            if admin.phone:
-                send_wa(admin.phone, admin_msg,
-                        event_type="request_received_admin", entity_type="request", entity_id=request.id, app=_app)
+        _notify_admins_and_extras(admin_msg, "request_received_admin", request.id, _app)
 
 
 def notify_technician_assigned(request, app=None):
@@ -200,10 +220,7 @@ def notify_report_ready(request, app=None):
         send_wa(request.client.notify_number, client_msg,
                 event_type="report_ready_client", entity_type="request", entity_id=request.id, app=_app)
     if admin_msg:
-        for admin in User.query.filter_by(role="admin", active=True).all():
-            if admin.phone:
-                send_wa(admin.phone, admin_msg,
-                        event_type="report_ready_admin", entity_type="request", entity_id=request.id, app=_app)
+        _notify_admins_and_extras(admin_msg, "report_ready_admin", request.id, _app)
 
 
 def notify_request_closed(request, app=None):

@@ -25,6 +25,9 @@ DEFAULT_SETTINGS = {
     "wa_enabled": ("false", "whatsapp"),
     "wa_sidecar_url": ("", "whatsapp"),
     "wa_send_credentials_to_new_users": ("true", "whatsapp"),
+    # Extra recipients: up to a few phone numbers that receive request/report
+    # WhatsApp alerts just like the admin (comma or newline separated).
+    "notify_extra_numbers": ("", "whatsapp"),
 
     # Business hours
     "biz_hours_start": ("09:00", "business_hours"),

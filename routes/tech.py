@@ -64,6 +64,12 @@ def request_start(rid):
     req.status = "in_progress"
     req.started_at = datetime.utcnow()
     db.session.commit()
+    from services.notifications import notify_admins
+    notify_admins(
+        f"بدأ الفني العمل على {req.request_number}",
+        f"{current_user.name} — {req.client.company_name}",
+        "🔧", url_for("admin.request_view", rid=req.id),
+    )
     flash("بدأ العمل على الطلب", "info")
     return redirect(url_for("tech.request_view", rid=rid))
 
@@ -125,6 +131,12 @@ def submit_report(rid):
         db.session.commit()
 
         wa.notify_report_ready(req)
+        from services.notifications import notify_admins
+        notify_admins(
+            f"تقرير فني جاهز {req.request_number}",
+            f"{current_user.name} — {req.client.company_name}",
+            "📋", url_for("admin.request_view", rid=req.id),
+        )
         flash("تم رفع التقرير بنجاح", "success")
         return redirect(url_for("tech.request_view", rid=rid))
 
