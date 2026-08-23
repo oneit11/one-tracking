@@ -279,3 +279,78 @@ def notify_new_user_credentials(user, password, app=None):
     if msg:
         send_wa(user.phone, msg,
                 event_type="user_credentials", entity_type="user", entity_id=user.id, app=_app)
+
+
+# ============ Projects (multi-technician tickets) ============
+
+def notify_project_team_assigned(project, app=None):
+    """Notify the whole team when a project is assigned.
+
+    - Lead gets a message naming the rest of the team to coordinate with.
+    - Each other member gets a message with the project + start date + lead name.
+    """
+    _app = app or current_app._get_current_object()
+    company_name = get_setting("company_name", "الشركة")
+    start = project.start_date.strftime("%Y-%m-%d") if project.start_date else "غير محدد"
+    lead = project.assignee
+    team = project.team_users
+    others = [u for u in team if not lead or u.id != lead.id]
+    others_names = "، ".join(u.name for u in others) if others else "لا يوجد"
+
+    # Message to the lead
+    if lead and lead.phone:
+        lead_msg = (
+            f"🏗️ *مشروع جديد — {project.ticket_number}*\n"
+            f"العميل: {project.client.company_name}\n"
+            f"الموضوع: {project.subject}\n"
+            f"📅 موعد بداية العمل: {start}\n\n"
+            f"أنت *قائد الفريق* لهذا المشروع.\n"
+            f"👥 باقي الفريق: {others_names}\n"
+            f"يرجى التواصل معهم لإبلاغهم بالموعد المحدد والتنسيق للعمل.\n\n"
+            f"{company_name}"
+        )
+        send_wa(lead.phone, lead_msg, event_type="project_assigned_lead",
+                entity_type="ticket", entity_id=project.id, app=_app)
+
+    # Message to each other team member
+    for u in others:
+        if not u.phone:
+            continue
+        member_msg = (
+            f"🏗️ *مشروع جديد — {project.ticket_number}*\n"
+            f"العميل: {project.client.company_name}\n"
+            f"الموضوع: {project.subject}\n"
+            f"📅 موعد بداية العمل: {start}\n\n"
+            f"تم ضمّك لفريق هذا المشروع.\n"
+            f"👤 قائد الفريق: {lead.name if lead else '-'}"
+            f"{(' — ' + lead.phone) if lead and lead.phone else ''}\n\n"
+            f"{company_name}"
+        )
+        send_wa(u.phone, member_msg, event_type="project_assigned_member",
+                entity_type="ticket", entity_id=project.id, app=_app)
+
+    # Admins + extra numbers
+    admin_msg = (
+        f"🏗️ تم تعيين فريق لمشروع {project.ticket_number}\n"
+        f"{project.client.company_name} — {project.subject}\n"
+        f"القائد: {lead.name if lead else '-'} | الفريق: {others_names}\n"
+        f"بداية العمل: {start}"
+    )
+    _notify_admins_and_extras(admin_msg, "project_assigned_admin", project.id, _app)
+
+
+def notify_project_closed(project, report_link="", app=None):
+    _app = app or current_app._get_current_object()
+    company_name = get_setting("company_name", "الشركة")
+    msg = (
+        f"✅ *تم إغلاق المشروع {project.ticket_number}*\n"
+        f"العميل: {project.client.company_name}\n"
+        f"الموضوع: {project.subject}\n"
+        f"عدد الزيارات: {len(project.visits)}\n"
+        + (f"\nالتقرير النهائي: {report_link}" if report_link else "")
+        + f"\n\n{company_name}"
+    )
+    if project.client.notify_number:
+        send_wa(project.client.notify_number, msg, event_type="project_closed_client",
+                entity_type="ticket", entity_id=project.id, app=_app)
+    _notify_admins_and_extras(msg, "project_closed_admin", project.id, _app)

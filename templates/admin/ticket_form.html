@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}تذكرة دعم جديدة{% endblock %}
+{% block title %}مشروع جديد{% endblock %}
 {% block content %}
 <div class="page-header">
-    <h1 class="page-title">تذكرة دعم جديدة</h1>
+    <h1 class="page-title">🏗️ مشروع جديد</h1>
     <a href="{{ url_for('admin.tickets_list') }}" class="btn btn-secondary">← رجوع</a>
 </div>
 <div class="card">
@@ -22,17 +22,22 @@
                     <option value="high">عالي</option><option value="urgent">عاجل</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label class="form-label">📅 تاريخ بداية العمل</label>
+                <input class="form-input" type="date" name="start_date">
+            </div>
             <div class="form-group full">
-                <label class="form-label">الموضوع <span class="req">*</span></label>
+                <label class="form-label">موضوع المشروع <span class="req">*</span></label>
                 <input class="form-input" name="subject" required>
             </div>
             <div class="form-group full">
-                <label class="form-label">الوصف</label>
+                <label class="form-label">وصف المشروع</label>
                 <textarea class="form-textarea" name="description" rows="4"></textarea>
             </div>
         </div>
+        <p class="text-muted" style="font-size:13px">بعد الحفظ تقدر تعيّن فريق الفنيين وتحدد قائد الفريق.</p>
         <div class="form-actions">
-            <button class="btn btn-primary">💾 حفظ</button>
+            <button class="btn btn-primary">💾 حفظ وإنشاء المشروع</button>
         </div>
     </form>
 </div>

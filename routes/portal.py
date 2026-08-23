@@ -5,7 +5,7 @@ from sqlalchemy import desc
 from models import db
 from models.client import Client
 from models.device import Device
-from models.request import MaintenanceRequest
+from models.request import MaintenanceRequest, SupportTicket
 from utils.decorators import client_required
 from utils.helpers import save_upload, next_sequence
 from services import whatsapp as wa
@@ -37,6 +37,10 @@ def dashboard():
         "closed_requests": MaintenanceRequest.query.filter(
             MaintenanceRequest.client_id == client.id,
             MaintenanceRequest.status == "closed"
+        ).count(),
+        "projects": SupportTicket.query.filter(
+            SupportTicket.client_id == client.id,
+            SupportTicket.status != "closed",
         ).count(),
     }
     # Only open requests in "recent" — closed ones have their own tab
@@ -118,6 +122,29 @@ def request_new():
         return redirect(url_for("portal.request_view", rid=req.id))
 
     return render_template("portal/request_form.html", client=client, devices=devices)
+
+
+@portal_bp.route("/projects")
+@client_required
+def projects_list():
+    client = _my_client()
+    if not client:
+        return redirect(url_for("portal.dashboard"))
+    projects = SupportTicket.query.filter_by(client_id=client.id)\
+        .order_by(desc(SupportTicket.created_at)).all()
+    return render_template("portal/projects_list.html", client=client, projects=projects)
+
+
+@portal_bp.route("/projects/<int:tid>")
+@client_required
+def project_view(tid):
+    client = _my_client()
+    if not client:
+        return redirect(url_for("portal.dashboard"))
+    project = SupportTicket.query.get_or_404(tid)
+    if project.client_id != client.id:
+        abort(403)
+    return render_template("portal/project_view.html", client=client, project=project)
 
 
 @portal_bp.route("/requests/<int:rid>")

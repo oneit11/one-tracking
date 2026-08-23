@@ -217,6 +217,56 @@ class PDFReport:
         self.elements.append(t)
         self.elements.append(Spacer(1, 8))
 
+    def add_image(self, file_path, max_w_cm=8, max_h_cm=8):
+        """Embed an image scaled to fit within the given box."""
+        try:
+            from reportlab.lib.utils import ImageReader
+            img = ImageReader(file_path)
+            iw, ih = img.getSize()
+            if iw <= 0 or ih <= 0:
+                return
+            max_w = max_w_cm * cm
+            max_h = max_h_cm * cm
+            ratio = min(max_w / iw, max_h / ih)
+            self.elements.append(Image(file_path, width=iw * ratio, height=ih * ratio))
+            self.elements.append(Spacer(1, 6))
+        except Exception:
+            pass
+
+    def add_image_grid(self, file_paths, cols=2, cell_w_cm=8, cell_h_cm=6):
+        """Lay out images in a grid table so several fit per page."""
+        from reportlab.lib.utils import ImageReader
+        cells = []
+        for p in file_paths:
+            try:
+                img = ImageReader(p)
+                iw, ih = img.getSize()
+                if iw <= 0 or ih <= 0:
+                    continue
+                max_w = cell_w_cm * cm
+                max_h = cell_h_cm * cm
+                ratio = min(max_w / iw, max_h / ih)
+                cells.append(Image(p, width=iw * ratio, height=ih * ratio))
+            except Exception:
+                continue
+        if not cells:
+            return
+        rows = []
+        for i in range(0, len(cells), cols):
+            row = cells[i:i + cols]
+            while len(row) < cols:
+                row.append("")
+            rows.append(row)
+        t = Table(rows, colWidths=[cell_w_cm * cm] * cols)
+        t.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]))
+        self.elements.append(t)
+        self.elements.append(Spacer(1, 8))
+
     def page_break(self):
         self.elements.append(PageBreak())
 
@@ -232,3 +282,73 @@ class PDFReport:
                   onLaterPages=self._header_footer)
         self.buffer.seek(0)
         return self.buffer.read()
+
+
+def _resolve_upload_path(file_url, upload_folder):
+    """Map a stored /static/uploads/... URL to a real filesystem path."""
+    if not file_url:
+        return None
+    marker = "/static/uploads/"
+    if marker in file_url:
+        rel = file_url.split(marker, 1)[1]
+    else:
+        rel = file_url.lstrip("/")
+    path = os.path.join(upload_folder, rel)
+    return path if os.path.isfile(path) else None
+
+
+def generate_project_report(project, company_name="", company_phone="",
+                            logo_url="", upload_folder=""):
+    """Final project report: details + team + every visit + all photos."""
+    pdf = PDFReport(
+        title=f"التقرير النهائي للمشروع — {project.ticket_number}",
+        subtitle=project.subject or "",
+        company_name=company_name, company_phone=company_phone, logo_url=logo_url,
+    )
+
+    # Project details
+    pdf.add_heading("بيانات المشروع")
+    lead = project.assignee
+    team_names = "، ".join(u.name for u in project.team_users) or "-"
+    pdf.add_key_value_table([
+        ("العميل", project.client.company_name if project.client else "-"),
+        ("رقم المشروع", project.ticket_number),
+        ("الموضوع", project.subject),
+        ("الحالة", project.status_label),
+        ("تاريخ البداية", project.start_date.strftime("%Y-%m-%d") if project.start_date else "-"),
+        ("قائد الفريق", lead.name if lead else "-"),
+        ("الفريق", team_names),
+        ("عدد الزيارات", str(len(project.visits))),
+        ("تاريخ الإغلاق", project.closed_at.strftime("%Y-%m-%d %H:%M") if project.closed_at else "-"),
+    ])
+    if project.description:
+        pdf.add_heading("وصف المشروع")
+        pdf.add_paragraph(project.description)
+
+    # Visits
+    visits = list(project.visits)
+    if not visits:
+        pdf.add_heading("الزيارات")
+        pdf.add_paragraph("لا توجد زيارات مسجلة.")
+    else:
+        for idx, v in enumerate(visits, 1):
+            pdf.add_heading(f"زيارة {idx} — {v.visit_date.strftime('%Y-%m-%d %H:%M')}")
+            pdf.add_key_value_table([
+                ("الفني", v.technician_name or (v.technician.name if v.technician else "-")),
+                ("التاريخ", v.visit_date.strftime("%Y-%m-%d %H:%M")),
+            ])
+            if v.work_done:
+                pdf.add_paragraph("العمل المنفذ: " + v.work_done)
+            if v.notes:
+                pdf.add_paragraph("ملاحظات: " + v.notes)
+            # Photos for this visit
+            paths = []
+            for ph in v.photos:
+                p = _resolve_upload_path(ph.file_url, upload_folder)
+                if p:
+                    paths.append(p)
+            if paths:
+                pdf.add_paragraph(f"الصور ({len(paths)}):")
+                pdf.add_image_grid(paths, cols=2, cell_w_cm=8, cell_h_cm=6)
+
+    return pdf.build()

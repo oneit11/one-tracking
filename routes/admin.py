@@ -435,7 +435,7 @@ def request_close(rid):
     return redirect(url_for("admin.request_view", rid=rid))
 
 
-# ================= Support Tickets =================
+# ================= Projects (was Support Tickets) =================
 @admin_bp.route("/tickets")
 @admin_required
 def tickets_list():
@@ -452,20 +452,97 @@ def tickets_list():
 def ticket_new():
     clients = Client.query.filter_by(active=True).order_by(Client.company_name).all()
     if request.method == "POST":
+        start = request.form.get("start_date", "").strip()
         t = SupportTicket(
             ticket_number=next_sequence(SupportTicket, "ticket_number", "TK"),
             client_id=int(request.form.get("client_id")),
             subject=request.form.get("subject", "").strip(),
             description=request.form.get("description", "").strip(),
             priority=request.form.get("priority", "normal"),
+            start_date=datetime.strptime(start, "%Y-%m-%d").date() if start else None,
             created_by=current_user.id,
         )
         db.session.add(t)
         db.session.commit()
         log_action("ticket.created", entity_type="ticket", entity_id=t.id)
-        flash(f"تم إنشاء التذكرة {t.ticket_number}", "success")
-        return redirect(url_for("admin.tickets_list"))
+        flash(f"تم إنشاء المشروع {t.ticket_number}", "success")
+        return redirect(url_for("admin.ticket_view", tid=t.id))
     return render_template("admin/ticket_form.html", clients=clients)
+
+
+@admin_bp.route("/tickets/<int:tid>")
+@admin_required
+def ticket_view(tid):
+    project = SupportTicket.query.get_or_404(tid)
+    technicians = User.query.filter_by(role="technician", active=True).all()
+    return render_template("admin/ticket_view.html", project=project,
+                           technicians=technicians,
+                           today=datetime.utcnow().strftime("%Y-%m-%d"))
+
+
+@admin_bp.route("/tickets/<int:tid>/assign", methods=["POST"])
+@admin_required
+def ticket_assign(tid):
+    from models.request import ProjectMember
+    project = SupportTicket.query.get_or_404(tid)
+    tech_ids = request.form.getlist("technician_ids")
+    tech_ids = [int(x) for x in tech_ids if x]
+    lead_id = request.form.get("lead_id", type=int)
+    start = request.form.get("start_date", "").strip()
+
+    if not tech_ids:
+        flash("اختر فني واحد على الأقل للفريق", "warning")
+        return redirect(url_for("admin.ticket_view", tid=tid))
+    if lead_id and lead_id not in tech_ids:
+        tech_ids.append(lead_id)
+    if not lead_id:
+        lead_id = tech_ids[0]
+
+    if start:
+        try:
+            project.start_date = datetime.strptime(start, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+
+    # Reset team
+    ProjectMember.query.filter_by(ticket_id=tid).delete(synchronize_session=False)
+    for uid in tech_ids:
+        db.session.add(ProjectMember(ticket_id=tid, user_id=uid, is_lead=(uid == lead_id)))
+    project.assigned_to = lead_id  # lead
+    project.assigned_at = datetime.utcnow()
+    if project.status == "open":
+        project.status = "in_progress"
+    db.session.commit()
+
+    # WhatsApp to the whole team + in-app notifications
+    wa.notify_project_team_assigned(project)
+    for u in project.team_users:
+        role = "قائد الفريق" if u.id == lead_id else "عضو فريق"
+        notify_user(u.id, f"تعيينك على مشروع {project.ticket_number} ({role})",
+                    f"{project.client.company_name} — {project.subject}",
+                    "🏗️", url_for("tech.project_view", tid=project.id))
+    log_action("ticket.team_assigned", entity_type="ticket", entity_id=tid,
+               details=f"{len(tech_ids)} فنيين")
+    flash("تم تعيين الفريق وإرسال الإشعارات", "success")
+    return redirect(url_for("admin.ticket_view", tid=tid))
+
+
+@admin_bp.route("/tickets/<int:tid>/report.pdf")
+@admin_required
+def ticket_report_pdf(tid):
+    project = SupportTicket.query.get_or_404(tid)
+    from services.pdf_service import generate_project_report
+    from services.settings_service import get_setting
+    pdf = generate_project_report(
+        project,
+        company_name=get_setting("company_name", current_app.config.get("COMPANY_NAME", "")),
+        company_phone=get_setting("company_phone", current_app.config.get("COMPANY_PHONE", "")),
+        logo_url=get_setting("logo_url", ""),
+        upload_folder=current_app.config["UPLOAD_FOLDER"],
+    )
+    return send_file(BytesIO(pdf), mimetype="application/pdf",
+                     as_attachment=True,
+                     download_name=f"Project-{project.ticket_number}.pdf")
 
 
 # ================= Users =================
@@ -817,9 +894,17 @@ def ticket_close(tid):
     t.status = "closed"
     t.closed_at = datetime.utcnow()
     db.session.commit()
+    # Final report link + notify team/client
+    report_link = ""
+    try:
+        app_url = current_app.config.get("APP_URL", "")
+        report_link = f"{app_url}/admin/tickets/{tid}/report.pdf" if app_url else ""
+        wa.notify_project_closed(t, report_link=report_link)
+    except Exception as e:
+        current_app.logger.warning(f"project close notify failed: {e}")
     log_action("ticket.closed", entity_type="ticket", entity_id=tid)
-    flash("تم إغلاق التذكرة", "success")
-    return redirect(url_for("admin.tickets_list"))
+    flash("تم إغلاق المشروع وإصدار التقرير النهائي", "success")
+    return redirect(url_for("admin.ticket_view", tid=tid))
 
 
 @admin_bp.route("/clients/<int:cid>/delete", methods=["POST"])

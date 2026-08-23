@@ -6,7 +6,9 @@ db = SQLAlchemy()
 from models.user import User  # noqa: E402
 from models.client import Client, AMCContract  # noqa: E402
 from models.device import Device, QRBatch, QRCode  # noqa: E402
-from models.request import MaintenanceRequest, VisitReport, SupportTicket  # noqa: E402
+from models.request import (  # noqa: E402
+    MaintenanceRequest, VisitReport, SupportTicket, ProjectMember, ProjectVisit,
+)
 from models.attachment import Attachment  # noqa: E402
 from models.wa_log import WhatsAppLog  # noqa: E402
 from models.setting import Setting, MessageTemplate  # noqa: E402

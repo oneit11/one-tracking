@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}مشاريعي{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">🏗️ مشاريعي</h1>
+</div>
+<div class="card">
+    {% if projects %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>الرقم</th><th>الموضوع</th><th>الزيارات</th><th>الحالة</th><th>البداية</th><th></th></tr></thead>
+            <tbody>
+                {% for p in projects %}
+                <tr>
+                    <td><strong>{{ p.ticket_number }}</strong></td>
+                    <td>{{ p.subject }}</td>
+                    <td>{{ p.visits|length }}</td>
+                    <td><span class="badge badge-{{ p.status }}">{{ p.status_label }}</span></td>
+                    <td>{{ p.start_date.strftime('%Y-%m-%d') if p.start_date else '-' }}</td>
+                    <td><a href="{{ url_for('portal.project_view', tid=p.id) }}" class="btn btn-sm btn-secondary">متابعة</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <div class="empty"><h3>لا توجد مشاريع</h3></div>
+    {% endif %}
+</div>
+{% endblock %}

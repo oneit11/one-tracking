@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}تذاكر الدعم - {{ APP_NAME }}{% endblock %}
+{% block title %}المشاريع - {{ APP_NAME }}{% endblock %}
 {% block content %}
 <div class="page-header">
-    <h1 class="page-title">تذاكر الدعم</h1>
-    <a href="{{ url_for('admin.ticket_new') }}" class="btn btn-primary">+ تذكرة جديدة</a>
+    <h1 class="page-title">🏗️ المشاريع</h1>
+    <a href="{{ url_for('admin.ticket_new') }}" class="btn btn-primary">+ مشروع جديد</a>
 </div>
 
 <div class="card">
@@ -20,26 +20,22 @@
     {% if tickets %}
     <div class="table-wrap">
         <table class="table">
-            <thead><tr><th>الرقم</th><th>العميل</th><th>الموضوع</th><th>الأولوية</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th></tr></thead>
+            <thead><tr><th>الرقم</th><th>العميل</th><th>الموضوع</th><th>الفريق</th><th>الزيارات</th><th>الحالة</th><th>البداية</th><th>إجراءات</th></tr></thead>
             <tbody>
                 {% for t in tickets %}
                 <tr>
                     <td><strong>{{ t.ticket_number }}</strong></td>
                     <td>{{ t.client.company_name }}</td>
-                    <td>{{ t.subject }}</td>
-                    <td><span class="badge badge-{{ t.priority }}">{{ t.priority }}</span></td>
+                    <td>{{ t.subject[:35] }}</td>
+                    <td>{{ t.team_users|length }} فني</td>
+                    <td>{{ t.visits|length }}</td>
                     <td><span class="badge badge-{{ t.status }}">{{ t.status_label }}</span></td>
-                    <td>{{ t.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ t.start_date.strftime('%Y-%m-%d') if t.start_date else '-' }}</td>
                     <td>
                         <div class="d-flex gap-1">
-                            {% if t.status != 'closed' %}
-                            <form method="post" action="{{ url_for('admin.ticket_close', tid=t.id) }}"
-                                  data-confirm="إغلاق التذكرة {{ t.ticket_number }}؟" style="display:inline">
-                                <button class="btn btn-sm btn-success" type="submit">🔒 إغلاق</button>
-                            </form>
-                            {% endif %}
+                            <a href="{{ url_for('admin.ticket_view', tid=t.id) }}" class="btn btn-sm btn-primary">فتح</a>
                             <form method="post" action="{{ url_for('admin.ticket_delete', tid=t.id) }}"
-                                  data-confirm="متأكد من حذف التذكرة {{ t.ticket_number }}؟" style="display:inline">
+                                  data-confirm="متأكد من حذف المشروع {{ t.ticket_number }}؟" style="display:inline">
                                 <button class="btn btn-sm btn-danger" type="submit">🗑️</button>
                             </form>
                         </div>

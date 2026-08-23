@@ -64,6 +64,28 @@
     {% endif %}
 </div>
 
+{% if projects %}
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">🏗️ مشاريعي المفتوحة ({{ projects|length }})</h3></div>
+    {% for p in projects %}
+    <div class="task-row">
+        <div class="task-row-main">
+            <strong>{{ p.ticket_number }}</strong> · {{ p.client.company_name }}<br>
+            <span class="text-muted">{{ p.subject }}</span><br>
+            <small>
+                {% if p.assigned_to == current_uid %}<span class="badge badge-closed">أنت القائد</span>{% else %}<span class="badge badge-normal">عضو فريق</span>{% endif %}
+                · {{ p.visits|length }} زيارة
+                {% if p.start_date %} · بداية {{ p.start_date.strftime('%Y-%m-%d') }}{% endif %}
+            </small>
+        </div>
+        <div class="task-row-actions">
+            <a href="{{ url_for('tech.project_view', tid=p.id) }}" class="btn btn-sm btn-primary">فتح</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 {% if followups %}
 <div class="card mt-4">
     <div class="card-header"><h3 class="card-title">📅 مواعيد متابعة قادمة</h3></div>

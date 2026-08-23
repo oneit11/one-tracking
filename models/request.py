@@ -80,26 +80,35 @@ class VisitReport(db.Model):
 
 
 class SupportTicket(db.Model):
+    """Now used as a PROJECT: an open, multi-visit job for a team of technicians.
+    No SLA / close deadline — has a start date and stays open until admin closes it."""
     __tablename__ = "support_tickets"
 
     id = db.Column(db.Integer, primary_key=True)
-    ticket_number = db.Column(db.String(20), unique=True, index=True)  # TK26-0001
+    ticket_number = db.Column(db.String(20), unique=True, index=True)  # TK26-0001 (project code)
     client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=False)
     subject = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, default="")
     priority = db.Column(db.String(10), default="normal")
-    status = db.Column(db.String(20), default="open")  # open, in_progress, resolved, closed
-    assigned_to = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    status = db.Column(db.String(20), default="open")  # open, in_progress, closed
+    assigned_to = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)  # team lead
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    # Project fields
+    start_date = db.Column(db.Date, nullable=True)          # بداية العمل
+    assigned_at = db.Column(db.DateTime, nullable=True)
     closed_at = db.Column(db.DateTime, nullable=True)
 
     client = db.relationship("Client", back_populates="tickets")
-    assignee = db.relationship("User", foreign_keys=[assigned_to])
+    assignee = db.relationship("User", foreign_keys=[assigned_to])  # lead
+    members = db.relationship("ProjectMember", back_populates="ticket",
+                              cascade="all, delete-orphan")
+    visits = db.relationship("ProjectVisit", back_populates="ticket",
+                             cascade="all, delete-orphan", order_by="ProjectVisit.visit_date")
 
     STATUS_LABELS = {
         "open": "مفتوح",
-        "in_progress": "قيد المعالجة",
+        "in_progress": "قيد التنفيذ",
         "resolved": "تم الحل",
         "closed": "مغلق",
     }
@@ -107,3 +116,50 @@ class SupportTicket(db.Model):
     @property
     def status_label(self):
         return self.STATUS_LABELS.get(self.status, self.status)
+
+    @property
+    def team_users(self):
+        """All technicians on this project (lead + members), de-duplicated."""
+        users = []
+        seen = set()
+        if self.assignee and self.assignee.id not in seen:
+            users.append(self.assignee); seen.add(self.assignee.id)
+        for m in self.members:
+            if m.user and m.user.id not in seen:
+                users.append(m.user); seen.add(m.user.id)
+        return users
+
+
+class ProjectMember(db.Model):
+    """A technician assigned to a project (team member)."""
+    __tablename__ = "project_members"
+    id = db.Column(db.Integer, primary_key=True)
+    ticket_id = db.Column(db.Integer, db.ForeignKey("support_tickets.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    is_lead = db.Column(db.Boolean, default=False)
+    added_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    ticket = db.relationship("SupportTicket", back_populates="members")
+    user = db.relationship("User")
+
+
+class ProjectVisit(db.Model):
+    """One site visit logged against a project (by the team lead). Has photos."""
+    __tablename__ = "project_visits"
+    id = db.Column(db.Integer, primary_key=True)
+    ticket_id = db.Column(db.Integer, db.ForeignKey("support_tickets.id"), nullable=False, index=True)
+    technician_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    technician_name = db.Column(db.String(120), default="")  # snapshot
+    visit_date = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    work_done = db.Column(db.Text, default="")
+    notes = db.Column(db.Text, default="")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    ticket = db.relationship("SupportTicket", back_populates="visits")
+    technician = db.relationship("User")
+
+    @property
+    def photos(self):
+        from models.attachment import Attachment
+        return Attachment.query.filter_by(entity_type="project_visit", entity_id=self.id)\
+            .order_by(Attachment.uploaded_at).all()

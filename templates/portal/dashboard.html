@@ -34,6 +34,14 @@
         </div>
         <div class="kpi-arrow">←</div>
     </a>
+    <a href="{{ url_for('portal.projects_list') }}" class="kpi-card kpi-info">
+        <div class="kpi-icon">🏗️</div>
+        <div class="kpi-body">
+            <div class="kpi-label">مشاريع مفتوحة</div>
+            <div class="kpi-value">{{ stats.projects }}</div>
+        </div>
+        <div class="kpi-arrow">←</div>
+    </a>
     {% if client.active_amc %}
     <div class="kpi-card kpi-accent">
         <div class="kpi-icon">📜</div>

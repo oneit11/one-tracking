@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}{{ project.ticket_number }} - مشروع{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">🏗️ {{ project.ticket_number }}</h1>
+        <p class="page-subtitle">{{ project.subject }}</p>
+    </div>
+    <span class="badge badge-{{ project.status }}" style="font-size:14px;padding:6px 14px;">{{ project.status_label }}</span>
+</div>
+
+<div class="card">
+    <div class="detail-row"><span class="detail-label">العميل</span><span class="detail-value">{{ project.client.company_name }}</span></div>
+    <div class="detail-row"><span class="detail-label">تليفون العميل</span><span class="detail-value" dir="ltr"><a href="tel:{{ project.client.phone }}">{{ project.client.phone }}</a></span></div>
+    <div class="detail-row"><span class="detail-label">العنوان</span><span class="detail-value">{{ project.client.address }}</span></div>
+    <div class="detail-row"><span class="detail-label">تاريخ البداية</span><span class="detail-value">{{ project.start_date.strftime('%Y-%m-%d') if project.start_date else 'غير محدد' }}</span></div>
+    {% if project.description %}
+    <div class="mt-4"><p class="form-label">وصف المشروع:</p><p style="white-space:pre-wrap">{{ project.description }}</p></div>
+    {% endif %}
+    <div class="mt-4">
+        <p class="form-label">👥 الفريق:</p>
+        {% for u in project.team_users %}
+        <span class="badge {% if u.id == project.assigned_to %}badge-closed{% else %}badge-normal{% endif %}">
+            {{ u.name }}{% if u.id == project.assigned_to %} (قائد){% endif %}
+        </span>
+        {% endfor %}
+    </div>
+    {% if not is_lead %}
+    <p class="text-muted mt-4">📌 تسجيل الزيارات متاح لقائد الفريق فقط. أنت عضو في هذا المشروع.</p>
+    {% endif %}
+</div>
+
+{% if is_lead %}
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">➕ تسجيل زيارة جديدة</h3></div>
+    <form method="post" action="{{ url_for('tech.project_visit_new', tid=project.id) }}" enctype="multipart/form-data">
+        <div class="form-group full">
+            <label class="form-label">العمل المنفذ في الزيارة <span class="req">*</span></label>
+            <textarea class="form-textarea" name="work_done" rows="3" required></textarea>
+        </div>
+        <div class="form-group full mt-2">
+            <label class="form-label">ملاحظات (اختياري)</label>
+            <textarea class="form-textarea" name="notes" rows="2"></textarea>
+        </div>
+        <div class="form-group full mt-2">
+            <label class="form-label">📷 صور الزيارة (تقدر تختار أكتر من صورة)</label>
+            <input class="form-input" type="file" name="photos" accept="image/*" multiple capture="environment">
+        </div>
+        <button class="btn btn-success btn-block mt-4">📤 حفظ الزيارة</button>
+    </form>
+</div>
+{% endif %}
+
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">📋 الزيارات السابقة ({{ project.visits|length }})</h3></div>
+    {% if project.visits %}
+        {% for v in project.visits|reverse %}
+        <div style="border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px;">
+            <strong>زيارة {{ loop.revindex }}</strong> · {{ v.technician_name }}
+            <span class="text-muted">· {{ v.visit_date.strftime('%Y-%m-%d %H:%M') }}</span>
+            {% if v.work_done %}<p class="mt-2">{{ v.work_done }}</p>{% endif %}
+            {% if v.notes %}<p class="text-muted">{{ v.notes }}</p>{% endif %}
+            {% set photos = v.photos %}
+            {% if photos %}
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+                {% for ph in photos %}
+                <img src="{{ ph.file_url }}" class="clickable-image" style="height:110px;border-radius:8px;border:1px solid var(--border);object-fit:cover;" alt="صورة">
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-muted">لا توجد زيارات مسجلة بعد.</p>
+    {% endif %}
+</div>
+{% endblock %}

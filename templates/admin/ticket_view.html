@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}{{ project.ticket_number }} - مشروع{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">🏗️ {{ project.ticket_number }}</h1>
+        <p class="page-subtitle">{{ project.subject }}</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        {% if project.visits %}
+        <a href="{{ url_for('admin.ticket_report_pdf', tid=project.id) }}" class="btn btn-primary">📄 التقرير النهائي</a>
+        {% endif %}
+        <button type="button" class="btn btn-secondary no-print" onclick="window.print()">🖨️ طباعة</button>
+        <span class="badge badge-{{ project.status }}" style="font-size:14px;padding:6px 14px;">{{ project.status_label }}</span>
+        <form method="post" action="{{ url_for('admin.ticket_delete', tid=project.id) }}"
+              data-confirm="متأكد من حذف المشروع {{ project.ticket_number }} نهائياً؟" style="display:inline">
+            <button class="btn btn-danger no-print" type="submit">🗑️ حذف</button>
+        </form>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">بيانات المشروع</h3></div>
+        <div class="detail-row"><span class="detail-label">العميل</span><span class="detail-value">{{ project.client.company_name }}</span></div>
+        <div class="detail-row"><span class="detail-label">الأولوية</span><span class="detail-value"><span class="badge badge-{{ project.priority }}">{{ project.priority }}</span></span></div>
+        <div class="detail-row"><span class="detail-label">تاريخ البداية</span><span class="detail-value">{{ project.start_date.strftime('%Y-%m-%d') if project.start_date else 'غير محدد' }}</span></div>
+        <div class="detail-row"><span class="detail-label">أُنشئ</span><span class="detail-value">{{ project.created_at.strftime('%Y-%m-%d') }}</span></div>
+        <div class="detail-row"><span class="detail-label">عدد الزيارات</span><span class="detail-value">{{ project.visits|length }}</span></div>
+        {% if project.closed_at %}<div class="detail-row"><span class="detail-label">تم الإغلاق</span><span class="detail-value">{{ project.closed_at.strftime('%Y-%m-%d %H:%M') }}</span></div>{% endif %}
+        {% if project.description %}
+        <div class="mt-4"><p class="form-label">الوصف:</p><p style="white-space:pre-wrap">{{ project.description }}</p></div>
+        {% endif %}
+
+        <div class="mt-4">
+            <p class="form-label">👥 الفريق:</p>
+            {% if project.team_users %}
+                {% for u in project.team_users %}
+                <span class="badge {% if u.id == project.assigned_to %}badge-closed{% else %}badge-normal{% endif %}">
+                    {{ u.name }}{% if u.id == project.assigned_to %} (قائد){% endif %}
+                </span>
+                {% endfor %}
+            {% else %}
+                <span class="text-muted">لم يتم تعيين فريق بعد</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card no-print">
+        <div class="card-header"><h3 class="card-title">تعيين الفريق</h3></div>
+        {% if project.status != 'closed' %}
+        <form method="post" action="{{ url_for('admin.ticket_assign', tid=project.id) }}">
+            <label class="form-label">📅 موعد بداية العمل</label>
+            <input type="date" name="start_date" class="form-input mb-4"
+                   value="{{ project.start_date.strftime('%Y-%m-%d') if project.start_date else today }}">
+
+            <label class="form-label">اختر فنيي الفريق</label>
+            <p class="text-muted" style="font-size:12px;margin:0 0 6px">علّم على كل الفنيين في الفريق، واختار قائد الفريق</p>
+            <div class="team-picker">
+                {% for t in technicians %}
+                <label class="team-option">
+                    <input type="checkbox" name="technician_ids" value="{{ t.id }}"
+                           {% if t.id in project.team_users|map(attribute='id')|list %}checked{% endif %}>
+                    <span>{{ t.name }}</span>
+                    <label class="lead-radio" title="قائد الفريق">
+                        <input type="radio" name="lead_id" value="{{ t.id }}"
+                               {% if t.id == project.assigned_to %}checked{% endif %}>
+                        قائد
+                    </label>
+                </label>
+                {% endfor %}
+            </div>
+            <button class="btn btn-primary btn-block mt-4">💾 حفظ الفريق وإرسال الإشعارات</button>
+        </form>
+        {% else %}
+        <p class="text-muted">تم إغلاق المشروع</p>
+        {% endif %}
+
+        {% if project.status != 'closed' and project.team_users %}
+        <form method="post" action="{{ url_for('admin.ticket_close', tid=project.id) }}"
+              data-confirm="إغلاق المشروع وإصدار التقرير النهائي؟" class="mt-4">
+            <button class="btn btn-danger btn-block">🔒 إغلاق المشروع + تقرير نهائي</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">📋 الزيارات ({{ project.visits|length }})</h3></div>
+    {% if project.visits %}
+        {% for v in project.visits|reverse %}
+        <div class="visit-block">
+            <div class="visit-head">
+                <strong>زيارة {{ loop.revindex }}</strong> · {{ v.technician_name or (v.technician.name if v.technician else '-') }}
+                <span class="text-muted">· {{ v.visit_date.strftime('%Y-%m-%d %H:%M') }}</span>
+            </div>
+            {% if v.work_done %}<p><strong>العمل المنفذ:</strong> {{ v.work_done }}</p>{% endif %}
+            {% if v.notes %}<p class="text-muted">{{ v.notes }}</p>{% endif %}
+            {% set photos = v.photos %}
+            {% if photos %}
+            <div class="visit-photos">
+                {% for ph in photos %}
+                <img src="{{ ph.file_url }}" class="visit-photo clickable-image" alt="صورة">
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-muted">لا توجد زيارات مسجلة بعد. قائد الفريق يسجّل الزيارات من حسابه.</p>
+    {% endif %}
+</div>
+
+<style>
+.team-picker { display: grid; gap: 8px; }
+.team-option {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+    cursor: pointer;
+}
+.team-option span { flex: 1; }
+.lead-radio { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+.visit-block { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+.visit-head { margin-bottom: 8px; }
+.visit-photos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.visit-photo { height: 120px; border-radius: 8px; border: 1px solid var(--border); object-fit: cover; }
+</style>
+{% endblock %}
