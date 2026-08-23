@@ -95,8 +95,28 @@ class PDFReport:
         self.buffer = io.BytesIO()
         self.pagesize = landscape(A4) if landscape_mode else A4
         self.elements = []
+        self.gold = colors.HexColor("#c9a227")
+
+        # Branded banner image (top of report)
+        app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        banner = os.path.join(app_root, "static", "img", "report", "banner.jpg")
+        self.banner_path = banner if os.path.isfile(banner) else None
 
         self._build_styles()
+
+    def _banner_flowable(self):
+        """Full-width branded banner image, or None if missing."""
+        if not self.banner_path:
+            return None
+        try:
+            from reportlab.lib.utils import ImageReader
+            ir = ImageReader(self.banner_path)
+            iw, ih = ir.getSize()
+            w, _h = self.pagesize
+            usable = w - 2 * cm
+            return Image(self.banner_path, width=usable, height=usable * ih / iw)
+        except Exception:
+            return None
 
     def _build_styles(self):
         self.styles = getSampleStyleSheet()
@@ -126,35 +146,29 @@ class PDFReport:
         )
 
     def _header_footer(self, canvas, doc):
+        """Branded contact bar at the bottom of every page (banner is a flowable at top)."""
         canvas.saveState()
         w, h = self.pagesize
 
-        # Header band
+        # Bottom contact bar (navy) with a thin gold accent line above it
+        bar_h = 1.0 * cm
         canvas.setFillColor(self.primary_color)
-        canvas.rect(0, h - 1.7 * cm, w, 1.7 * cm, stroke=0, fill=1)
-        canvas.setFillColor(colors.white)
-        canvas.setFont(self.font_name, 14)
-        canvas.drawRightString(w - 1 * cm, h - 0.85 * cm, ar(self.company_name or ""))
-        # Contact info on two lines (phones + email), left side
-        canvas.setFont(self.font_name, 8.5)
-        phones = "  ".join(p for p in [self.company_phone, self.company_phone_alt] if p)
-        if phones:
-            canvas.drawString(1 * cm, h - 0.7 * cm, f"{phones}")
-        if self.company_email:
-            canvas.drawString(1 * cm, h - 1.25 * cm, self.company_email)
+        canvas.rect(0, 0, w, bar_h, stroke=0, fill=1)
+        canvas.setFillColor(self.gold)
+        canvas.rect(0, bar_h, w, 0.05 * cm, stroke=0, fill=1)
 
-        # Footer — full contact line + page number
-        canvas.setFillColor(colors.grey)
-        canvas.setFont(self.font_name, 8)
-        foot_contact = "  ·  ".join(
+        contact = "   |   ".join(
             p for p in [self.company_phone, self.company_phone_alt, self.company_email] if p
         )
-        canvas.drawCentredString(w / 2, 0.85 * cm, ar(foot_contact))
-        canvas.drawRightString(w - 1 * cm, 0.85 * cm,
-                               ar(f"صفحة {doc.page}"))
-        canvas.drawString(1 * cm, 0.85 * cm, datetime.now().strftime('%Y-%m-%d %H:%M'))
-        canvas.setStrokeColor(colors.HexColor("#e5e7eb"))
-        canvas.line(1 * cm, 1.2 * cm, w - 1 * cm, 1.2 * cm)
+        canvas.setFillColor(colors.white)
+        canvas.setFont(self.font_name, 9)
+        canvas.drawCentredString(w / 2, 0.36 * cm, contact)
+
+        # Page number + timestamp just above the bar
+        canvas.setFillColor(colors.grey)
+        canvas.setFont(self.font_name, 8)
+        canvas.drawRightString(w - 1 * cm, bar_h + 0.2 * cm, ar(f"صفحة {doc.page}"))
+        canvas.drawString(1 * cm, bar_h + 0.2 * cm, datetime.now().strftime('%Y-%m-%d %H:%M'))
 
         canvas.restoreState()
 
@@ -283,15 +297,27 @@ class PDFReport:
     def build(self):
         doc = SimpleDocTemplate(
             self.buffer, pagesize=self.pagesize,
-            topMargin=2.4 * cm, bottomMargin=1.8 * cm,
+            topMargin=1 * cm, bottomMargin=1.6 * cm,
             leftMargin=1 * cm, rightMargin=1 * cm,
         )
-        # Title goes at the TOP of the document (prepend, not append)
-        title_els = [Paragraph(ar(self.title), self.title_style)]
+        w, _h = self.pagesize
+        head_els = []
+        # Branded banner at the very top
+        banner = self._banner_flowable()
+        if banner is not None:
+            head_els.append(banner)
+            head_els.append(Spacer(1, 14))
+        # Title + subtitle
+        head_els.append(Paragraph(ar(self.title), self.title_style))
         if self.subtitle:
-            title_els.append(Paragraph(ar(self.subtitle), self.subtitle_style))
-        title_els.append(Spacer(1, 10))
-        self.elements = title_els + self.elements
+            head_els.append(Paragraph(ar(self.subtitle), self.subtitle_style))
+        # Gold divider under the title
+        divider = Table([[""]], colWidths=[w - 2 * cm])
+        divider.setStyle(TableStyle([("LINEBELOW", (0, 0), (-1, -1), 1.5, self.gold)]))
+        head_els.append(divider)
+        head_els.append(Spacer(1, 12))
+
+        self.elements = head_els + self.elements
 
         doc.build(self.elements, onFirstPage=self._header_footer,
                   onLaterPages=self._header_footer)
