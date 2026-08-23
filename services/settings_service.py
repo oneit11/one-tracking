@@ -16,7 +16,7 @@ DEFAULT_SETTINGS = {
     # Company
     "company_name": ("ONE For Integrated Solutions", "company"),
     "company_phone": ("01220733003", "company"),
-    "company_phone_alt": ("01003720505", "company"),
+    "company_phone_alt": ("01114994408", "company"),
     "company_email": ("info@one4in.com", "company"),
     "company_address": ("حدائق الأهرام - الجيزة", "company"),
     "company_website": ("https://one4in.com", "company"),

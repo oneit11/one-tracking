@@ -27,8 +27,16 @@ class Config:
     # On Railway (or any ephemeral host) set UPLOAD_FOLDER to a mounted volume
     # path (e.g. /data/uploads) so uploaded logos/photos survive redeploys.
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", os.path.join(BASE_DIR, "static", "uploads"))
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB
-    ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp", "pdf", "docx", "xlsx", "doc", "xls"}
+    MAX_CONTENT_LENGTH = int(os.getenv("MAX_UPLOAD_MB", "128")) * 1024 * 1024  # 128 MB (videos)
+    ALLOWED_EXTENSIONS = {
+        # images
+        "png", "jpg", "jpeg", "gif", "webp", "heic", "heif", "bmp",
+        # videos
+        "mp4", "mov", "webm", "avi", "mkv", "3gp", "m4v", "quicktime",
+        # docs
+        "pdf", "docx", "xlsx", "doc", "xls",
+    }
+    VIDEO_EXTENSIONS = {"mp4", "mov", "webm", "avi", "mkv", "3gp", "m4v", "quicktime"}
 
     # WhatsApp (Baileys sidecar)
     WA_ENABLED = os.getenv("WA_ENABLED", "false").lower() == "true"

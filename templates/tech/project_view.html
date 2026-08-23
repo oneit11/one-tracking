@@ -43,8 +43,9 @@
             <textarea class="form-textarea" name="notes" rows="2"></textarea>
         </div>
         <div class="form-group full mt-2">
-            <label class="form-label">📷 صور الزيارة (تقدر تختار أكتر من صورة)</label>
-            <input class="form-input" type="file" name="photos" accept="image/*" multiple capture="environment">
+            <label class="form-label">📷 صور وفيديوهات الزيارة</label>
+            <p class="text-muted" style="font-size:12px;margin:0 0 6px">تقدر تختار أكتر من صورة أو فيديو من المعرض مرة واحدة</p>
+            <input class="form-input" type="file" name="photos" accept="image/*,video/*" multiple>
         </div>
         <button class="btn btn-success btn-block mt-4">📤 حفظ الزيارة</button>
     </form>
@@ -64,7 +65,11 @@
             {% if photos %}
             <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
                 {% for ph in photos %}
-                <img src="{{ ph.file_url }}" class="clickable-image" style="height:110px;border-radius:8px;border:1px solid var(--border);object-fit:cover;" alt="صورة">
+                    {% if ph.file_type == 'video' %}
+                    <video src="{{ ph.file_url }}" style="height:110px;border-radius:8px;border:1px solid var(--border);" controls preload="metadata"></video>
+                    {% else %}
+                    <img src="{{ ph.file_url }}" class="clickable-image" style="height:110px;border-radius:8px;border:1px solid var(--border);object-fit:cover;" alt="صورة">
+                    {% endif %}
                 {% endfor %}
             </div>
             {% endif %}

@@ -38,7 +38,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label">صورة (اختياري)</label>
-                <input class="form-input" type="file" name="photo" accept="image/*" capture="environment">
+                <input class="form-input" type="file" name="photo" accept="image/*">
                 {% if req.visit_report and req.visit_report.photo_url %}
                     <img src="{{ req.visit_report.photo_url }}" class="image-thumb mt-2 clickable-image" style="max-height:80px">
                 {% endif %}

@@ -1171,3 +1171,14 @@ html[dir="ltr"] .kpi-card:hover .kpi-arrow { transform: translateX(4px); }
 
     @page { margin: 1.4cm; }
 }
+
+/* Footer contact row */
+.footer-contact {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+.footer-contact a { color: var(--text-muted); font-size: 13px; }
+.footer-contact a:hover { color: var(--primary); }

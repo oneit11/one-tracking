@@ -125,6 +125,7 @@ def create_app():
             "ACCENT_COLOR": "#14b8a6",
             "COMPANY_NAME": app.config["COMPANY_NAME"],
             "COMPANY_PHONE": app.config["COMPANY_PHONE"],
+            "COMPANY_PHONE_ALT": "",
             "COMPANY_EMAIL": app.config["COMPANY_EMAIL"],
             "COMPANY_ADDRESS": "",
             "t": t,
@@ -151,6 +152,7 @@ def create_app():
                 "ACCENT_COLOR": get_setting("accent_color", "#14b8a6"),
                 "COMPANY_NAME": get_setting("company_name", app.config["COMPANY_NAME"]),
                 "COMPANY_PHONE": get_setting("company_phone", app.config["COMPANY_PHONE"]),
+                "COMPANY_PHONE_ALT": get_setting("company_phone_alt", ""),
                 "COMPANY_EMAIL": get_setting("company_email", app.config["COMPANY_EMAIL"]),
                 "COMPANY_ADDRESS": get_setting("company_address", ""),
             })

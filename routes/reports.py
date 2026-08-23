@@ -21,6 +21,7 @@ def _company_kwargs():
     return dict(
         company_name=get_setting("company_name", ""),
         company_phone=get_setting("company_phone", ""),
+        company_phone_alt=get_setting("company_phone_alt", ""),
         company_email=get_setting("company_email", ""),
         primary_color=get_setting("primary_color", "#0b3d91"),
     )

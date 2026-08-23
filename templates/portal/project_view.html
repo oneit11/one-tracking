@@ -32,7 +32,11 @@
             {% if photos %}
             <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
                 {% for ph in photos %}
-                <img src="{{ ph.file_url }}" class="clickable-image" style="height:110px;border-radius:8px;border:1px solid var(--border);object-fit:cover;" alt="صورة">
+                    {% if ph.file_type == 'video' %}
+                    <video src="{{ ph.file_url }}" style="height:110px;border-radius:8px;border:1px solid var(--border);" controls preload="metadata"></video>
+                    {% else %}
+                    <img src="{{ ph.file_url }}" class="clickable-image" style="height:110px;border-radius:8px;border:1px solid var(--border);object-fit:cover;" alt="صورة">
+                    {% endif %}
                 {% endfor %}
             </div>
             {% endif %}

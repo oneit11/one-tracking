@@ -127,7 +127,12 @@
 </main>
 
 <footer class="footer">
-    {{ COMPANY_NAME }} &middot; <a href="tel:{{ COMPANY_PHONE }}" dir="ltr">{{ COMPANY_PHONE }}</a>
+    <div>{{ COMPANY_NAME }}</div>
+    <div class="footer-contact" dir="ltr">
+        {% if COMPANY_PHONE %}<a href="tel:{{ COMPANY_PHONE }}">📱 {{ COMPANY_PHONE }}</a>{% endif %}
+        {% if COMPANY_PHONE_ALT %}<a href="tel:{{ COMPANY_PHONE_ALT }}">📱 {{ COMPANY_PHONE_ALT }}</a>{% endif %}
+        {% if COMPANY_EMAIL %}<a href="mailto:{{ COMPANY_EMAIL }}">📩 {{ COMPANY_EMAIL }}</a>{% endif %}
+    </div>
 </footer>
 
 <script src="{{ url_for('static', filename='js/main.js') }}?v={{ ASSET_VERSION }}"></script>

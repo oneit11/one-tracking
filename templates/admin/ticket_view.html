@@ -100,7 +100,11 @@
             {% if photos %}
             <div class="visit-photos">
                 {% for ph in photos %}
-                <img src="{{ ph.file_url }}" class="visit-photo clickable-image" alt="صورة">
+                    {% if ph.file_type == 'video' %}
+                    <video src="{{ ph.file_url }}" class="visit-photo" controls preload="metadata"></video>
+                    {% else %}
+                    <img src="{{ ph.file_url }}" class="visit-photo clickable-image" alt="صورة">
+                    {% endif %}
                 {% endfor %}
             </div>
             {% endif %}

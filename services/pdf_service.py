@@ -80,12 +80,13 @@ def ar(text):
 
 class PDFReport:
     def __init__(self, title, subtitle="", company_name="", company_phone="",
-                 company_email="", logo_url="", landscape_mode=False,
-                 primary_color="#0b3d91"):
+                 company_email="", company_phone_alt="", logo_url="",
+                 landscape_mode=False, primary_color="#0b3d91"):
         self.title = title
         self.subtitle = subtitle
         self.company_name = company_name
         self.company_phone = company_phone
+        self.company_phone_alt = company_phone_alt
         self.company_email = company_email
         self.logo_url = logo_url
         self.primary_color = colors.HexColor(primary_color)
@@ -130,19 +131,28 @@ class PDFReport:
 
         # Header band
         canvas.setFillColor(self.primary_color)
-        canvas.rect(0, h - 1.6 * cm, w, 1.6 * cm, stroke=0, fill=1)
+        canvas.rect(0, h - 1.7 * cm, w, 1.7 * cm, stroke=0, fill=1)
         canvas.setFillColor(colors.white)
         canvas.setFont(self.font_name, 14)
-        canvas.drawRightString(w - 1 * cm, h - 1 * cm, ar(self.company_name or ""))
-        canvas.setFont(self.font_name, 9)
-        contact = f"{self.company_phone or ''}  |  {self.company_email or ''}"
-        canvas.drawString(1 * cm, h - 1 * cm, ar(contact))
+        canvas.drawRightString(w - 1 * cm, h - 0.85 * cm, ar(self.company_name or ""))
+        # Contact info on two lines (phones + email), left side
+        canvas.setFont(self.font_name, 8.5)
+        phones = "  ".join(p for p in [self.company_phone, self.company_phone_alt] if p)
+        if phones:
+            canvas.drawString(1 * cm, h - 0.7 * cm, f"{phones}")
+        if self.company_email:
+            canvas.drawString(1 * cm, h - 1.25 * cm, self.company_email)
 
-        # Footer
+        # Footer — full contact line + page number
         canvas.setFillColor(colors.grey)
         canvas.setFont(self.font_name, 8)
-        canvas.drawCentredString(w / 2, 0.8 * cm,
-                                 ar(f"صفحة {doc.page}  ·  {datetime.now().strftime('%Y-%m-%d %H:%M')}"))
+        foot_contact = "  ·  ".join(
+            p for p in [self.company_phone, self.company_phone_alt, self.company_email] if p
+        )
+        canvas.drawCentredString(w / 2, 0.85 * cm, ar(foot_contact))
+        canvas.drawRightString(w - 1 * cm, 0.85 * cm,
+                               ar(f"صفحة {doc.page}"))
+        canvas.drawString(1 * cm, 0.85 * cm, datetime.now().strftime('%Y-%m-%d %H:%M'))
         canvas.setStrokeColor(colors.HexColor("#e5e7eb"))
         canvas.line(1 * cm, 1.2 * cm, w - 1 * cm, 1.2 * cm)
 
@@ -273,11 +283,16 @@ class PDFReport:
     def build(self):
         doc = SimpleDocTemplate(
             self.buffer, pagesize=self.pagesize,
-            topMargin=2.2 * cm, bottomMargin=1.8 * cm,
+            topMargin=2.4 * cm, bottomMargin=1.8 * cm,
             leftMargin=1 * cm, rightMargin=1 * cm,
         )
-        self.add_title()
-        # Build once
+        # Title goes at the TOP of the document (prepend, not append)
+        title_els = [Paragraph(ar(self.title), self.title_style)]
+        if self.subtitle:
+            title_els.append(Paragraph(ar(self.subtitle), self.subtitle_style))
+        title_els.append(Spacer(1, 10))
+        self.elements = title_els + self.elements
+
         doc.build(self.elements, onFirstPage=self._header_footer,
                   onLaterPages=self._header_footer)
         self.buffer.seek(0)
@@ -298,12 +313,15 @@ def _resolve_upload_path(file_url, upload_folder):
 
 
 def generate_project_report(project, company_name="", company_phone="",
+                            company_phone_alt="", company_email="",
                             logo_url="", upload_folder=""):
     """Final project report: details + team + every visit + all photos."""
     pdf = PDFReport(
         title=f"التقرير النهائي للمشروع — {project.ticket_number}",
         subtitle=project.subject or "",
-        company_name=company_name, company_phone=company_phone, logo_url=logo_url,
+        company_name=company_name, company_phone=company_phone,
+        company_phone_alt=company_phone_alt, company_email=company_email,
+        logo_url=logo_url,
     )
 
     # Project details

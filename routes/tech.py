@@ -91,16 +91,19 @@ def project_visit_new(tid):
     db.session.add(visit)
     db.session.commit()
 
-    # Multiple photos
+    # Multiple photos / videos
     files = request.files.getlist("photos")
+    video_exts = current_app.config.get("VIDEO_EXTENSIONS", set())
     saved = 0
     for f in files:
         if f and f.filename:
             url = save_upload(f, subfolder="reports", prefix="proj_")
             if url:
+                ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else ""
+                ftype = "video" if ext in video_exts else "image"
                 db.session.add(Attachment(
                     entity_type="project_visit", entity_id=visit.id,
-                    file_url=url, file_name=f.filename[:200], file_type="image",
+                    file_url=url, file_name=f.filename[:200], file_type=ftype,
                     uploaded_by=current_user.id,
                 ))
                 saved += 1

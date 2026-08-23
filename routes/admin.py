@@ -537,6 +537,8 @@ def ticket_report_pdf(tid):
         project,
         company_name=get_setting("company_name", current_app.config.get("COMPANY_NAME", "")),
         company_phone=get_setting("company_phone", current_app.config.get("COMPANY_PHONE", "")),
+        company_phone_alt=get_setting("company_phone_alt", ""),
+        company_email=get_setting("company_email", current_app.config.get("COMPANY_EMAIL", "")),
         logo_url=get_setting("logo_url", ""),
         upload_folder=current_app.config["UPLOAD_FOLDER"],
     )
