@@ -174,18 +174,26 @@ def notify_technician_assigned(request, app=None):
     company_name = get_setting("company_name", "الشركة")
     tech = request.technician
 
+    visit_txt = request.visit_at.strftime("%Y-%m-%d %H:%M") if getattr(request, "visit_at", None) else ""
+
     tech_msg = render_template_msg(
         "tech_assigned_tech",
         tech_name=tech.name, request_number=request.request_number,
         client_name=request.client.company_name, client_phone=request.client.phone,
         client_address=request.client.address, title=request.title,
-        priority=request.priority_label,
+        priority=request.priority_label, visit_date=visit_txt,
     )
+    # Ensure the visit appointment shows even if the template has no {visit_date}
+    if tech_msg and visit_txt and "{visit_date}" not in (tech_msg or "") and visit_txt not in tech_msg:
+        tech_msg += f"\n📅 موعد الزيارة: {visit_txt}"
+
     client_msg = render_template_msg(
         "tech_assigned_client",
         tech_name=tech.name, request_number=request.request_number,
-        company_name=company_name,
+        company_name=company_name, visit_date=visit_txt,
     )
+    if client_msg and visit_txt and visit_txt not in client_msg:
+        client_msg += f"\n📅 موعد الزيارة: {visit_txt}"
 
     if tech_msg and tech.phone:
         send_wa(tech.phone, tech_msg,

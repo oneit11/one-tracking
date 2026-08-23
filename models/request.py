@@ -25,6 +25,7 @@ class MaintenanceRequest(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     assigned_at = db.Column(db.DateTime, nullable=True)
+    visit_at = db.Column(db.DateTime, nullable=True)  # scheduled visit date/time
     started_at = db.Column(db.DateTime, nullable=True)
     reported_at = db.Column(db.DateTime, nullable=True)
     closed_at = db.Column(db.DateTime, nullable=True)

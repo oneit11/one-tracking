@@ -358,6 +358,7 @@ def request_view(rid):
     return render_template("admin/request_view.html", req=req, technicians=technicians,
                            comments=comments, followups=followups,
                            today=datetime.utcnow().strftime("%Y-%m-%d"),
+                           now_time=datetime.utcnow().strftime("%H:%M"),
                            sla_status=sla_status(req), sla_time=format_time_remaining(req.sla_due_at))
 
 
@@ -409,10 +410,19 @@ def request_assign(rid):
     req.technician_id = tech_id
     req.status = "assigned"
     req.assigned_at = datetime.utcnow()
+    # Optional scheduled visit date/time
+    visit_date = request.form.get("visit_date", "").strip()
+    visit_time = request.form.get("visit_time", "").strip() or "09:00"
+    if visit_date:
+        try:
+            req.visit_at = datetime.strptime(f"{visit_date} {visit_time}", "%Y-%m-%d %H:%M")
+        except ValueError:
+            req.visit_at = None
     db.session.commit()
     wa.notify_technician_assigned(req)
+    visit_txt = f" — موعد الزيارة {req.visit_at.strftime('%Y-%m-%d %H:%M')}" if req.visit_at else ""
     notify_user(tech.id, f"تم تعيينك لطلب {req.request_number}",
-                f"{req.client.company_name} - {req.title}",
+                f"{req.client.company_name} - {req.title}{visit_txt}",
                 "🔧", url_for("tech.request_view", rid=req.id))
     log_action("request.assigned", entity_type="request", entity_id=req.id, details=tech.name)
     flash(f"تم تعيين {tech.name}", "success")

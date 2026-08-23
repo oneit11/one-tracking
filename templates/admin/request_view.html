@@ -42,6 +42,7 @@
         </div>
         {% endif %}
         {% if req.assigned_at %}<div class="detail-row"><span class="detail-label">تم التعيين</span><span class="detail-value">{{ req.assigned_at.strftime('%Y-%m-%d %H:%M') }}</span></div>{% endif %}
+        {% if req.visit_at %}<div class="detail-row"><span class="detail-label">📅 موعد الزيارة</span><span class="detail-value"><strong>{{ req.visit_at.strftime('%Y-%m-%d %H:%M') }}</strong></span></div>{% endif %}
         {% if req.reported_at %}<div class="detail-row"><span class="detail-label">تقرير الفني</span><span class="detail-value">{{ req.reported_at.strftime('%Y-%m-%d %H:%M') }}</span></div>{% endif %}
         {% if req.closed_at %}<div class="detail-row"><span class="detail-label">تم الإغلاق</span><span class="detail-value">{{ req.closed_at.strftime('%Y-%m-%d %H:%M') }}</span></div>{% endif %}
 
@@ -62,13 +63,23 @@
         {% if req.status in ['new', 'assigned', 'in_progress'] %}
         <form method="post" action="{{ url_for('admin.request_assign', rid=req.id) }}" class="mb-4">
             <label class="form-label">تعيين فني</label>
-            <div class="d-flex gap-2 mt-2">
-                <select class="form-select" name="technician_id" required style="flex:1">
-                    <option value="">--</option>
-                    {% for t in technicians %}<option value="{{ t.id }}" {% if req.technician_id == t.id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
-                </select>
-                <button class="btn btn-primary">{{ 'تغيير' if req.technician_id else 'تعيين' }}</button>
+            <select class="form-select mt-2" name="technician_id" required>
+                <option value="">--</option>
+                {% for t in technicians %}<option value="{{ t.id }}" {% if req.technician_id == t.id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
+            </select>
+            <div class="grid-2" style="gap:10px;margin-top:10px;">
+                <div>
+                    <label class="form-label">📅 تاريخ الزيارة</label>
+                    <input type="date" name="visit_date" class="form-input" min="{{ today }}"
+                           value="{{ req.visit_at.strftime('%Y-%m-%d') if req.visit_at else '' }}">
+                </div>
+                <div>
+                    <label class="form-label">الوقت</label>
+                    <input type="time" name="visit_time" class="form-input"
+                           value="{{ req.visit_at.strftime('%H:%M') if req.visit_at else '09:00' }}">
+                </div>
             </div>
+            <button class="btn btn-primary btn-block mt-4">{{ 'تحديث التعيين' if req.technician_id else 'تعيين الفني' }}</button>
         </form>
         {% endif %}
 

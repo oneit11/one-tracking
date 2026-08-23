@@ -18,6 +18,7 @@
     <div class="detail-row"><span class="detail-label">العنوان</span><span class="detail-value">{{ req.client.address }}</span></div>
     <div class="detail-row"><span class="detail-label">الجهاز</span><span class="detail-value">{{ req.device.name if req.device else '-' }}</span></div>
     <div class="detail-row"><span class="detail-label">الأولوية</span><span class="detail-value"><span class="badge badge-{{ req.priority }}">{{ req.priority_label }}</span></span></div>
+    {% if req.visit_at %}<div class="detail-row"><span class="detail-label">📅 موعد الزيارة</span><span class="detail-value"><strong>{{ req.visit_at.strftime('%Y-%m-%d %H:%M') }}</strong></span></div>{% endif %}
 
     {% if req.description %}
     <div class="mt-4">
