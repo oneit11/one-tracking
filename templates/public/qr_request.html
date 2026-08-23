@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}طلب صيانة - {{ device.name }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:520px;margin:20px auto;">
+    <div style="text-align:center;margin-bottom:16px;">
+        <div class="brand-mark" style="width:56px;height:56px;font-size:24px;margin:0 auto 12px;">🔧</div>
+        <h1 style="margin:0 0 4px;">طلب صيانة</h1>
+        <p class="text-muted">{{ device.name }}{% if device.location %} · {{ device.location }}{% endif %}</p>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+        <!-- honeypot (hidden from humans) -->
+        <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off">
+
+        <div class="form-group">
+            <label class="form-label">الاسم <span class="req">*</span></label>
+            <input class="form-input" name="contact_name" required placeholder="اسمك">
+        </div>
+        <div class="form-group mt-2">
+            <label class="form-label">رقم التليفون <span class="req">*</span></label>
+            <input class="form-input" name="contact_phone" dir="ltr" required inputmode="tel" placeholder="01xxxxxxxxx">
+        </div>
+        <div class="form-group mt-2">
+            <label class="form-label">الأولوية</label>
+            <select class="form-select" name="priority">
+                <option value="normal" selected>عادي</option>
+                <option value="high">عالي</option>
+                <option value="urgent">عاجل</option>
+            </select>
+        </div>
+        <div class="form-group mt-2">
+            <label class="form-label">وصف العطل / المشكلة <span class="req">*</span></label>
+            <textarea class="form-textarea" name="description" rows="4" required placeholder="اكتب المشكلة بالتفصيل..."></textarea>
+        </div>
+        <div class="form-group mt-2">
+            <label class="form-label">📷 صورة للعطل (اختياري)</label>
+            <input class="form-input" type="file" name="photo" accept="image/*">
+        </div>
+
+        <button class="btn btn-primary btn-block mt-4" style="font-size:16px;padding:12px;">📤 إرسال الطلب</button>
+    </form>
+
+    <p class="text-center text-muted mt-4" style="font-size:12px;">
+        {{ COMPANY_NAME }} · <a href="tel:{{ COMPANY_PHONE }}" dir="ltr">{{ COMPANY_PHONE }}</a>
+    </p>
+</div>
+{% endblock %}

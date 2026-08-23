@@ -45,6 +45,71 @@ def scan(code):
     return redirect(url_for("public.bind_qr", code=code))
 
 
+@public_bp.route("/d/<code>/request", methods=["GET", "POST"])
+def qr_request(code):
+    """Public quick maintenance request from a scanned QR — no login required."""
+    qr = QRCode.query.filter_by(code=code).first()
+    if not qr or not qr.is_bound:
+        return render_template("public/qr_invalid.html", code=code), 404
+    device = qr.device
+    client = device.client
+
+    if request.method == "POST":
+        # Honeypot: bots fill hidden 'website' field
+        if request.form.get("website"):
+            abort(400)
+
+        name = request.form.get("contact_name", "").strip()
+        phone = request.form.get("contact_phone", "").strip()
+        desc = request.form.get("description", "").strip()
+        if not name or not phone or not desc:
+            flash("رجاءً املأ الاسم والتليفون ووصف العطل", "warning")
+            return render_template("public/qr_request.html", device=device, client=client, qr=qr)
+
+        from models.request import MaintenanceRequest
+        from utils.helpers import save_upload, next_sequence
+        from services import whatsapp as wa
+        from services.notifications import notify_admins
+
+        req = MaintenanceRequest(
+            request_number=next_sequence(MaintenanceRequest, "request_number", "MR"),
+            client_id=client.id,
+            device_id=device.id,
+            title=f"طلب صيانة (QR) - {device.name}",
+            description=desc,
+            priority=request.form.get("priority", "normal"),
+            source="qr",
+            contact_name=name,
+            contact_phone=phone,
+        )
+        # SLA
+        try:
+            from services.sla import compute_sla_due
+            req.sla_due_at = compute_sla_due(datetime.utcnow(), req.priority)
+        except Exception:
+            pass
+
+        if "photo" in request.files and request.files["photo"].filename:
+            p = save_upload(request.files["photo"], subfolder="reports", prefix="qr_")
+            if p:
+                req.submitted_photo_url = p
+        db.session.add(req)
+        db.session.commit()
+
+        try:
+            wa.notify_request_received(req)
+        except Exception:
+            pass
+        notify_admins(
+            f"طلب صيانة جديد عبر QR {req.request_number}",
+            f"{client.company_name} — {device.name} — {name} ({phone})",
+            "📱", url_for("admin.request_view", rid=req.id),
+        )
+        return render_template("public/qr_request_done.html", req=req, device=device, client=client)
+
+    return render_template("public/qr_request.html", device=device, client=client, qr=qr)
+
+
 @public_bp.route("/d/<code>/bind", methods=["GET", "POST"])
 @login_required
 def bind_qr(code):

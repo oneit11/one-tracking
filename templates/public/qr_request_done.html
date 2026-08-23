@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}تم إرسال الطلب{% endblock %}
+{% block content %}
+<div class="card" style="max-width:520px;margin:20px auto;text-align:center;">
+    <div style="font-size:56px;margin-bottom:8px;">✅</div>
+    <h1 style="margin:0 0 8px;">تم إرسال طلبك بنجاح</h1>
+    <p class="text-muted">رقم الطلب: <strong>{{ req.request_number }}</strong></p>
+
+    <div style="border-top:1px solid var(--border);margin:20px 0;padding-top:20px;text-align:right;">
+        <div class="detail-row"><span class="detail-label">الجهاز</span><span class="detail-value">{{ device.name }}</span></div>
+        <div class="detail-row"><span class="detail-label">العميل</span><span class="detail-value">{{ client.company_name }}</span></div>
+        <div class="detail-row"><span class="detail-label">مقدّم الطلب</span><span class="detail-value">{{ req.contact_name }}</span></div>
+        <div class="detail-row"><span class="detail-label">التليفون</span><span class="detail-value" dir="ltr">{{ req.contact_phone }}</span></div>
+    </div>
+
+    <p class="text-muted">هيتم التواصل معك في أقرب وقت. شكراً لك.</p>
+    <p><strong>{{ COMPANY_NAME }}</strong></p>
+
+    <div class="d-flex gap-2 mt-4" style="justify-content:center;">
+        <a href="tel:{{ COMPANY_PHONE }}" class="btn btn-primary">📞 اتصل بنا</a>
+        <a href="{{ url_for('public.scan', code=device.qr_code.code) if device.qr_code else '#' }}" class="btn btn-secondary">← رجوع</a>
+    </div>
+</div>
+{% endblock %}

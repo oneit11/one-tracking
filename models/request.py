@@ -18,6 +18,10 @@ class MaintenanceRequest(db.Model):
     submitted_photo_url = db.Column(db.String(255), default="")
     technician_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    # For requests submitted via public QR scan (no login)
+    source = db.Column(db.String(20), default="internal")  # internal, portal, qr
+    contact_name = db.Column(db.String(120), default="")
+    contact_phone = db.Column(db.String(30), default="")
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     assigned_at = db.Column(db.DateTime, nullable=True)

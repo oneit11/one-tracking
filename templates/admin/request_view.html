@@ -24,6 +24,13 @@
         <div class="detail-row"><span class="detail-label">العميل</span><span class="detail-value"><a href="{{ url_for('admin.client_view', cid=req.client_id) }}">{{ req.client.company_name }}</a></span></div>
         <div class="detail-row"><span class="detail-label">الجهاز</span><span class="detail-value">{% if req.device %}<a href="{{ url_for('admin.device_view', did=req.device_id) }}">{{ req.device.name }}</a>{% else %}-{% endif %}</span></div>
         <div class="detail-row"><span class="detail-label">الفني</span><span class="detail-value">{{ req.technician.name if req.technician else 'لم يتم التعيين' }}</span></div>
+        {% if req.source == 'qr' %}
+        <div class="detail-row"><span class="detail-label">المصدر</span><span class="detail-value"><span class="badge badge-normal">📱 عبر QR</span></span></div>
+        {% endif %}
+        {% if req.contact_name or req.contact_phone %}
+        <div class="detail-row"><span class="detail-label">مقدّم الطلب</span><span class="detail-value">{{ req.contact_name or '-' }}</span></div>
+        <div class="detail-row"><span class="detail-label">تليفون المُبلِّغ</span><span class="detail-value" dir="ltr">{% if req.contact_phone %}<a href="tel:{{ req.contact_phone }}">{{ req.contact_phone }}</a>{% else %}-{% endif %}</span></div>
+        {% endif %}
         <div class="detail-row"><span class="detail-label">أُنشئ</span><span class="detail-value">{{ req.created_at.strftime('%Y-%m-%d %H:%M') }}</span></div>
         {% if req.sla_due_at %}
         <div class="detail-row">
