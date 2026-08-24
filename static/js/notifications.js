@@ -24,13 +24,20 @@
 
     // ===== Web Audio chime (no external file needed) =====
     let audioCtx = null;
+    let audioUnlocked = false;   // becomes true only after a real user gesture
     function unlockAudio() {
+        // Create the AudioContext only inside a user gesture — avoids the
+        // "AudioContext was not allowed to start" console warnings.
         if (!audioCtx) {
             try {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            } catch (e) { audioCtx = null; }
+            } catch (e) { audioCtx = null; return; }
         }
-        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume().then(function () { audioUnlocked = true; }).catch(function () {});
+        } else {
+            audioUnlocked = true;
+        }
     }
     // Browsers require a user gesture before audio can play — unlock on first interaction.
     document.addEventListener('click', unlockAudio, { once: true });
@@ -39,8 +46,8 @@
 
     function playChime() {
         if (!soundOn()) return;
-        if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; } }
-        if (audioCtx.state === 'suspended') audioCtx.resume();
+        // Do nothing until audio has been unlocked by a user gesture (prevents warnings)
+        if (!audioUnlocked || !audioCtx || audioCtx.state !== 'running') return;
         const now = audioCtx.currentTime;
         // Two-tone pleasant "ding-dong"
         [[880, 0], [1174, 0.16]].forEach(function (pair) {
@@ -133,7 +140,8 @@
             e.stopPropagation();
             unlockAudio();
             setSoundOn(!soundOn());
-            if (soundOn()) playChime();  // audible confirmation
+            // audible confirmation after the context has resumed
+            if (soundOn()) setTimeout(playChime, 150);
         });
         renderSoundToggle();
     }
