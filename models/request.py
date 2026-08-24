@@ -34,6 +34,9 @@ class MaintenanceRequest(db.Model):
     sla_due_at = db.Column(db.DateTime, nullable=True, index=True)
     sla_breached = db.Column(db.Boolean, default=False)
 
+    # Visit cost (set by admin at close)
+    visit_cost = db.Column(db.Numeric(12, 2), nullable=True)
+
     client = db.relationship("Client", back_populates="requests")
     device = db.relationship("Device", back_populates="requests")
     technician = db.relationship("User", back_populates="assigned_requests", foreign_keys=[technician_id])
@@ -82,6 +85,12 @@ class VisitReport(db.Model):
 
     request = db.relationship("MaintenanceRequest", back_populates="visit_report")
     technician = db.relationship("User")
+
+    @property
+    def attachments(self):
+        from models.attachment import Attachment
+        return Attachment.query.filter_by(entity_type="visit_report", entity_id=self.id)\
+            .order_by(Attachment.uploaded_at).all()
 
 
 class SupportTicket(db.Model):

@@ -36,11 +36,23 @@
                     <strong>تم حل المشكلة</strong>
                 </label>
             </div>
-            <div class="form-group">
-                <label class="form-label">صورة (اختياري)</label>
-                <input class="form-input" type="file" name="photo" accept="image/*">
-                {% if req.visit_report and req.visit_report.photo_url %}
-                    <img src="{{ req.visit_report.photo_url }}" class="image-thumb mt-2 clickable-image" style="max-height:80px">
+            <div class="form-group full">
+                <label class="form-label">📷 صور وفيديوهات (تقدر تختار أكتر من واحدة)</label>
+                <input class="form-input" type="file" name="photos" accept="image/*,video/*" multiple>
+                {% if req.visit_report %}
+                    {% set atts = req.visit_report.attachments %}
+                    {% if req.visit_report.photo_url or atts %}
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+                        {% if req.visit_report.photo_url %}<img src="{{ req.visit_report.photo_url }}" class="clickable-image" style="height:70px;border-radius:6px;border:1px solid var(--border);object-fit:cover;">{% endif %}
+                        {% for a in atts %}
+                            {% if a.file_type == 'video' %}
+                            <video src="{{ a.file_url }}" style="height:70px;border-radius:6px;" controls preload="metadata"></video>
+                            {% else %}
+                            <img src="{{ a.file_url }}" class="clickable-image" style="height:70px;border-radius:6px;border:1px solid var(--border);object-fit:cover;">
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 {% endif %}
             </div>
             <div class="form-group full" style="border-top:1px dashed var(--border);padding-top:14px;margin-top:6px;">

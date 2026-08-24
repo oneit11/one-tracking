@@ -48,11 +48,26 @@ def _send_sync(config, to_number, message, event_type, entity_type, entity_id):
         db.session.add(log); db.session.commit()
 
 
-def send_wa(to_number, message, event_type="", entity_type="", entity_id=None, app=None):
+def send_wa(to_number, message, event_type="", entity_type="", entity_id=None, app=None, dedupe=False):
     _app = app or current_app._get_current_object()
     to_norm = normalize_phone(to_number)
     if not to_norm:
         return
+
+    # Dedupe: skip if the same event was already sent/queued for the same entity+number
+    if dedupe and event_type and entity_id is not None:
+        try:
+            recent = WhatsAppLog.query.filter(
+                WhatsAppLog.event_type == event_type,
+                WhatsAppLog.related_entity_type == entity_type,
+                WhatsAppLog.related_entity_id == entity_id,
+                WhatsAppLog.to_number == to_norm,
+                WhatsAppLog.status.in_(["sent", "pending"]),
+            ).first()
+            if recent:
+                return  # already sent — avoid duplicate
+        except Exception:
+            db.session.rollback()
 
     # Load from settings (DB) first, fall back to config
     enabled = get_setting("wa_enabled", str(_app.config.get("WA_ENABLED", False))).lower() == "true"
@@ -226,7 +241,7 @@ def notify_report_ready(request, app=None):
 
     if client_msg and request.client.notify_number:
         send_wa(request.client.notify_number, client_msg,
-                event_type="report_ready_client", entity_type="request", entity_id=request.id, app=_app)
+                event_type="report_ready_client", entity_type="request", entity_id=request.id, app=_app, dedupe=True)
     if admin_msg:
         _notify_admins_and_extras(admin_msg, "report_ready_admin", request.id, _app)
 
@@ -254,6 +269,21 @@ def notify_request_closed(request, app=None):
         request_number=request.request_number,
         rating_link=rating_link, company_name=company_name,
     )
+
+    # Append visit cost + bank details for payment (if a cost was set)
+    if client_msg and getattr(request, "visit_cost", None):
+        currency = get_setting("currency", "ج.م")
+        bank_name = get_setting("bank_name", "")
+        bank_account = get_setting("bank_account", "")
+        cost_block = f"\n\n💰 تكلفة الزيارة: {request.visit_cost:g} {currency}"
+        if bank_name or bank_account:
+            cost_block += "\nبيانات التحويل:"
+            if bank_name:
+                cost_block += f"\n🏦 البنك: {bank_name}"
+            if bank_account:
+                cost_block += f"\n💳 رقم الحساب: {bank_account}"
+        client_msg += cost_block
+
     admin_msg = render_template_msg(
         "request_closed_admin",
         request_number=request.request_number,
@@ -262,7 +292,7 @@ def notify_request_closed(request, app=None):
 
     if client_msg and request.client.notify_number:
         send_wa(request.client.notify_number, client_msg,
-                event_type="request_closed_client", entity_type="request", entity_id=request.id, app=_app)
+                event_type="request_closed_client", entity_type="request", entity_id=request.id, app=_app, dedupe=True)
     if admin_msg:
         for admin in User.query.filter_by(role="admin", active=True).all():
             if admin.phone:

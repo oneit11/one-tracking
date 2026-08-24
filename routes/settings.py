@@ -53,7 +53,8 @@ def branding():
 def company():
     if request.method == "POST":
         for key in ["company_name", "company_phone", "company_phone_alt",
-                    "company_email", "company_address", "company_website"]:
+                    "company_email", "company_address", "company_website",
+                    "bank_name", "bank_account", "currency"]:
             val = request.form.get(key, "").strip()
             Setting.set(key, val, "company")
         # Extra WhatsApp recipients for request/report alerts (like admin)

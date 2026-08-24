@@ -164,4 +164,6 @@ def request_view(rid):
         {"key": "report_ready", "label": "التقرير جاهز", "at": req.reported_at, "done": bool(req.reported_at)},
         {"key": "closed", "label": "تم الإغلاق", "at": req.closed_at, "done": bool(req.closed_at)},
     ]
-    return render_template("portal/request_view.html", client=client, req=req, steps=steps)
+    from services.settings_service import get_setting
+    return render_template("portal/request_view.html", client=client, req=req, steps=steps,
+                           currency=get_setting("currency", "ج.م"))

@@ -355,10 +355,12 @@ def request_view(rid):
     technicians = User.query.filter_by(role="technician", active=True).all()
     comments = Comment.query.filter_by(request_id=req.id).order_by(Comment.created_at).all()
     followups = Followup.query.filter_by(request_id=req.id).order_by(Followup.scheduled_at.desc()).all()
+    from services.settings_service import get_setting
     return render_template("admin/request_view.html", req=req, technicians=technicians,
                            comments=comments, followups=followups,
                            today=datetime.utcnow().strftime("%Y-%m-%d"),
                            now_time=datetime.utcnow().strftime("%H:%M"),
+                           currency=get_setting("currency", "ج.م"),
                            sla_status=sla_status(req), sla_time=format_time_remaining(req.sla_due_at))
 
 
@@ -436,6 +438,13 @@ def request_close(rid):
     if req.status == "closed":
         flash("الطلب مغلق بالفعل", "info")
         return redirect(url_for("admin.request_view", rid=rid))
+    # Optional visit cost (admin only)
+    cost_raw = request.form.get("visit_cost", "").strip()
+    if cost_raw:
+        try:
+            req.visit_cost = float(cost_raw)
+        except ValueError:
+            req.visit_cost = None
     req.status = "closed"
     req.closed_at = datetime.utcnow()
     db.session.commit()

@@ -20,6 +20,10 @@ DEFAULT_SETTINGS = {
     "company_email": ("info@one4in.com", "company"),
     "company_address": ("حدائق الأهرام - الجيزة", "company"),
     "company_website": ("https://one4in.com", "company"),
+    # Bank details for visit-cost payment (shown to client on close)
+    "bank_name": ("", "company"),
+    "bank_account": ("", "company"),
+    "currency": ("ج.م", "company"),
 
     # WhatsApp
     "wa_enabled": ("false", "whatsapp"),

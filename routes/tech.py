@@ -162,6 +162,8 @@ def submit_report(rid):
         return redirect(url_for("tech.dashboard"))
 
     if request.method == "POST":
+        # Was this request already reported before? (used to notify only once)
+        is_first_report = not req.visit_report
         # If report exists, update it. Otherwise create new.
         report = req.visit_report or VisitReport(request_id=req.id, technician_id=current_user.id)
         report.diagnosis = request.form.get("diagnosis", "").strip()
@@ -171,6 +173,7 @@ def submit_report(rid):
         report.resolved = bool(request.form.get("resolved"))
         report.visit_date = datetime.utcnow()
 
+        # Legacy single photo (kept for compatibility)
         if "photo" in request.files and request.files["photo"].filename:
             p = save_upload(request.files["photo"], subfolder="reports", prefix="rep_")
             if p:
@@ -178,6 +181,22 @@ def submit_report(rid):
 
         if not req.visit_report:
             db.session.add(report)
+            db.session.flush()  # get report.id for attachments
+
+        # Multiple photos / videos attached to the visit report
+        files = request.files.getlist("photos")
+        video_exts = current_app.config.get("VIDEO_EXTENSIONS", set())
+        for f in files:
+            if f and f.filename:
+                url = save_upload(f, subfolder="reports", prefix="rep_")
+                if url:
+                    ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else ""
+                    ftype = "video" if ext in video_exts else "image"
+                    db.session.add(Attachment(
+                        entity_type="visit_report", entity_id=report.id,
+                        file_url=url, file_name=f.filename[:200], file_type=ftype,
+                        uploaded_by=current_user.id,
+                    ))
 
         req.status = "report_ready"
         req.reported_at = datetime.utcnow()
@@ -209,7 +228,9 @@ def submit_report(rid):
 
         db.session.commit()
 
-        wa.notify_report_ready(req)
+        # Notify the client ONLY on the first report (not on every edit) — fixes duplicate messages
+        if is_first_report:
+            wa.notify_report_ready(req)
         from services.notifications import notify_admins
         notify_admins(
             f"تقرير فني جاهز {req.request_number}",

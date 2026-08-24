@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from io import BytesIO
-from flask import Blueprint, render_template, request, send_file
+from flask import Blueprint, render_template, request, send_file, current_app
 from flask_login import login_required
 from sqlalchemy import func, desc, and_
 from models import db
@@ -294,8 +294,8 @@ def request_pdf(rid):
     pdf = PDFReport(title=f"طلب صيانة رقم {req.request_number}",
                     subtitle=req.title, **_company_kwargs())
 
-    pdf.add_heading("تفاصيل الطلب")
-    pdf.add_key_value_table([
+    currency = get_setting("currency", "ج.م")
+    details = [
         ("رقم الطلب", req.request_number),
         ("العميل", req.client.company_name),
         ("الجهاز", req.device.name if req.device else "-"),
@@ -304,7 +304,11 @@ def request_pdf(rid):
         ("الفني", req.technician.name if req.technician else "-"),
         ("تاريخ الإنشاء", req.created_at.strftime("%Y-%m-%d %H:%M")),
         ("تاريخ الإغلاق", req.closed_at.strftime("%Y-%m-%d %H:%M") if req.closed_at else "-"),
-    ])
+    ]
+    if req.visit_cost:
+        details.append(("تكلفة الزيارة", f"{req.visit_cost:g} {currency}"))
+    pdf.add_heading("تفاصيل الطلب")
+    pdf.add_key_value_table(details)
 
     if req.description:
         pdf.add_heading("وصف المشكلة")
@@ -326,6 +330,22 @@ def request_pdf(rid):
             pdf.add_heading("قطع الغيار"); pdf.add_paragraph(r.spare_parts)
         if r.recommendations:
             pdf.add_heading("التوصيات"); pdf.add_paragraph(r.recommendations)
+        # Report photos (single legacy + multiple attachments) — images only in PDF
+        from services.pdf_service import _resolve_upload_path
+        upload_folder = current_app.config["UPLOAD_FOLDER"]
+        paths = []
+        if r.photo_url:
+            p = _resolve_upload_path(r.photo_url, upload_folder)
+            if p:
+                paths.append(p)
+        for a in r.attachments:
+            if a.file_type != "video":
+                p = _resolve_upload_path(a.file_url, upload_folder)
+                if p:
+                    paths.append(p)
+        if paths:
+            pdf.add_heading(f"الصور ({len(paths)})")
+            pdf.add_image_grid(paths, cols=2, cell_w_cm=8, cell_h_cm=6)
 
     data = pdf.build()
     return send_file(BytesIO(data), mimetype="application/pdf",

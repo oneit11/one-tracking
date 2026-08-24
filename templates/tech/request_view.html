@@ -59,8 +59,18 @@
     {% if req.visit_report.diagnosis %}<div class="mt-4"><p class="form-label">التشخيص:</p><p style="white-space:pre-wrap">{{ req.visit_report.diagnosis }}</p></div>{% endif %}
     {% if req.visit_report.actions_taken %}<div class="mt-4"><p class="form-label">الإجراءات:</p><p style="white-space:pre-wrap">{{ req.visit_report.actions_taken }}</p></div>{% endif %}
     {% if req.visit_report.spare_parts %}<div class="mt-4"><p class="form-label">قطع الغيار:</p><p style="white-space:pre-wrap">{{ req.visit_report.spare_parts }}</p></div>{% endif %}
-    {% if req.visit_report.photo_url %}
-    <div class="mt-4"><img src="{{ req.visit_report.photo_url }}" class="image-thumb clickable-image" style="max-height:200px" alt="صورة التقرير"></div>
+    {% set atts = req.visit_report.attachments %}
+    {% if req.visit_report.photo_url or atts %}
+    <div class="mt-4" style="display:flex;flex-wrap:wrap;gap:8px;">
+        {% if req.visit_report.photo_url %}<img src="{{ req.visit_report.photo_url }}" class="clickable-image" style="height:120px;border-radius:8px;border:1px solid var(--border);object-fit:cover;">{% endif %}
+        {% for a in atts %}
+            {% if a.file_type == 'video' %}
+            <video src="{{ a.file_url }}" style="height:120px;border-radius:8px;" controls preload="metadata"></video>
+            {% else %}
+            <img src="{{ a.file_url }}" class="clickable-image" style="height:120px;border-radius:8px;border:1px solid var(--border);object-fit:cover;">
+            {% endif %}
+        {% endfor %}
+    </div>
     {% endif %}
 </div>
 {% endif %}
