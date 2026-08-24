@@ -431,6 +431,49 @@ def request_assign(rid):
     return redirect(url_for("admin.request_view", rid=rid))
 
 
+@admin_bp.route("/requests/<int:rid>/report/edit", methods=["GET", "POST"])
+@admin_required
+def report_edit(rid):
+    """Admin can review/edit the technician's visit report before exporting the PDF."""
+    req = MaintenanceRequest.query.get_or_404(rid)
+    r = req.visit_report
+    if not r:
+        flash("لا يوجد تقرير زيارة لهذا الطلب بعد", "warning")
+        return redirect(url_for("admin.request_view", rid=rid))
+
+    if request.method == "POST":
+        r.diagnosis = request.form.get("diagnosis", "").strip()
+        r.actions_taken = request.form.get("actions_taken", "").strip()
+        r.spare_parts = request.form.get("spare_parts", "").strip()
+        r.recommendations = request.form.get("recommendations", "").strip()
+        r.admin_notes = request.form.get("admin_notes", "").strip()
+        r.resolved = bool(request.form.get("resolved"))
+        r.edited_by_admin = True
+
+        # Optional: admin adds more photos/videos to the report
+        from models.attachment import Attachment
+        files = request.files.getlist("photos")
+        added = 0
+        for f in files:
+            if not f or not f.filename:
+                continue
+            p = save_upload(f, subfolder="reports", prefix="admin_")
+            if not p:
+                continue
+            ext = (f.filename.rsplit(".", 1)[-1] or "").lower()
+            ftype = "video" if ext in current_app.config.get("VIDEO_EXTENSIONS", set()) else "image"
+            db.session.add(Attachment(entity_type="visit_report", entity_id=r.id,
+                                      file_url=p, file_type=ftype))
+            added += 1
+        db.session.commit()
+        log_action("report.edited_by_admin", entity_type="request", entity_id=req.id,
+                   details=req.request_number)
+        flash("تم حفظ تعديلات التقرير" + (f" وإضافة {added} ملف" if added else ""), "success")
+        return redirect(url_for("admin.request_view", rid=rid))
+
+    return render_template("admin/report_edit.html", req=req, r=r)
+
+
 @admin_bp.route("/requests/<int:rid>/close", methods=["POST"])
 @admin_required
 def request_close(rid):

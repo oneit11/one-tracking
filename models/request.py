@@ -81,6 +81,8 @@ class VisitReport(db.Model):
     recommendations = db.Column(db.Text, default="")
     resolved = db.Column(db.Boolean, default=True)
     photo_url = db.Column(db.String(255), default="")
+    admin_notes = db.Column(db.Text, default="")   # إضافات/مراجعة الإدارة قبل التصدير
+    edited_by_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     request = db.relationship("MaintenanceRequest", back_populates="visit_report")

@@ -330,6 +330,8 @@ def request_pdf(rid):
             pdf.add_heading("قطع الغيار"); pdf.add_paragraph(r.spare_parts)
         if r.recommendations:
             pdf.add_heading("التوصيات"); pdf.add_paragraph(r.recommendations)
+        if getattr(r, "admin_notes", ""):
+            pdf.add_heading("إضافات الإدارة"); pdf.add_paragraph(r.admin_notes)
         # Report photos (single legacy + multiple attachments) — images only in PDF
         from services.pdf_service import _resolve_upload_path
         upload_folder = current_app.config["UPLOAD_FOLDER"]

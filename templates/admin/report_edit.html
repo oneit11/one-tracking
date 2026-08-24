@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}مراجعة تقرير الزيارة - {{ req.request_number }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">✏️ مراجعة وتعديل تقرير الفني</h1>
+    <a href="{{ url_for('admin.request_view', rid=req.id) }}" class="btn btn-secondary">← رجوع</a>
+</div>
+
+<div class="card">
+    <p class="text-muted">طلب: <strong>{{ req.request_number }}</strong> — {{ req.client.company_name }}</p>
+    <p class="text-muted">الفني: <strong>{{ r.technician.name }}</strong> · تاريخ الزيارة: {{ r.visit_date.strftime('%Y-%m-%d %H:%M') }}</p>
+    <p class="text-muted" style="font-size:13px;">تقدر تعدّل أي بند كتبه الفني، أو تضيف ملاحظات من الإدارة، أو ترفع صور إضافية — قبل تصدير الـ PDF أو إرساله للعميل.</p>
+</div>
+
+<div class="card mt-4">
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-grid">
+            <div class="form-group full">
+                <label class="form-label">التشخيص</label>
+                <textarea class="form-textarea" name="diagnosis" rows="3">{{ r.diagnosis }}</textarea>
+            </div>
+            <div class="form-group full">
+                <label class="form-label">الإجراءات المتخذة</label>
+                <textarea class="form-textarea" name="actions_taken" rows="4">{{ r.actions_taken }}</textarea>
+            </div>
+            <div class="form-group full">
+                <label class="form-label">قطع الغيار المستخدمة</label>
+                <textarea class="form-textarea" name="spare_parts" rows="2">{{ r.spare_parts }}</textarea>
+            </div>
+            <div class="form-group full">
+                <label class="form-label">التوصيات للعميل</label>
+                <textarea class="form-textarea" name="recommendations" rows="2">{{ r.recommendations }}</textarea>
+            </div>
+            <div class="form-group full" style="border-top:1px dashed var(--border);padding-top:14px;">
+                <label class="form-label">📝 إضافات / ملاحظات الإدارة</label>
+                <p class="text-muted" style="font-size:12px;margin:0 0 6px">أي كلام إضافي من الإدارة يظهر في التقرير (اختياري)</p>
+                <textarea class="form-textarea" name="admin_notes" rows="3" placeholder="مثال: تمت المراجعة، أو ملاحظة إضافية للعميل...">{{ r.admin_notes }}</textarea>
+            </div>
+            <div class="form-group">
+                <label style="display:flex;gap:8px;align-items:center;">
+                    <input type="checkbox" name="resolved" {% if r.resolved %}checked{% endif %}>
+                    <strong>تم حل المشكلة</strong>
+                </label>
+            </div>
+            <div class="form-group full">
+                <label class="form-label">📷 إضافة صور / فيديوهات (اختياري)</label>
+                <input class="form-input" type="file" name="photos" accept="image/*,video/*" multiple>
+                {% set atts = r.attachments %}
+                {% if r.photo_url or atts %}
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+                    {% if r.photo_url %}<img src="{{ r.photo_url }}" class="clickable-image" style="height:70px;border-radius:6px;border:1px solid var(--border);object-fit:cover;">{% endif %}
+                    {% for a in atts %}
+                        {% if a.file_type == 'video' %}
+                        <video src="{{ a.file_url }}" style="height:70px;border-radius:6px;" controls preload="metadata"></video>
+                        {% else %}
+                        <img src="{{ a.file_url }}" class="clickable-image" style="height:70px;border-radius:6px;border:1px solid var(--border);object-fit:cover;">
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">💾 حفظ التعديلات</button>
+            <a href="{{ url_for('reports.request_pdf', rid=req.id) }}" class="btn btn-primary">📄 معاينة PDF</a>
+            <a href="{{ url_for('admin.request_view', rid=req.id) }}" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

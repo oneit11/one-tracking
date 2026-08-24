@@ -102,7 +102,11 @@
 
 {% if req.visit_report %}
 <div class="card mt-4">
-    <div class="card-header"><h3 class="card-title">📋 تقرير الزيارة</h3></div>
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+        <h3 class="card-title">📋 تقرير الزيارة</h3>
+        <a href="{{ url_for('admin.report_edit', rid=req.id) }}" class="btn btn-sm btn-secondary">✏️ مراجعة / تعديل</a>
+    </div>
+    {% if req.visit_report.edited_by_admin %}<div class="detail-row"><span class="detail-label"></span><span class="detail-value" style="color:var(--success);font-size:12px;">✓ تمت مراجعته من الإدارة</span></div>{% endif %}
     <div class="detail-row"><span class="detail-label">الفني</span><span class="detail-value">{{ req.visit_report.technician.name }}</span></div>
     <div class="detail-row"><span class="detail-label">تاريخ الزيارة</span><span class="detail-value">{{ req.visit_report.visit_date.strftime('%Y-%m-%d %H:%M') }}</span></div>
     <div class="detail-row"><span class="detail-label">تم الحل</span><span class="detail-value">{{ '✓ نعم' if req.visit_report.resolved else 'يحتاج متابعة' }}</span></div>
@@ -110,6 +114,7 @@
     {% if req.visit_report.actions_taken %}<div class="mt-4"><p class="form-label">الإجراءات:</p><p style="white-space:pre-wrap">{{ req.visit_report.actions_taken }}</p></div>{% endif %}
     {% if req.visit_report.spare_parts %}<div class="mt-4"><p class="form-label">قطع الغيار:</p><p style="white-space:pre-wrap">{{ req.visit_report.spare_parts }}</p></div>{% endif %}
     {% if req.visit_report.recommendations %}<div class="mt-4"><p class="form-label">التوصيات:</p><p style="white-space:pre-wrap">{{ req.visit_report.recommendations }}</p></div>{% endif %}
+    {% if req.visit_report.admin_notes %}<div class="mt-4" style="border-right:3px solid var(--primary);padding-right:10px;"><p class="form-label">📝 إضافات الإدارة:</p><p style="white-space:pre-wrap">{{ req.visit_report.admin_notes }}</p></div>{% endif %}
     {% set atts = req.visit_report.attachments %}
     {% if req.visit_report.photo_url or atts %}
     <div class="mt-4">
