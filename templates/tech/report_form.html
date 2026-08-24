@@ -66,9 +66,59 @@
             </div>
         </div>
         <div class="form-actions">
-            <button class="btn btn-success">📤 رفع التقرير</button>
+            <button type="submit" class="btn btn-success" id="submitReportBtn">📤 رفع التقرير</button>
             <a href="{{ url_for('tech.request_view', rid=req.id) }}" class="btn btn-secondary">إلغاء</a>
+        </div>
+        <div id="uploadNote" class="text-muted" style="display:none;margin-top:10px;font-size:14px;">
+            ⏳ جاري رفع التقرير... لو فيه فيديو أو صور كبيرة قد ياخد شوية وقت، استنى من فضلك ومتقفلش الصفحة.
         </div>
     </form>
 </div>
+
+<script>
+(function () {
+    var form = document.querySelector('form[enctype="multipart/form-data"]');
+    var btn = document.getElementById('submitReportBtn');
+    var note = document.getElementById('uploadNote');
+    var fileInput = document.querySelector('input[name="photos"]');
+    var MAX_MB = 120;
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function () {
+            for (var i = 0; i < fileInput.files.length; i++) {
+                var mb = fileInput.files[i].size / (1024 * 1024);
+                if (mb > MAX_MB) {
+                    alert('الملف "' + fileInput.files[i].name + '" حجمه كبير جداً (' + Math.round(mb) + ' ميجا). أقصى حجم ' + MAX_MB + ' ميجا. اختار ملف أصغر أو صوّر فيديو أقصر.');
+                    fileInput.value = '';
+                    return;
+                }
+            }
+        });
+    }
+
+    var actions = document.querySelector('textarea[name="actions_taken"]');
+
+    if (btn) {
+        btn.addEventListener('click', function (e) {
+            // Clear guidance if the required field is empty (instead of a silent block)
+            if (actions && !actions.value.trim()) {
+                e.preventDefault();
+                actions.focus();
+                actions.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                actions.style.borderColor = 'var(--danger)';
+                alert('لازم تكتب "الإجراءات المتخذة" قبل رفع التقرير.');
+            }
+        });
+    }
+
+    if (form && btn) {
+        form.addEventListener('submit', function () {
+            // Only fires when the form actually submits (passes validation)
+            btn.disabled = true;
+            btn.textContent = '⏳ جاري الرفع...';
+            if (note) note.style.display = 'block';
+        });
+    }
+})();
+</script>
 {% endblock %}
