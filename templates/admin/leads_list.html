@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}الطلبات الواردة (تسويق){% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">📣 الطلبات الواردة</h1>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ service_url }}" target="_blank" class="btn btn-secondary">🌐 فتح صفحة الطلب</a>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('qrModal').style.display='flex'">📱 كود QR للصفحة</button>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom:14px;">
+    <p class="text-muted" style="margin:0 0 8px;">
+        شارك هذا الرابط في إعلانات فيسبوك أو على صفحتك عشان العملاء يبعتوا طلباتهم بسهولة:
+    </p>
+    <div class="d-flex gap-2 flex-wrap" style="align-items:center;">
+        <input class="form-input" id="serviceUrl" value="{{ service_url }}" readonly dir="ltr" style="flex:1;min-width:220px;">
+        <button class="btn btn-secondary" type="button" onclick="copyUrl()">📋 نسخ الرابط</button>
+    </div>
+</div>
+
+<div class="tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+    {% set tabs = [('', 'الكل', counts.all), ('new', 'جديد', counts.new), ('contacted', 'تم التواصل', counts.contacted), ('converted', 'تحوّل لطلب', counts.converted), ('closed', 'مغلق', counts.closed)] %}
+    {% for val, label, c in tabs %}
+    <a href="{{ url_for('admin.leads_list', status=val) }}"
+       class="btn btn-sm {{ 'btn-primary' if status == val else 'btn-secondary' }}">
+        {{ label }} <span class="badge">{{ c }}</span>
+    </a>
+    {% endfor %}
+</div>
+
+<div class="card">
+    {% if leads %}
+    <div style="overflow-x:auto;">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>الاسم</th>
+                <th>التليفون</th>
+                <th>النوع</th>
+                <th>الخدمة</th>
+                <th>الموقع</th>
+                <th>التاريخ</th>
+                <th>الحالة</th>
+                <th>إجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for l in leads %}
+            <tr>
+                <td>
+                    <strong>{{ l.name }}</strong>
+                    {% if l.description %}<div class="text-muted" style="font-size:12px;max-width:220px;">{{ l.description }}</div>{% endif %}
+                    {% if l.photo_url %}<a href="{{ l.photo_url }}" target="_blank" style="font-size:12px;">📷 صورة</a>{% endif %}
+                </td>
+                <td dir="ltr">
+                    <a href="tel:{{ l.phone }}">{{ l.phone }}</a><br>
+                    <a href="https://wa.me/{{ l.phone|replace('0','20',1) if l.phone.startswith('0') else l.phone }}" target="_blank" style="font-size:12px;">💬 واتساب</a>
+                </td>
+                <td>{{ l.customer_type or '-' }}</td>
+                <td>{{ l.service_type or '-' }}</td>
+                <td>{{ l.location or '-' }}</td>
+                <td style="white-space:nowrap;font-size:12px;">{{ l.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    {% set cls = {'new':'badge-info','contacted':'badge-warning','converted':'badge-success','closed':'badge-secondary'} %}
+                    <span class="badge {{ cls.get(l.status,'') }}">{{ l.status_label }}</span>
+                </td>
+                <td>
+                    <div class="d-flex gap-1 flex-wrap">
+                        {% if l.status == 'converted' and l.converted_request_id %}
+                        <a href="{{ url_for('admin.request_view', rid=l.converted_request_id) }}" class="btn btn-sm btn-secondary">عرض الطلب</a>
+                        {% else %}
+                        <form method="post" action="{{ url_for('admin.lead_convert', lid=l.id) }}" style="display:inline;">
+                            <button class="btn btn-sm btn-success" type="submit">➡️ تحويل لطلب</button>
+                        </form>
+                        {% if l.status == 'new' %}
+                        <form method="post" action="{{ url_for('admin.lead_status', lid=l.id) }}" style="display:inline;">
+                            <input type="hidden" name="status" value="contacted">
+                            <button class="btn btn-sm btn-secondary" type="submit">تم التواصل</button>
+                        </form>
+                        {% endif %}
+                        {% endif %}
+                        <form method="post" action="{{ url_for('admin.lead_delete', lid=l.id) }}" style="display:inline;"
+                              onsubmit="return confirm('حذف هذا الطلب نهائياً؟');">
+                            <button class="btn btn-sm btn-danger" type="submit">🗑️</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="text-align:center;padding:40px 20px;color:var(--text-muted);">
+        <div style="font-size:40px;">📭</div>
+        <p>لا توجد طلبات واردة بعد.</p>
+        <p style="font-size:13px;">شارك رابط الصفحة على فيسبوك عشان تبدأ تستقبل طلبات العملاء.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- QR modal -->
+<div id="qrModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center;padding:20px;"
+     onclick="if(event.target===this)this.style.display='none'">
+    <div class="card" style="max-width:340px;text-align:center;">
+        <div class="card-header"><h3 class="card-title">📱 كود QR للصفحة</h3></div>
+        <p class="text-muted" style="font-size:13px;">اطبعه أو حطه في إعلاناتك — أي حد يصوّره يفتح صفحة الطلب.</p>
+        <img src="{{ url_for('admin.leads_qr_png') }}" alt="QR" style="width:100%;max-width:260px;border:1px solid var(--border);border-radius:10px;">
+        <div class="d-flex gap-2 mt-4" style="justify-content:center;">
+            <a href="{{ url_for('admin.leads_qr_png') }}" download class="btn btn-primary btn-sm">⬇️ تحميل</a>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('qrModal').style.display='none'">إغلاق</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyUrl(){
+    var el = document.getElementById('serviceUrl');
+    el.select(); el.setSelectionRange(0, 99999);
+    try { document.execCommand('copy'); alert('تم نسخ الرابط'); } catch(e){}
+}
+</script>
+{% endblock %}

@@ -91,6 +91,34 @@ class StockMovement(db.Model):
     part = db.relationship("SparePart", backref="movements")
 
 
+class Lead(db.Model):
+    """A public service request from the marketing landing page (Facebook, etc.)."""
+    __tablename__ = "leads"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    phone = db.Column(db.String(30), nullable=False, index=True)
+    customer_type = db.Column(db.String(40), default="")   # فرد/شركة/فندق/مستشفى...
+    service_type = db.Column(db.String(60), default="")    # أمن/حريق/شبكات...
+    description = db.Column(db.Text, default="")
+    location = db.Column(db.String(200), default="")
+    photo_url = db.Column(db.String(255), default="")
+    source = db.Column(db.String(30), default="facebook")  # facebook, public, qr
+    status = db.Column(db.String(20), default="new")       # new, contacted, converted, closed
+    converted_request_id = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    STATUS_LABELS = {
+        "new": "جديد",
+        "contacted": "تم التواصل",
+        "converted": "تحوّل لطلب",
+        "closed": "مغلق",
+    }
+
+    @property
+    def status_label(self):
+        return self.STATUS_LABELS.get(self.status, self.status)
+
+
 class Followup(db.Model):
     """Follow-up appointment scheduled by admin/tech on a maintenance request that had a visit."""
     __tablename__ = "followups"

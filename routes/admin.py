@@ -989,3 +989,135 @@ def device_delete(did):
     log_action("device.deleted", entity_type="device", entity_id=did, details=name)
     flash(f"تم حذف الجهاز: {name}", "success")
     return redirect(url_for("admin.devices_list"))
+
+
+# ================= Leads (Marketing / Facebook) =================
+@admin_bp.route("/leads")
+@admin_required
+def leads_list():
+    from models.extras import Lead
+    status = request.args.get("status", "")
+    query = Lead.query
+    if status:
+        query = query.filter_by(status=status)
+    leads = query.order_by(Lead.created_at.desc()).all()
+    counts = {
+        "all": Lead.query.count(),
+        "new": Lead.query.filter_by(status="new").count(),
+        "contacted": Lead.query.filter_by(status="contacted").count(),
+        "converted": Lead.query.filter_by(status="converted").count(),
+        "closed": Lead.query.filter_by(status="closed").count(),
+    }
+    service_url = url_for("public.service_landing", _external=True)
+    return render_template("admin/leads_list.html", leads=leads, counts=counts,
+                           status=status, service_url=service_url)
+
+
+@admin_bp.route("/leads/<int:lid>/status", methods=["POST"])
+@admin_required
+def lead_status(lid):
+    from models.extras import Lead
+    lead = Lead.query.get_or_404(lid)
+    new_status = request.form.get("status", "").strip()
+    if new_status in Lead.STATUS_LABELS:
+        lead.status = new_status
+        db.session.commit()
+        flash("تم تحديث حالة الطلب", "success")
+    return redirect(url_for("admin.leads_list"))
+
+
+@admin_bp.route("/leads/<int:lid>/convert", methods=["POST"])
+@admin_required
+def lead_convert(lid):
+    from models.extras import Lead
+    lead = Lead.query.get_or_404(lid)
+    if lead.converted_request_id:
+        flash("تم تحويل هذا الطلب من قبل", "info")
+        return redirect(url_for("admin.request_view", rid=lead.converted_request_id))
+
+    # Find or create a client from the lead's phone
+    client = Client.query.filter(
+        (Client.phone == lead.phone) | (Client.whatsapp == lead.phone)
+    ).first()
+    if not client:
+        cname = lead.name
+        if lead.customer_type and lead.customer_type not in ("فرد", "أخرى"):
+            cname = f"{lead.name} - {lead.customer_type}"
+        client = Client(
+            code=next_client_code(),
+            company_name=cname,
+            contact_person=lead.name,
+            phone=lead.phone,
+            whatsapp=lead.phone,
+            city=lead.location or "",
+            address=lead.location or "",
+            notes=f"عميل من التسويق ({lead.source}) — {lead.service_type}",
+        )
+        db.session.add(client)
+        db.session.flush()
+
+    priority = "normal"
+    title = lead.service_type or "طلب صيانة"
+    desc = lead.description or ""
+    if lead.location:
+        desc = (desc + f"\nالموقع: {lead.location}").strip()
+    req = MaintenanceRequest(
+        request_number=next_sequence(MaintenanceRequest, "request_number", "MR"),
+        client_id=client.id,
+        title=title,
+        description=desc,
+        priority=priority,
+        source=lead.source or "marketing",
+        contact_name=lead.name,
+        contact_phone=lead.phone,
+        submitted_photo_url=lead.photo_url or "",
+        created_by=current_user.id,
+    )
+    try:
+        req.sla_due_at = compute_sla_due(datetime.utcnow(), priority)
+    except Exception:
+        pass
+    db.session.add(req)
+    db.session.flush()
+
+    lead.status = "converted"
+    lead.converted_request_id = req.id
+    db.session.commit()
+
+    try:
+        wa.notify_request_received(req)
+    except Exception:
+        pass
+    notify_admins(f"تحوّل طلب تسويق لطلب صيانة {req.request_number}",
+                  f"{client.company_name} — {title}",
+                  "📥", url_for("admin.request_view", rid=req.id))
+    log_action("lead.converted", entity_type="lead", entity_id=lead.id,
+               details=req.request_number)
+    flash(f"تم تحويل الطلب إلى طلب صيانة {req.request_number}", "success")
+    return redirect(url_for("admin.request_view", rid=req.id))
+
+
+@admin_bp.route("/leads/<int:lid>/delete", methods=["POST"])
+@admin_required
+def lead_delete(lid):
+    from models.extras import Lead
+    lead = Lead.query.get_or_404(lid)
+    db.session.delete(lead)
+    db.session.commit()
+    log_action("lead.deleted", entity_type="lead", entity_id=lid, details=lead.name)
+    flash("تم حذف الطلب", "success")
+    return redirect(url_for("admin.leads_list"))
+
+
+@admin_bp.route("/leads/qr.png")
+@admin_required
+def leads_qr_png():
+    """QR code image that points to the public marketing landing page."""
+    from services.qr_service import build_qr_image
+    service_url = url_for("public.service_landing", _external=True)
+    img = build_qr_image(service_url, box_size=10)
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return send_file(buf, mimetype="image/png",
+                     download_name="one-service-qr.png")

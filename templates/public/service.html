@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}اطلب صيانة — {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<div class="landing">
+    <!-- Hero banner -->
+    <div class="landing-hero">
+        <img src="{{ url_for('static', filename='img/report/banner.jpg') }}" alt="{{ COMPANY_NAME }}" class="landing-banner">
+    </div>
+
+    <div class="landing-intro">
+        <h1>محتاج صيانة أو خدمة فنية؟</h1>
+        <p>اطلب دلوقتي وفريق {{ COMPANY_NAME }} هيتواصل معك في أسرع وقت. خدمة لكل العملاء — أفراد، شركات، فنادق، مستشفيات وأكثر.</p>
+        <div class="landing-contact">
+            {% if COMPANY_PHONE %}
+            <a href="https://wa.me/{{ COMPANY_PHONE|replace('0','20',1) if COMPANY_PHONE.startswith('0') else COMPANY_PHONE }}" class="btn btn-success">💬 واتساب</a>
+            <a href="tel:{{ COMPANY_PHONE }}" class="btn btn-primary">📞 اتصل بنا</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Services -->
+    <div class="landing-services">
+        <div class="svc">🎥<span>أنظمة أمنية وكاميرات</span></div>
+        <div class="svc">🚪<span>التحكم في الدخول</span></div>
+        <div class="svc">🔥<span>إنذار ومكافحة حريق</span></div>
+        <div class="svc">🌐<span>شبكات وبنية تحتية</span></div>
+        <div class="svc">🏢<span>أنظمة ذكية</span></div>
+        <div class="svc">☀️<span>طاقة شمسية</span></div>
+    </div>
+
+    <!-- Request form -->
+    <div class="card landing-form">
+        <div class="card-header"><h3 class="card-title">📝 اطلب صيانة الآن</h3></div>
+        <form method="post" enctype="multipart/form-data">
+            <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off">
+            <input type="hidden" name="source" value="facebook">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">الاسم <span class="req">*</span></label>
+                    <input class="form-input" name="name" required placeholder="اسمك">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">رقم التليفون <span class="req">*</span></label>
+                    <input class="form-input" name="phone" dir="ltr" required inputmode="tel" placeholder="01xxxxxxxxx">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">نوع العميل</label>
+                    <select class="form-select" name="customer_type">
+                        <option value="">اختر...</option>
+                        {% for t in customer_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">نوع الخدمة</label>
+                    <select class="form-select" name="service_type">
+                        <option value="">اختر...</option>
+                        {% for s in service_types %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-group full">
+                    <label class="form-label">العنوان / الموقع</label>
+                    <input class="form-input" name="location" placeholder="المدينة / المنطقة / العنوان">
+                </div>
+                <div class="form-group full">
+                    <label class="form-label">تفاصيل الطلب</label>
+                    <textarea class="form-textarea" name="description" rows="4" placeholder="اكتب المشكلة أو الخدمة المطلوبة..."></textarea>
+                </div>
+                <div class="form-group full">
+                    <label class="form-label">📷 صورة (اختياري)</label>
+                    <input class="form-input" type="file" name="photo" accept="image/*">
+                </div>
+            </div>
+            <button class="btn btn-primary btn-block mt-4" style="font-size:17px;padding:14px;">📤 إرسال الطلب</button>
+        </form>
+    </div>
+
+    <div class="landing-footer">
+        <strong>{{ COMPANY_NAME }}</strong>
+        <div dir="ltr">
+            {% if COMPANY_PHONE %}📱 {{ COMPANY_PHONE }}{% endif %}
+            {% if COMPANY_PHONE_ALT %} · 📱 {{ COMPANY_PHONE_ALT }}{% endif %}
+            {% if COMPANY_EMAIL %} · 📩 {{ COMPANY_EMAIL }}{% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.landing { max-width: 760px; margin: 0 auto; }
+.landing-banner { width: 100%; border-radius: var(--radius-lg); border:1px solid var(--border); }
+.landing-intro { text-align: center; margin: 22px 0; }
+.landing-intro h1 { margin: 0 0 10px; font-size: 26px; }
+.landing-intro p { color: var(--text-muted); line-height: 1.8; max-width: 620px; margin: 0 auto 16px; }
+.landing-contact { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.landing-services { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 22px 0; }
+.svc { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 8px;
+       background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-size: 26px; }
+.svc span { font-size: 12px; color: var(--text-muted); text-align: center; }
+.landing-form { margin-top: 10px; }
+.landing-footer { text-align: center; margin: 26px 0; color: var(--text-muted); font-size: 13px; line-height: 2; }
+@media (max-width:600px){ .landing-services { grid-template-columns: repeat(2,1fr);} }
+</style>
+{% endblock %}

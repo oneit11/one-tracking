@@ -45,6 +45,80 @@ def scan(code):
     return redirect(url_for("public.bind_qr", code=code))
 
 
+CUSTOMER_TYPES = ["فرد", "شركة", "فندق", "مستشفى", "مطعم", "مبنى إداري", "مصنع", "أخرى"]
+SERVICE_TYPES = [
+    "أنظمة أمنية وكاميرات مراقبة", "التحكم في الدخول والبوابات",
+    "إنذار ومكافحة الحريق", "شبكات وبنية تحتية", "أنظمة ذكية",
+    "طاقة شمسية", "صيانة عامة", "أخرى",
+]
+
+
+@public_bp.route("/service", methods=["GET", "POST"])
+def service_landing():
+    """Public marketing landing + service request form (no login) — for Facebook ads."""
+    from services.settings_service import get_setting
+    if request.method == "POST":
+        if request.form.get("website"):  # honeypot
+            abort(400)
+        name = request.form.get("name", "").strip()
+        phone = request.form.get("phone", "").strip()
+        if not name or not phone:
+            flash("رجاءً اكتب الاسم ورقم التليفون", "warning")
+            return redirect(url_for("public.service_landing"))
+
+        from models.extras import Lead
+        from utils.helpers import save_upload
+        lead = Lead(
+            name=name, phone=phone,
+            customer_type=request.form.get("customer_type", "").strip(),
+            service_type=request.form.get("service_type", "").strip(),
+            description=request.form.get("description", "").strip(),
+            location=request.form.get("location", "").strip(),
+            source=request.form.get("source", "facebook"),
+        )
+        if "photo" in request.files and request.files["photo"].filename:
+            p = save_upload(request.files["photo"], subfolder="reports", prefix="lead_")
+            if p:
+                lead.photo_url = p
+        db.session.add(lead)
+        db.session.commit()
+
+        # Notify admins (in-app + sound) and confirm to the lead via WhatsApp
+        try:
+            from services.notifications import notify_admins
+            notify_admins(
+                f"طلب جديد من التسويق — {lead.name}",
+                f"{lead.customer_type or 'عميل'} · {lead.service_type or ''} · {lead.phone}",
+                "📣", url_for("admin.leads_list"),
+            )
+        except Exception:
+            db.session.rollback()
+        try:
+            from services import whatsapp as wa
+            company = get_setting("company_name", "الشركة")
+            phone1 = get_setting("company_phone", "")
+            confirm = (
+                f"أهلاً {lead.name} 👋\n"
+                f"استلمنا طلبك بخصوص: {lead.service_type or 'الصيانة'}\n"
+                f"فريق {company} هيتواصل معك في أقرب وقت.\n"
+                + (f"للاستعجال: {phone1}" if phone1 else "")
+            )
+            wa.send_wa(lead.phone, confirm, event_type="lead_confirm",
+                       entity_type="lead", entity_id=lead.id)
+            # notify company numbers
+            wa._notify_admins_and_extras(
+                f"📣 طلب تسويق جديد\n{lead.name} ({lead.phone})\n"
+                f"النوع: {lead.customer_type or '-'} | الخدمة: {lead.service_type or '-'}",
+                "lead_admin", lead.id, current_app._get_current_object())
+        except Exception:
+            pass
+
+        return render_template("public/service_done.html", lead=lead)
+
+    return render_template("public/service.html",
+                           customer_types=CUSTOMER_TYPES, service_types=SERVICE_TYPES)
+
+
 @public_bp.route("/d/<code>/request", methods=["GET", "POST"])
 def qr_request(code):
     """Public quick maintenance request from a scanned QR — no login required."""

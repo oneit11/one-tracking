@@ -44,6 +44,7 @@
             {% if current_user.is_admin %}
                 <a href="{{ url_for('admin.dashboard') }}">{{ t('nav.dashboard') }}</a>
                 <a href="{{ url_for('admin.requests_list') }}">{{ t('nav.requests') }}</a>
+                <a href="{{ url_for('admin.leads_list') }}">📣 الطلبات الواردة</a>
                 <a href="{{ url_for('admin.tickets_list') }}">{{ t('nav.tickets') }}</a>
                 <a href="{{ url_for('admin.clients_list') }}">{{ t('nav.clients') }}</a>
                 <a href="{{ url_for('admin.devices_list') }}">{{ t('nav.devices') }}</a>

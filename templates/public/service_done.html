@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}تم استلام طلبك — {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<div class="landing">
+    <div class="card done-card">
+        <div class="done-check">✅</div>
+        <h1>تم استلام طلبك بنجاح</h1>
+        <p>شكراً {{ lead.name }} 🙏</p>
+        <p class="text-muted">
+            فريق {{ COMPANY_NAME }} هيتواصل معك في أقرب وقت على الرقم
+            <strong dir="ltr">{{ lead.phone }}</strong>.
+            {% if lead.service_type %}<br>الخدمة المطلوبة: <strong>{{ lead.service_type }}</strong>{% endif %}
+        </p>
+
+        <div class="landing-contact">
+            {% if COMPANY_PHONE %}
+            <a href="https://wa.me/{{ COMPANY_PHONE|replace('0','20',1) if COMPANY_PHONE.startswith('0') else COMPANY_PHONE }}" class="btn btn-success">💬 كلمنا واتساب</a>
+            <a href="tel:{{ COMPANY_PHONE }}" class="btn btn-primary">📞 اتصل بنا</a>
+            {% endif %}
+        </div>
+
+        <a href="{{ url_for('public.service_landing') }}" class="btn btn-secondary btn-block mt-4">➕ إرسال طلب جديد</a>
+    </div>
+
+    <div class="landing-footer">
+        <strong>{{ COMPANY_NAME }}</strong>
+        <div dir="ltr">
+            {% if COMPANY_PHONE %}📱 {{ COMPANY_PHONE }}{% endif %}
+            {% if COMPANY_PHONE_ALT %} · 📱 {{ COMPANY_PHONE_ALT }}{% endif %}
+            {% if COMPANY_EMAIL %} · 📩 {{ COMPANY_EMAIL }}{% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.landing { max-width: 640px; margin: 0 auto; }
+.done-card { text-align: center; padding: 34px 22px; }
+.done-check { font-size: 60px; line-height: 1; margin-bottom: 10px; }
+.done-card h1 { margin: 6px 0; font-size: 24px; }
+.done-card p { line-height: 1.9; margin: 4px 0; }
+.landing-contact { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+.landing-footer { text-align: center; margin: 26px 0; color: var(--text-muted); font-size: 13px; line-height: 2; }
+</style>
+{% endblock %}
