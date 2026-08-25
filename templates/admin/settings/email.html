@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}إعدادات البريد الإلكتروني{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">📧 البريد الإلكتروني (SMTP)</h1>
+    <a href="{{ url_for('settings.home') }}" class="btn btn-secondary">← الإعدادات</a>
+</div>
+
+<div class="card" style="margin-bottom:14px;">
+    <p class="text-muted" style="margin:0;line-height:1.9">
+        فعّل ده عشان العملاء يوصلهم <strong>إيميل</strong> بجانب رسالة الواتساب (تأكيد الطلب، عرض السعر، إغلاق الطلب...).
+        لو بتستخدم Google Workspace / Gmail، لازم تعمل <strong>App Password</strong> وتحطه في خانة كلمة المرور تحت (مش الباسورد العادي).
+    </p>
+</div>
+
+<div class="card">
+    <form method="post">
+        <div class="form-group">
+            <label style="display:flex;gap:10px;align-items:center;">
+                <input type="checkbox" name="smtp_enabled" {% if s.get('smtp_enabled')=='true' %}checked{% endif %}>
+                <strong>تفعيل إرسال البريد للعملاء</strong>
+            </label>
+        </div>
+        <div class="form-grid mt-4">
+            <div class="form-group">
+                <label class="form-label">SMTP Host</label>
+                <input class="form-input" name="smtp_host" dir="ltr" value="{{ s.get('smtp_host','smtp.gmail.com') }}" placeholder="smtp.gmail.com">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Port</label>
+                <input class="form-input" name="smtp_port" dir="ltr" value="{{ s.get('smtp_port','587') }}" placeholder="587">
+            </div>
+            <div class="form-group">
+                <label style="display:flex;gap:8px;align-items:center;margin-top:28px;">
+                    <input type="checkbox" name="smtp_use_tls" {% if s.get('smtp_use_tls','true')=='true' %}checked{% endif %}>
+                    استخدام TLS (موصى به لبورت 587)
+                </label>
+            </div>
+            <div class="form-group full">
+                <label class="form-label">اسم المستخدم (الإيميل)</label>
+                <input class="form-input" name="smtp_user" dir="ltr" value="{{ s.get('smtp_user','') }}" placeholder="info@one4in.com">
+            </div>
+            <div class="form-group full">
+                <label class="form-label">كلمة المرور / App Password</label>
+                <input class="form-input" type="password" name="smtp_password" dir="ltr" placeholder="{% if s.get('smtp_password') %}•••••••• (محفوظة — اكتب جديدة للتغيير){% else %}App Password من جوجل{% endif %}">
+                <p class="text-muted" style="font-size:12px;margin-top:4px">تُحفظ مشفّرة في قاعدة البيانات. سيبها فاضية لو مش عايز تغيّرها.</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">اسم المُرسِل</label>
+                <input class="form-input" name="smtp_from_name" value="{{ s.get('smtp_from_name','') }}" placeholder="ONE For Integrated Solutions">
+            </div>
+            <div class="form-group">
+                <label class="form-label">إيميل المُرسِل</label>
+                <input class="form-input" name="smtp_from_email" dir="ltr" value="{{ s.get('smtp_from_email','') }}" placeholder="نفس اسم المستخدم لو فاضي">
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">💾 حفظ الإعدادات</button>
+        </div>
+    </form>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">✉️ إرسال رسالة اختبار</h3></div>
+    <form method="post" action="{{ url_for('settings.email_test') }}">
+        <div class="d-flex gap-2 flex-wrap" style="align-items:flex-end">
+            <div class="form-group" style="flex:1;min-width:220px;margin:0">
+                <label class="form-label">إيميل التجربة</label>
+                <input class="form-input" type="email" name="test_email" dir="ltr" placeholder="اكتب إيميلك لاختبار الإرسال" required>
+            </div>
+            <button type="submit" class="btn btn-primary">📤 إرسال اختبار</button>
+        </div>
+        <p class="text-muted" style="font-size:12px;margin-top:8px">احفظ الإعدادات الأول، وبعدين ابعت رسالة اختبار للتأكد إنها شغّالة.</p>
+    </form>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">🔑 إزاي تعمل App Password لجوجل</h3></div>
+    <ol style="line-height:2;padding-right:18px">
+        <li>ادخل على <strong>myaccount.google.com</strong> بحساب <code>info@one4in.com</code></li>
+        <li>فعّل <strong>التحقق بخطوتين (2-Step Verification)</strong> لو مش مفعّل.</li>
+        <li>ادخل على <strong>App passwords</strong> (كلمات مرور التطبيقات) → اعمل واحدة جديدة باسم "ONE Tracking".</li>
+        <li>انسخ الـ 16 حرف اللي هيطلعوا وحطهم في خانة <strong>كلمة المرور</strong> فوق.</li>
+    </ol>
+</div>
+{% endblock %}

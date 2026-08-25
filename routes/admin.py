@@ -1396,6 +1396,29 @@ def survey_quote(sid):
                        entity_type="survey", entity_id=survey.id)
     except Exception:
         pass
+    # Send the quote by email too (if the customer has an email on file)
+    try:
+        if survey.customer_email:
+            from services.settings_service import get_setting
+            from services.email_service import notify_customer_email
+            company = get_setting("company_name", "الشركة")
+            base = (get_setting("app_url", "") or request.url_root or "").rstrip("/")
+            ebody = (f"أهلاً {survey.customer_name} 👋\n"
+                     f"ده عرض السعر الخاص بمعاينة {survey.survey_number} من {company}.")
+            if survey.quote_amount:
+                cur = get_setting("currency", "ج.م")
+                ebody += f"\nالإجمالي: {survey.quote_amount:g} {cur}"
+            if survey.quote_file_url:
+                link = survey.quote_file_url
+                if base and link.startswith("/"):
+                    link = base + link
+                ebody += f"\n📄 تحميل عرض السعر: {link}"
+            ebody += "\nفي انتظار موافقتك ✅"
+            notify_customer_email(survey.customer_email,
+                                  f"عرض سعر معاينة {survey.survey_number} — {company}",
+                                  ebody)
+    except Exception:
+        pass
     log_action("survey.quoted", entity_type="survey", entity_id=survey.id)
     flash("تم حفظ عرض السعر وإرساله للعميل", "success")
     return redirect(url_for("admin.survey_view", sid=sid))

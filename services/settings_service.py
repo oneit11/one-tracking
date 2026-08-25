@@ -45,6 +45,16 @@ DEFAULT_SETTINGS = {
     "sla_low_hours": ("72", "sla"),
 
     # Rating
+    # Email (SMTP) — send customer notifications by email alongside WhatsApp
+    "smtp_enabled": ("false", "email"),
+    "smtp_host": ("smtp.gmail.com", "email"),
+    "smtp_port": ("587", "email"),
+    "smtp_use_tls": ("true", "email"),
+    "smtp_user": ("", "email"),          # e.g. info@one4in.com
+    "smtp_password": ("", "email"),      # Google Workspace App Password
+    "smtp_from_name": ("ONE For Integrated Solutions", "email"),
+    "smtp_from_email": ("", "email"),    # defaults to smtp_user if empty
+
     "rating_enabled": ("true", "other"),
     "rating_link_message": ("قيّم الخدمة", "other"),
 }

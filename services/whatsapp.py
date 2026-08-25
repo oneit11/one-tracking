@@ -180,6 +180,12 @@ def notify_request_received(request, app=None):
         send_wa(request.client.notify_number, client_msg,
                 event_type="request_received", entity_type="request", entity_id=request.id, app=_app)
 
+    if client_msg and getattr(request.client, "email", ""):
+        from services.email_service import notify_customer_email
+        notify_customer_email(request.client.email,
+                              f"استلام طلب الصيانة {request.request_number} — {company_name}",
+                              client_msg, app=_app)
+
     if admin_msg:
         _notify_admins_and_extras(admin_msg, "request_received_admin", request.id, _app)
 
@@ -293,6 +299,13 @@ def notify_request_closed(request, app=None):
     if client_msg and request.client.notify_number:
         send_wa(request.client.notify_number, client_msg,
                 event_type="request_closed_client", entity_type="request", entity_id=request.id, app=_app, dedupe=True)
+
+    if client_msg and getattr(request.client, "email", ""):
+        from services.email_service import notify_customer_email
+        notify_customer_email(request.client.email,
+                              f"إغلاق طلب الصيانة {request.request_number} — {company_name}",
+                              client_msg, app=_app)
+
     if admin_msg:
         for admin in User.query.filter_by(role="admin", active=True).all():
             if admin.phone:

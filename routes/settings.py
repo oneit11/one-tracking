@@ -91,6 +91,40 @@ def hours():
     return render_template("admin/settings/hours.html", hours=hours, sla=sla)
 
 
+@settings_bp.route("/email", methods=["GET", "POST"])
+@admin_required
+def email():
+    if request.method == "POST":
+        Setting.set("smtp_enabled", "true" if request.form.get("smtp_enabled") else "false", "email")
+        Setting.set("smtp_use_tls", "true" if request.form.get("smtp_use_tls") else "false", "email")
+        for key in ["smtp_host", "smtp_port", "smtp_user", "smtp_from_name", "smtp_from_email"]:
+            Setting.set(key, request.form.get(key, "").strip(), "email")
+        # Only overwrite the password if a new one was typed (so it isn't wiped on edit)
+        pw = request.form.get("smtp_password", "")
+        if pw.strip():
+            Setting.set("smtp_password", pw.strip(), "email")
+        db.session.commit()
+        log_action("settings.email_updated")
+        flash("تم حفظ إعدادات البريد الإلكتروني", "success")
+        return redirect(url_for("settings.email"))
+
+    s = get_settings_by_category("email")
+    return render_template("admin/settings/email.html", s=s)
+
+
+@settings_bp.route("/email/test", methods=["POST"])
+@admin_required
+def email_test():
+    from services.email_service import send_test_email
+    to = request.form.get("test_email", "").strip()
+    if not to:
+        flash("اكتب إيميل تجربة الأول", "warning")
+        return redirect(url_for("settings.email"))
+    ok, msg = send_test_email(to)
+    flash(msg, "success" if ok else "danger")
+    return redirect(url_for("settings.email"))
+
+
 # ============ Message Templates ============
 @settings_bp.route("/templates")
 @admin_required

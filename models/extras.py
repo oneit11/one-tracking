@@ -179,6 +179,12 @@ class Survey(db.Model):
         return self.contact_phone or ""
 
     @property
+    def customer_email(self):
+        if self.client and getattr(self.client, "email", ""):
+            return self.client.email
+        return ""
+
+    @property
     def attachments(self):
         from models.attachment import Attachment
         return Attachment.query.filter_by(entity_type="survey", entity_id=self.id)\
