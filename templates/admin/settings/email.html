@@ -7,9 +7,13 @@
 </div>
 
 <div class="card" style="margin-bottom:14px;">
-    <p class="text-muted" style="margin:0;line-height:1.9">
+    <p class="text-muted" style="margin:0 0 8px;line-height:1.9">
         فعّل ده عشان العملاء يوصلهم <strong>إيميل</strong> بجانب رسالة الواتساب (تأكيد الطلب، عرض السعر، إغلاق الطلب...).
-        لو بتستخدم Google Workspace / Gmail، لازم تعمل <strong>App Password</strong> وتحطه في خانة كلمة المرور تحت (مش الباسورد العادي).
+    </p>
+    <p style="margin:0;line-height:1.9;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:10px 12px;border-radius:8px">
+        ⚠️ <strong>مهم:</strong> استضافة Railway بتمنع الإرسال عن طريق <strong>SMTP</strong> (منافذ ٥٨٧/٤٦٥ مقفولة)، فالطريقة دي بتفشل على السيرفر.
+        الطريقة اللي بتشتغل هي <strong>Brevo</strong> — بترسل الإيميل عن طريق الويب (HTTPS) وفيها باقة مجانية ٣٠٠ إيميل/يوم.
+        اختار <strong>Brevo</strong> تحت وحُط مفتاح الـ API.
     </p>
 </div>
 
@@ -21,7 +25,27 @@
                 <strong>تفعيل إرسال البريد للعملاء</strong>
             </label>
         </div>
-        <div class="form-grid mt-4">
+        <div class="form-group mt-4">
+            <label class="form-label">طريقة الإرسال (Provider)</label>
+            <select class="form-input" name="email_provider">
+                <option value="brevo" {% if s.get('email_provider','brevo')!='smtp' %}selected{% endif %}>Brevo (HTTP API — يشتغل على Railway ✅)</option>
+                <option value="smtp" {% if s.get('email_provider')=='smtp' %}selected{% endif %}>SMTP (Gmail/Workspace — مش بيشتغل على Railway)</option>
+            </select>
+        </div>
+        <div class="form-group full">
+            <label class="form-label">مفتاح Brevo API</label>
+            <input class="form-input" type="password" name="brevo_api_key" dir="ltr"
+                   placeholder="{% if s.get('brevo_api_key') %}•••••••• (محفوظ — اكتب جديد للتغيير){% else %}xkeysib-...{% endif %}">
+            <p class="text-muted" style="font-size:12px;margin-top:4px">من حساب Brevo → <strong>SMTP &amp; API</strong> → <strong>API Keys</strong>. سيبها فاضية لو مش عايز تغيّرها.</p>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0 10px">
+        <p class="text-muted" style="font-size:13px;margin:0 0 10px">
+            خانات الخادم (Host / Port / اسم المستخدم / كلمة المرور) مطلوبة <strong>بس مع SMTP</strong>.
+            أما <strong>اسم وإيميل المُرسِل</strong> فمطلوبين في الحالتين (Brevo كمان).
+        </p>
+
+        <div class="form-grid">
             <div class="form-group">
                 <label class="form-label">SMTP Host</label>
                 <input class="form-input" name="smtp_host" dir="ltr" value="{{ s.get('smtp_host','smtp.gmail.com') }}" placeholder="smtp.gmail.com">
@@ -75,7 +99,21 @@
 </div>
 
 <div class="card mt-4">
-    <div class="card-header"><h3 class="card-title">🔑 إزاي تعمل App Password لجوجل</h3></div>
+    <div class="card-header"><h3 class="card-title">✅ إعداد Brevo (الطريقة الموصى بها)</h3></div>
+    <ol style="line-height:2;padding-right:18px">
+        <li>ادخل على <strong>brevo.com</strong> واعمل حساب مجاني (الباقة المجانية ٣٠٠ إيميل/يوم).</li>
+        <li>من إعدادات الحساب: <strong>Senders, Domains &amp; Dedicated IPs</strong> → أضف <code>info@one4in.com</code> كـ Sender وفعّله (هيجيلك إيميل تأكيد).</li>
+        <li>روح على <strong>SMTP &amp; API</strong> → <strong>API Keys</strong> → <strong>Generate a new API key</strong> باسم "ONE Tracking".</li>
+        <li>انسخ المفتاح (بيبدأ بـ <code>xkeysib-</code>) وحُطه في خانة <strong>مفتاح Brevo API</strong> فوق.</li>
+        <li>حُط <strong>إيميل المُرسِل</strong> = <code>info@one4in.com</code> واسم المُرسِل باسم الشركة، فعّل الإرسال، احفظ، وابعت رسالة اختبار.</li>
+    </ol>
+    <p class="text-muted" style="font-size:12px;margin:6px 0 0">
+        ملحوظة: عشان أفضل وصول للإيميلات ومنع السبام، يُفضّل توثيق الدومين (SPF/DKIM) من Brevo لاحقًا — بس مش شرط عشان تبدأ.
+    </p>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">🔑 إزاي تعمل App Password لجوجل (لطريقة SMTP فقط)</h3></div>
     <ol style="line-height:2;padding-right:18px">
         <li>ادخل على <strong>myaccount.google.com</strong> بحساب <code>info@one4in.com</code></li>
         <li>فعّل <strong>التحقق بخطوتين (2-Step Verification)</strong> لو مش مفعّل.</li>

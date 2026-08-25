@@ -40,6 +40,8 @@ def _force_ipv4():
 def _config():
     return {
         "enabled": get_setting("smtp_enabled", "false").lower() == "true",
+        "provider": (get_setting("email_provider", "brevo") or "brevo").lower(),
+        "brevo_api_key": get_setting("brevo_api_key", ""),
         "host": get_setting("smtp_host", "smtp.gmail.com"),
         "port": int(get_setting("smtp_port", "587") or 587),
         "use_tls": get_setting("smtp_use_tls", "true").lower() == "true",
@@ -48,6 +50,60 @@ def _config():
         "from_name": get_setting("smtp_from_name", "ONE"),
         "from_email": get_setting("smtp_from_email", "") or get_setting("smtp_user", ""),
     }
+
+
+def _send_brevo(cfg, to_email, subject, body_text, body_html=None):
+    """Send via Brevo's HTTP API (works on hosts that block SMTP ports).
+
+    Uses only the standard library over HTTPS (port 443), so no SMTP ports
+    and no extra dependencies are needed. Returns (ok, error_message).
+    """
+    import json
+    import urllib.request
+    import urllib.error
+
+    if not cfg["brevo_api_key"]:
+        return False, "مفتاح Brevo API غير مضبوط"
+    if not cfg["from_email"]:
+        return False, "إيميل المُرسِل غير مضبوط"
+    if not to_email:
+        return False, "Missing recipient"
+
+    payload = {
+        "sender": {"name": str(cfg["from_name"] or "ONE"), "email": cfg["from_email"]},
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "textContent": body_text,
+    }
+    if body_html:
+        payload["htmlContent"] = body_html
+
+    req = urllib.request.Request(
+        "https://api.brevo.com/v3/smtp/email",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "api-key": cfg["brevo_api_key"],
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            if 200 <= resp.status < 300:
+                return True, ""
+            return False, f"Brevo HTTP {resp.status}"
+    except urllib.error.HTTPError as e:
+        detail = ""
+        try:
+            detail = e.read().decode("utf-8")[:200]
+        except Exception:
+            pass
+        if e.code in (401, 403):
+            return False, f"مفتاح Brevo غير صحيح أو المُرسِل غير مُفعّل ({detail})"
+        return False, f"Brevo HTTP {e.code}: {detail}"
+    except Exception as e:
+        return False, f"{type(e).__name__}: {str(e)[:200]}"
 
 
 def _send_sync(cfg, to_email, subject, body_text, body_html=None):
@@ -95,8 +151,16 @@ def _send_sync(cfg, to_email, subject, body_text, body_html=None):
     return False, last_err
 
 
+def _deliver(cfg, to_email, subject, body_text, body_html=None):
+    """Route to the configured provider. Returns (ok, error_message)."""
+    if cfg.get("provider") == "smtp":
+        return _send_sync(cfg, to_email, subject, body_text, body_html)
+    # Default: Brevo HTTP API (recommended on Railway and other cloud hosts).
+    return _send_brevo(cfg, to_email, subject, body_text, body_html)
+
+
 def send_email(to_email, subject, body_text, body_html=None, app=None, force=False):
-    """Fire-and-forget email in a background thread. Skips silently if SMTP disabled."""
+    """Fire-and-forget email in a background thread. Skips silently if disabled."""
     _app = app or current_app._get_current_object()
     cfg = _config()
     if not force and not cfg["enabled"]:
@@ -106,7 +170,7 @@ def send_email(to_email, subject, body_text, body_html=None, app=None, force=Fal
 
     def worker():
         with _app.app_context():
-            ok, err = _send_sync(cfg, to_email, subject, body_text, body_html)
+            ok, err = _deliver(cfg, to_email, subject, body_text, body_html)
             if not ok:
                 _app.logger.warning(f"email send failed to {to_email}: {err}")
 
@@ -117,7 +181,7 @@ def send_test_email(to_email):
     """Synchronous test send used by the settings page. Returns (ok, message)."""
     cfg = _config()
     company = get_setting("company_name", "ONE")
-    ok, err = _send_sync(
+    ok, err = _deliver(
         cfg, to_email,
         f"اختبار بريد — {company}",
         f"تم إعداد البريد الإلكتروني بنجاح ✅\nهذه رسالة اختبار من نظام {company}.",

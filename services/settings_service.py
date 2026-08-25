@@ -45,8 +45,11 @@ DEFAULT_SETTINGS = {
     "sla_low_hours": ("72", "sla"),
 
     # Rating
-    # Email (SMTP) — send customer notifications by email alongside WhatsApp
+    # Email — send customer notifications by email alongside WhatsApp
     "smtp_enabled": ("false", "email"),
+    # Provider: "brevo" (HTTP API — works on Railway) or "smtp" (often blocked on cloud hosts)
+    "email_provider": ("brevo", "email"),
+    "brevo_api_key": ("", "email"),      # Brevo (Sendinblue) HTTP API key
     "smtp_host": ("smtp.gmail.com", "email"),
     "smtp_port": ("587", "email"),
     "smtp_use_tls": ("true", "email"),

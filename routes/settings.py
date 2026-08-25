@@ -97,12 +97,17 @@ def email():
     if request.method == "POST":
         Setting.set("smtp_enabled", "true" if request.form.get("smtp_enabled") else "false", "email")
         Setting.set("smtp_use_tls", "true" if request.form.get("smtp_use_tls") else "false", "email")
+        provider = request.form.get("email_provider", "brevo").strip().lower()
+        Setting.set("email_provider", "smtp" if provider == "smtp" else "brevo", "email")
         for key in ["smtp_host", "smtp_port", "smtp_user", "smtp_from_name", "smtp_from_email"]:
             Setting.set(key, request.form.get(key, "").strip(), "email")
-        # Only overwrite the password if a new one was typed (so it isn't wiped on edit)
+        # Only overwrite secrets if a new value was typed (so they aren't wiped on edit)
         pw = request.form.get("smtp_password", "")
         if pw.strip():
             Setting.set("smtp_password", pw.strip(), "email")
+        bk = request.form.get("brevo_api_key", "")
+        if bk.strip():
+            Setting.set("brevo_api_key", bk.strip(), "email")
         db.session.commit()
         log_action("settings.email_updated")
         flash("تم حفظ إعدادات البريد الإلكتروني", "success")
