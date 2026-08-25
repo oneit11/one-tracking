@@ -4,12 +4,37 @@ Configured from admin Settings (category "email"). Sends in a background thread
 so requests are never blocked, mirroring the WhatsApp service.
 """
 import smtplib
+import socket
+import ssl
 import threading
+from contextlib import contextmanager
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formataddr
 from flask import current_app
 from services.settings_service import get_setting
+
+
+@contextmanager
+def _force_ipv4():
+    """Temporarily make socket.getaddrinfo return IPv4 addresses only.
+
+    On some hosts (e.g. Railway) the container has no IPv6 route, so Python
+    tries an IPv6 address for smtp.gmail.com first and fails with
+    '[Errno 101] Network is unreachable'. Filtering to IPv4 avoids that while
+    keeping the hostname intact so TLS certificate verification still passes.
+    """
+    orig = socket.getaddrinfo
+
+    def ipv4_only(host, port, family=0, type=0, proto=0, flags=0):
+        res = orig(host, port, socket.AF_INET, type, proto, flags)
+        return res or orig(host, port, family, type, proto, flags)
+
+    socket.getaddrinfo = ipv4_only
+    try:
+        yield
+    finally:
+        socket.getaddrinfo = orig
 
 
 def _config():
@@ -31,27 +56,43 @@ def _send_sync(cfg, to_email, subject, body_text, body_html=None):
         return False, "SMTP not fully configured"
     if not to_email:
         return False, "Missing recipient"
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = formataddr((str(cfg["from_name"]), cfg["from_email"]))
-        msg["To"] = to_email
-        msg.attach(MIMEText(body_text, "plain", "utf-8"))
-        if body_html:
-            msg.attach(MIMEText(body_html, "html", "utf-8"))
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = formataddr((str(cfg["from_name"]), cfg["from_email"]))
+    msg["To"] = to_email
+    msg.attach(MIMEText(body_text, "plain", "utf-8"))
+    if body_html:
+        msg.attach(MIMEText(body_html, "html", "utf-8"))
+    raw = msg.as_string()
 
-        if cfg["port"] == 465:
-            server = smtplib.SMTP_SSL(cfg["host"], cfg["port"], timeout=25)
-        else:
-            server = smtplib.SMTP(cfg["host"], cfg["port"], timeout=25)
-            if cfg["use_tls"]:
-                server.starttls()
-        server.login(cfg["user"], cfg["password"])
-        server.sendmail(cfg["from_email"], [to_email], msg.as_string())
-        server.quit()
-        return True, ""
-    except Exception as e:
-        return False, str(e)[:300]
+    # Try the configured port first; if it fails, fall back to the other
+    # common Gmail/Workspace port (587 <-> 465). IPv4 is forced throughout.
+    primary = cfg["port"]
+    attempts = [primary] + [p for p in (587, 465) if p != primary]
+    last_err = "SMTP not reachable"
+    for port in attempts:
+        try:
+            with _force_ipv4():
+                if port == 465:
+                    ctx = ssl.create_default_context()
+                    server = smtplib.SMTP_SSL(cfg["host"], port, timeout=25, context=ctx)
+                else:
+                    server = smtplib.SMTP(cfg["host"], port, timeout=25)
+                    server.ehlo()
+                    if cfg["use_tls"] or port == 587:
+                        server.starttls(context=ssl.create_default_context())
+                        server.ehlo()
+                server.login(cfg["user"], cfg["password"])
+                server.sendmail(cfg["from_email"], [to_email], raw)
+                server.quit()
+            return True, ""
+        except smtplib.SMTPAuthenticationError as e:
+            # Auth errors won't be fixed by trying another port — stop early.
+            return False, f"فشل تسجيل الدخول — تأكد من الإيميل و App Password ({str(e)[:150]})"
+        except Exception as e:
+            last_err = f"{type(e).__name__}: {str(e)[:200]} (port {port})"
+            continue
+    return False, last_err
 
 
 def send_email(to_email, subject, body_text, body_html=None, app=None, force=False):

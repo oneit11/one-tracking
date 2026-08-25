@@ -2,7 +2,7 @@
 {% block title %}لوحة التحكم - {{ APP_NAME }}{% endblock %}
 
 {% block head_extra %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -180,10 +180,24 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    if (typeof Chart === 'undefined') {
+        document.querySelectorAll('.chart-container').forEach(function(c){
+            c.innerHTML = '<div class="chart-empty">تعذّر تحميل الرسم البياني</div>';
+        });
+        return;
+    }
     var css = getComputedStyle(document.documentElement);
     var primary = (css.getPropertyValue('--primary') || '#0b3d91').trim();
     var accent  = (css.getPropertyValue('--accent') || '#14b8a6').trim();
+    Chart.defaults.font.family = "Tajawal, 'Segoe UI', Tahoma, sans-serif";
+    Chart.defaults.color = '#64748b';
 
+    var trendData = {{ chart_data|tojson }};
+    var hasTrend = trendData && trendData.some(function(v){ return v > 0; });
+    if (!hasTrend) {
+        document.getElementById('chartTrend').parentNode.innerHTML =
+            '<div class="chart-empty">لا توجد طلبات في آخر ١٤ يوم</div>';
+    } else
     new Chart(document.getElementById('chartTrend'), {
         type: 'line',
         data: {
@@ -208,6 +222,11 @@ document.addEventListener('DOMContentLoaded', function() {
     var statusData = {{ status_counts|tojson }};
     var statusLabels = {'new':'جديد','assigned':'تم التعيين','in_progress':'قيد التنفيذ','report_ready':'تقرير جاهز','closed':'مغلق','cancelled':'ملغي'};
     var colors = ['#3b82f6','#f59e0b','#f97316','#8b5cf6','#10b981','#ef4444'];
+    var hasStatus = statusData && Object.values(statusData).some(function(v){ return v > 0; });
+    if (!hasStatus) {
+        document.getElementById('chartStatus').parentNode.innerHTML =
+            '<div class="chart-empty">لا توجد بيانات لعرضها</div>';
+    } else
     new Chart(document.getElementById('chartStatus'), {
         type: 'doughnut',
         data: {

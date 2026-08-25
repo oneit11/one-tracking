@@ -746,6 +746,16 @@ a:hover { color: var(--primary-hover); }
     height: 260px;
     padding: 8px;
 }
+.chart-empty {
+    height: 244px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-soft);
+    font-size: 14px;
+    background: repeating-linear-gradient(45deg, var(--bg), var(--bg) 10px, #eef2f9 10px, #eef2f9 20px);
+    border-radius: var(--radius);
+}
 
 /* Comment thread */
 .comment {
@@ -859,8 +869,8 @@ html[dir="ltr"] .brand-text {
 /* ========== Modern Dashboard KPI Cards ========== */
 .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 12px;
     margin-bottom: 22px;
 }
 .kpi-card {
@@ -885,14 +895,21 @@ html[dir="ltr"] .brand-text {
     inset-inline-start: 0;
     top: 0;
     bottom: 0;
-    width: 4px;
+    width: 3px;
     background: var(--kpi-color, var(--primary));
+    opacity: 0.85;
 }
 .kpi-card:hover {
     transform: translateY(-3px);
     box-shadow: var(--shadow-lg);
     border-color: var(--kpi-color, var(--primary));
     color: var(--text);
+}
+.kpi-card:focus { outline: none; }
+.kpi-card:focus-visible {
+    outline: none;
+    border-color: var(--kpi-color, var(--primary));
+    box-shadow: 0 0 0 3px var(--kpi-tint, rgba(11, 61, 145, 0.15));
 }
 .kpi-icon {
     font-size: 30px;
