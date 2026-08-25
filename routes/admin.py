@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import os
 import secrets
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, current_app, abort, jsonify
 from flask_login import login_required, current_user
@@ -1246,6 +1247,7 @@ def survey_new():
             client_id=int(client_id) if client_id else None,
             contact_name=request.form.get("contact_name", "").strip(),
             contact_phone=request.form.get("contact_phone", "").strip(),
+            contact_email=request.form.get("contact_email", "").strip(),
             location=request.form.get("location", "").strip(),
             description=request.form.get("description", "").strip(),
             technician_id=int(tech_id) if tech_id else None,
@@ -1370,6 +1372,10 @@ def survey_quote(sid):
             survey.quote_amount = float(amount)
         except ValueError:
             pass
+    # Save/update the customer email (for surveys not linked to a full client)
+    ce = request.form.get("contact_email", "").strip()
+    if ce and not (survey.client and getattr(survey.client, "email", "")):
+        survey.contact_email = ce
     survey.quote_sent_at = datetime.utcnow()
     if survey.status in ("assigned", "inspected", "new"):
         survey.status = "quoted"
@@ -1408,15 +1414,27 @@ def survey_quote(sid):
             if survey.quote_amount:
                 cur = get_setting("currency", "ج.م")
                 ebody += f"\nالإجمالي: {survey.quote_amount:g} {cur}"
+            # Attach the quote PDF to the email so the customer gets the file itself
+            attachments = []
             if survey.quote_file_url:
                 link = survey.quote_file_url
                 if base and link.startswith("/"):
                     link = base + link
-                ebody += f"\n📄 تحميل عرض السعر: {link}"
+                ebody += f"\n📄 عرض السعر مرفق بالإيميل (وللتحميل: {link})"
+                try:
+                    if survey.quote_file_url.startswith("/static/uploads/"):
+                        rel = survey.quote_file_url[len("/static/uploads/"):]
+                        fpath = os.path.join(current_app.config["UPLOAD_FOLDER"], rel)
+                        if os.path.isfile(fpath):
+                            with open(fpath, "rb") as fh:
+                                fname = f"عرض-سعر-{survey.survey_number}.pdf"
+                                attachments.append((fname, fh.read()))
+                except Exception:
+                    pass
             ebody += "\nفي انتظار موافقتك ✅"
             notify_customer_email(survey.customer_email,
                                   f"عرض سعر معاينة {survey.survey_number} — {company}",
-                                  ebody)
+                                  ebody, attachments=attachments or None)
     except Exception:
         pass
     log_action("survey.quoted", entity_type="survey", entity_id=survey.id)

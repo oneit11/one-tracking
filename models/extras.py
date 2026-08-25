@@ -129,6 +129,7 @@ class Survey(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=True)
     contact_name = db.Column(db.String(120), default="")
     contact_phone = db.Column(db.String(30), default="")
+    contact_email = db.Column(db.String(120), default="")
     location = db.Column(db.String(220), default="")
     description = db.Column(db.Text, default="")     # what the customer wants
     technician_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
@@ -182,7 +183,7 @@ class Survey(db.Model):
     def customer_email(self):
         if self.client and getattr(self.client, "email", ""):
             return self.client.email
-        return ""
+        return (self.contact_email or "").strip()
 
     @property
     def attachments(self):

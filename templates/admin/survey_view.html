@@ -133,9 +133,14 @@
                 <label class="form-label">إجمالي العرض (اختياري)</label>
                 <input class="form-input" type="number" step="0.01" name="quote_amount" value="{{ survey.quote_amount or '' }}">
             </div>
+            <div class="form-group full">
+                <label class="form-label">📧 إيميل العميل (لإرسال العرض بالبريد)</label>
+                <input class="form-input" type="email" name="contact_email" dir="ltr"
+                       value="{{ survey.customer_email }}" placeholder="customer@email.com">
+            </div>
         </div>
         <button class="btn btn-primary">💾 حفظ العرض وإرساله للعميل</button>
-        <p class="text-muted" style="font-size:12px;margin-top:6px">هيتبعت للعميل رسالة واتساب بالعرض تلقائياً لو رقمه موجود.</p>
+        <p class="text-muted" style="font-size:12px;margin-top:6px">هيتبعت للعميل رسالة واتساب بالعرض، وإيميل بالعرض مرفق لو الإيميل موجود والتفعيل شغّال.</p>
     </form>
 </div>
 {% endif %}

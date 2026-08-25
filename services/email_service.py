@@ -52,13 +52,15 @@ def _config():
     }
 
 
-def _send_brevo(cfg, to_email, subject, body_text, body_html=None):
+def _send_brevo(cfg, to_email, subject, body_text, body_html=None, attachments=None):
     """Send via Brevo's HTTP API (works on hosts that block SMTP ports).
 
     Uses only the standard library over HTTPS (port 443), so no SMTP ports
-    and no extra dependencies are needed. Returns (ok, error_message).
+    and no extra dependencies are needed. `attachments` is a list of
+    (filename, bytes). Returns (ok, error_message).
     """
     import json
+    import base64
     import urllib.request
     import urllib.error
 
@@ -77,6 +79,11 @@ def _send_brevo(cfg, to_email, subject, body_text, body_html=None):
     }
     if body_html:
         payload["htmlContent"] = body_html
+    if attachments:
+        payload["attachment"] = [
+            {"name": name, "content": base64.b64encode(data).decode("ascii")}
+            for (name, data) in attachments if data
+        ]
 
     req = urllib.request.Request(
         "https://api.brevo.com/v3/smtp/email",
@@ -106,19 +113,31 @@ def _send_brevo(cfg, to_email, subject, body_text, body_html=None):
         return False, f"{type(e).__name__}: {str(e)[:200]}"
 
 
-def _send_sync(cfg, to_email, subject, body_text, body_html=None):
-    """Blocking send. Returns (ok, error_message)."""
+def _send_sync(cfg, to_email, subject, body_text, body_html=None, attachments=None):
+    """Blocking send. `attachments` is a list of (filename, bytes). Returns (ok, error)."""
     if not cfg["host"] or not cfg["user"] or not cfg["password"] or not cfg["from_email"]:
         return False, "SMTP not fully configured"
     if not to_email:
         return False, "Missing recipient"
-    msg = MIMEMultipart("alternative")
+    body = MIMEMultipart("alternative")
+    body.attach(MIMEText(body_text, "plain", "utf-8"))
+    if body_html:
+        body.attach(MIMEText(body_html, "html", "utf-8"))
+    if attachments:
+        from email.mime.application import MIMEApplication
+        msg = MIMEMultipart("mixed")
+        msg.attach(body)
+        for (name, data) in attachments:
+            if not data:
+                continue
+            part = MIMEApplication(data, Name=name)
+            part["Content-Disposition"] = f'attachment; filename="{name}"'
+            msg.attach(part)
+    else:
+        msg = body
     msg["Subject"] = subject
     msg["From"] = formataddr((str(cfg["from_name"]), cfg["from_email"]))
     msg["To"] = to_email
-    msg.attach(MIMEText(body_text, "plain", "utf-8"))
-    if body_html:
-        msg.attach(MIMEText(body_html, "html", "utf-8"))
     raw = msg.as_string()
 
     # Try the configured port first; if it fails, fall back to the other
@@ -151,16 +170,18 @@ def _send_sync(cfg, to_email, subject, body_text, body_html=None):
     return False, last_err
 
 
-def _deliver(cfg, to_email, subject, body_text, body_html=None):
+def _deliver(cfg, to_email, subject, body_text, body_html=None, attachments=None):
     """Route to the configured provider. Returns (ok, error_message)."""
     if cfg.get("provider") == "smtp":
-        return _send_sync(cfg, to_email, subject, body_text, body_html)
+        return _send_sync(cfg, to_email, subject, body_text, body_html, attachments)
     # Default: Brevo HTTP API (recommended on Railway and other cloud hosts).
-    return _send_brevo(cfg, to_email, subject, body_text, body_html)
+    return _send_brevo(cfg, to_email, subject, body_text, body_html, attachments)
 
 
-def send_email(to_email, subject, body_text, body_html=None, app=None, force=False):
-    """Fire-and-forget email in a background thread. Skips silently if disabled."""
+def send_email(to_email, subject, body_text, body_html=None, app=None, force=False, attachments=None):
+    """Fire-and-forget email in a background thread. Skips silently if disabled.
+
+    `attachments` is a list of (filename, bytes)."""
     _app = app or current_app._get_current_object()
     cfg = _config()
     if not force and not cfg["enabled"]:
@@ -170,7 +191,7 @@ def send_email(to_email, subject, body_text, body_html=None, app=None, force=Fal
 
     def worker():
         with _app.app_context():
-            ok, err = _deliver(cfg, to_email, subject, body_text, body_html)
+            ok, err = _deliver(cfg, to_email, subject, body_text, body_html, attachments)
             if not ok:
                 _app.logger.warning(f"email send failed to {to_email}: {err}")
 
@@ -205,10 +226,12 @@ def _wrap_html(company, body_html):
     )
 
 
-def notify_customer_email(to_email, subject, body_text, app=None):
-    """Send a branded customer email (no-op if SMTP disabled or no email)."""
+def notify_customer_email(to_email, subject, body_text, app=None, attachments=None):
+    """Send a branded customer email (no-op if disabled or no email).
+
+    `attachments` is a list of (filename, bytes) to attach (e.g. a quote PDF)."""
     if not to_email:
         return
     company = get_setting("company_name", "ONE")
     body_html = _wrap_html(company, body_text.replace("\n", "<br>"))
-    send_email(to_email, subject, body_text, body_html=body_html, app=app)
+    send_email(to_email, subject, body_text, body_html=body_html, app=app, attachments=attachments)
