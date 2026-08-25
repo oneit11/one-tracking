@@ -119,6 +119,93 @@ class Lead(db.Model):
         return self.STATUS_LABELS.get(self.status, self.status)
 
 
+class Survey(db.Model):
+    """Site survey / معاينة: admin sends a technician to inspect a location,
+    tech writes what's required + device items, admin uploads a price quote,
+    and on customer approval it converts to an installation project."""
+    __tablename__ = "surveys"
+    id = db.Column(db.Integer, primary_key=True)
+    survey_number = db.Column(db.String(20), unique=True, index=True)  # SV26-0001
+    client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=True)
+    contact_name = db.Column(db.String(120), default="")
+    contact_phone = db.Column(db.String(30), default="")
+    location = db.Column(db.String(220), default="")
+    description = db.Column(db.Text, default="")     # what the customer wants
+    technician_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    visit_at = db.Column(db.DateTime, nullable=True)  # موعد المعاينة
+    inspection_notes = db.Column(db.Text, default="")   # اللي شافه الفني والمطلوب
+    inspected_at = db.Column(db.DateTime, nullable=True)
+    quote_file_url = db.Column(db.String(255), default="")
+    quote_amount = db.Column(db.Numeric(12, 2), nullable=True)
+    quote_sent_at = db.Column(db.DateTime, nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    decision_note = db.Column(db.Text, default="")
+    converted_ticket_id = db.Column(db.Integer, nullable=True)
+    status = db.Column(db.String(20), default="new", index=True)
+    # new, assigned, inspected, quoted, approved, converted, rejected
+    created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    client = db.relationship("Client")
+    technician = db.relationship("User", foreign_keys=[technician_id])
+    items = db.relationship("SurveyItem", backref="survey",
+                            cascade="all, delete-orphan", order_by="SurveyItem.id")
+
+    STATUS_LABELS = {
+        "new": "جديدة",
+        "assigned": "مُسندة لفني",
+        "inspected": "تمت المعاينة",
+        "quoted": "تم إرسال العرض",
+        "approved": "موافقة العميل",
+        "converted": "تحوّلت لمشروع",
+        "rejected": "مرفوضة",
+    }
+
+    @property
+    def status_label(self):
+        return self.STATUS_LABELS.get(self.status, self.status)
+
+    @property
+    def customer_name(self):
+        if self.client:
+            return self.client.company_name
+        return self.contact_name or "-"
+
+    @property
+    def customer_phone(self):
+        if self.client and self.client.phone:
+            return self.client.phone
+        return self.contact_phone or ""
+
+    @property
+    def attachments(self):
+        from models.attachment import Attachment
+        return Attachment.query.filter_by(entity_type="survey", entity_id=self.id)\
+            .order_by(Attachment.uploaded_at).all()
+
+    @property
+    def items_total(self):
+        total = 0
+        for it in self.items:
+            if it.unit_price:
+                total += float(it.unit_price) * (it.quantity or 0)
+        return total
+
+
+class SurveyItem(db.Model):
+    """A device/line-item on a survey — what will be installed."""
+    __tablename__ = "survey_items"
+    id = db.Column(db.Integer, primary_key=True)
+    survey_id = db.Column(db.Integer, db.ForeignKey("surveys.id"), nullable=False, index=True)
+    name = db.Column(db.String(200), nullable=False)     # اسم الجهاز/البند
+    spec = db.Column(db.String(200), default="")         # ماركة/موديل/مواصفات
+    quantity = db.Column(db.Integer, default=1)
+    unit_price = db.Column(db.Numeric(12, 2), nullable=True)
+    notes = db.Column(db.String(255), default="")
+    added_by_role = db.Column(db.String(20), default="tech")  # tech / admin
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class Followup(db.Model):
     """Follow-up appointment scheduled by admin/tech on a maintenance request that had a visit."""
     __tablename__ = "followups"

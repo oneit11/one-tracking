@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}تقرير معاينة {{ survey.survey_number }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">📋 تقرير معاينة</h1>
+    <a href="{{ url_for('tech.dashboard') }}" class="btn btn-secondary">← رجوع</a>
+</div>
+
+<div class="card">
+    <p class="text-muted">رقم: <strong>{{ survey.survey_number }}</strong></p>
+    <p class="text-muted">العميل: {{ survey.customer_name }} — {{ survey.location }}</p>
+    {% if survey.visit_at %}<p class="text-muted">موعد المعاينة: {{ survey.visit_at.strftime('%Y-%m-%d %H:%M') }}</p>{% endif %}
+    {% if survey.description %}<p class="mt-2"><strong>المطلوب:</strong> {{ survey.description }}</p>{% endif %}
+</div>
+
+<div class="card mt-4">
+    <form method="post" action="{{ url_for('tech.survey_report', sid=survey.id) }}" enctype="multipart/form-data">
+        <div class="form-group full">
+            <label class="form-label">تقرير المعاينة — إيه المطلوب في المكان <span class="req">*</span></label>
+            <textarea class="form-textarea" name="inspection_notes" rows="5" required
+                      placeholder="اكتب اللي شفته والمطلوب تركيبه أو صيانته...">{{ survey.inspection_notes }}</textarea>
+        </div>
+
+        <div class="form-group full" style="border-top:1px dashed var(--border);padding-top:14px;">
+            <label class="form-label">🧰 بنود الأجهزة المطلوبة</label>
+            <p class="text-muted" style="font-size:12px;margin:0 0 8px">أضف كل جهاز/بند هيتركّب (الاسم + الكمية). تقدر تضيف أكتر من بند.</p>
+            <div id="itemsWrap"></div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addItem()">➕ إضافة بند</button>
+        </div>
+
+        <div class="form-group full">
+            <label class="form-label">📷 صور / فيديوهات المكان (تقدر تختار أكتر من واحدة)</label>
+            <input class="form-input" type="file" name="photos" accept="image/*,video/*" multiple>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">📤 حفظ تقرير المعاينة</button>
+            <a href="{{ url_for('tech.dashboard') }}" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function addItem(){
+    var w = document.getElementById('itemsWrap');
+    var row = document.createElement('div');
+    row.className = 'd-flex gap-2 flex-wrap mb-2';
+    row.style.marginBottom = '8px';
+    row.innerHTML =
+      '<input class="form-input" name="item_name" placeholder="اسم الجهاز/البند" style="flex:2;min-width:150px">' +
+      '<input class="form-input" name="item_spec" placeholder="ماركة/موديل" style="flex:2;min-width:120px">' +
+      '<input class="form-input" type="number" name="item_qty" value="1" min="1" placeholder="كمية" style="flex:1;min-width:70px">' +
+      '<button type="button" class="btn btn-danger btn-sm" onclick="this.parentNode.remove()">✕</button>';
+    w.appendChild(row);
+}
+addItem();
+</script>
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}معاينة {{ survey.survey_number }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">📋 معاينة {{ survey.survey_number }}</h1>
+        {% set cls = {'new':'badge-info','assigned':'badge-info','inspected':'badge-warning','quoted':'badge-warning','approved':'badge-success','converted':'badge-success','rejected':'badge-secondary'} %}
+        <span class="badge {{ cls.get(survey.status,'') }}">{{ survey.status_label }}</span>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('admin.surveys_list') }}" class="btn btn-secondary">← رجوع</a>
+        <form method="post" action="{{ url_for('admin.survey_delete', sid=survey.id) }}" onsubmit="return confirm('حذف المعاينة نهائياً؟');" style="display:inline;">
+            <button class="btn btn-sm btn-danger">🗑️ حذف</button>
+        </form>
+    </div>
+</div>
+
+<!-- Customer / basics -->
+<div class="card">
+    <div class="detail-row"><span class="detail-label">العميل</span><span class="detail-value">{{ survey.customer_name }}</span></div>
+    <div class="detail-row"><span class="detail-label">التليفون</span><span class="detail-value" dir="ltr">{{ survey.customer_phone or '-' }}</span></div>
+    <div class="detail-row"><span class="detail-label">الموقع</span><span class="detail-value">{{ survey.location or '-' }}</span></div>
+    {% if survey.description %}<div class="mt-2"><p class="form-label">المطلوب:</p><p style="white-space:pre-wrap">{{ survey.description }}</p></div>{% endif %}
+</div>
+
+<!-- Assignment -->
+{% if survey.status in ['new','assigned'] %}
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">👷 إسناد لفني وموعد المعاينة</h3></div>
+    <form method="post" action="{{ url_for('admin.survey_assign', sid=survey.id) }}">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">الفني</label>
+                <select class="form-select" name="technician_id">
+                    <option value="">— اختر —</option>
+                    {% for t in technicians %}<option value="{{ t.id }}" {% if survey.technician_id==t.id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">موعد المعاينة</label>
+                <input class="form-input" type="datetime-local" name="visit_at" value="{{ survey.visit_at.strftime('%Y-%m-%dT%H:%M') if survey.visit_at else '' }}">
+            </div>
+        </div>
+        <button class="btn btn-primary">حفظ الإسناد</button>
+    </form>
+</div>
+{% else %}
+<div class="card mt-4">
+    <div class="detail-row"><span class="detail-label">الفني</span><span class="detail-value">{{ survey.technician.name if survey.technician else '—' }}</span></div>
+    <div class="detail-row"><span class="detail-label">موعد المعاينة</span><span class="detail-value">{{ survey.visit_at.strftime('%Y-%m-%d %H:%M') if survey.visit_at else '—' }}</span></div>
+</div>
+{% endif %}
+
+<!-- Inspection report -->
+{% if survey.inspected_at %}
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">🔧 تقرير المعاينة</h3></div>
+    {% if survey.inspection_notes %}<p style="white-space:pre-wrap">{{ survey.inspection_notes }}</p>{% endif %}
+    {% set atts = survey.attachments %}
+    {% if atts %}
+    <div class="mt-2" style="display:flex;flex-wrap:wrap;gap:8px;">
+        {% for a in atts %}
+            {% if a.file_type == 'video' %}
+            <video src="{{ a.file_url }}" style="height:120px;border-radius:8px;border:1px solid var(--border);" controls preload="metadata"></video>
+            {% else %}
+            <img src="{{ a.file_url }}" class="clickable-image" style="height:120px;border-radius:8px;border:1px solid var(--border);object-fit:cover;">
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Device items -->
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">🧰 بنود الأجهزة {% if survey.items %}<span class="badge">{{ survey.items|length }}</span>{% endif %}</h3></div>
+    {% if survey.items %}
+    <div style="overflow-x:auto;">
+    <table class="table">
+        <thead><tr><th>#</th><th>البند</th><th>المواصفات</th><th>الكمية</th><th>سعر الوحدة</th><th></th></tr></thead>
+        <tbody>
+            {% for it in survey.items %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><strong>{{ it.name }}</strong>{% if it.notes %}<br><span class="text-muted" style="font-size:12px">{{ it.notes }}</span>{% endif %}</td>
+                <td>{{ it.spec or '-' }}</td>
+                <td>{{ it.quantity }}</td>
+                <td>{{ (it.unit_price|string + ' ج.م') if it.unit_price else '—' }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('admin.survey_item_delete', item_id=it.id) }}" style="display:inline;" onsubmit="return confirm('حذف البند؟');">
+                        <button class="btn btn-sm btn-danger">🗑️</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% if survey.items_total %}<p class="mt-2 text-muted">إجمالي البنود المسعّرة: <strong>{{ '%g'|format(survey.items_total) }} ج.م</strong></p>{% endif %}
+    {% else %}
+    <p class="text-muted">لا توجد بنود بعد — الفني يضيفها من تقرير المعاينة، أو أضِفها إنت من تحت.</p>
+    {% endif %}
+
+    {% if survey.status != 'converted' %}
+    <form method="post" action="{{ url_for('admin.survey_item_add', sid=survey.id) }}" class="mt-4" style="border-top:1px dashed var(--border);padding-top:12px;">
+        <p class="form-label">➕ إضافة بند</p>
+        <div class="form-grid">
+            <div class="form-group"><input class="form-input" name="name" placeholder="اسم الجهاز/البند *" required></div>
+            <div class="form-group"><input class="form-input" name="spec" placeholder="ماركة / موديل"></div>
+            <div class="form-group"><input class="form-input" type="number" name="quantity" value="1" min="1" placeholder="الكمية"></div>
+            <div class="form-group"><input class="form-input" type="number" step="0.01" name="unit_price" placeholder="سعر الوحدة (اختياري)"></div>
+        </div>
+        <button class="btn btn-secondary btn-sm">إضافة</button>
+    </form>
+    {% endif %}
+</div>
+
+<!-- Price quote -->
+{% if survey.status not in ['converted'] %}
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">💰 عرض السعر</h3></div>
+    {% if survey.quote_file_url %}
+    <p>الملف الحالي: <a href="{{ survey.quote_file_url }}" target="_blank" class="btn btn-sm btn-secondary">📄 فتح عرض السعر</a>
+        {% if survey.quote_amount %}<span class="badge badge-success">{{ '%g'|format(survey.quote_amount|float) }} ج.م</span>{% endif %}</p>
+    {% endif %}
+    <form method="post" action="{{ url_for('admin.survey_quote', sid=survey.id) }}" enctype="multipart/form-data" class="mt-2">
+        <div class="form-grid">
+            <div class="form-group full">
+                <label class="form-label">ارفع ملف عرض السعر (PDF)</label>
+                <input class="form-input" type="file" name="quote_file" accept="application/pdf,.pdf">
+            </div>
+            <div class="form-group">
+                <label class="form-label">إجمالي العرض (اختياري)</label>
+                <input class="form-input" type="number" step="0.01" name="quote_amount" value="{{ survey.quote_amount or '' }}">
+            </div>
+        </div>
+        <button class="btn btn-primary">💾 حفظ العرض وإرساله للعميل</button>
+        <p class="text-muted" style="font-size:12px;margin-top:6px">هيتبعت للعميل رسالة واتساب بالعرض تلقائياً لو رقمه موجود.</p>
+    </form>
+</div>
+{% endif %}
+
+<!-- Customer decision -->
+{% if survey.status == 'quoted' %}
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">✅ قرار العميل</h3></div>
+    <p class="text-muted">لما العميل يرد على العرض، سجّل قراره هنا:</p>
+    <div class="d-flex gap-2 flex-wrap mt-2">
+        <form method="post" action="{{ url_for('admin.survey_approve', sid=survey.id) }}">
+            <button class="btn btn-success">👍 العميل وافق</button>
+        </form>
+        <form method="post" action="{{ url_for('admin.survey_reject', sid=survey.id) }}" onsubmit="return confirm('تسجيل رفض العميل؟');">
+            <button class="btn btn-danger">👎 العميل رفض</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Convert -->
+{% if survey.status == 'approved' %}
+<div class="card mt-4" style="border:1.5px solid var(--success);">
+    <div class="card-header"><h3 class="card-title">🏗️ تحويل لمشروع تركيب</h3></div>
+    <p class="text-muted">العميل وافق. حوّل المعاينة لمشروع تركيب بالبنود المطلوبة — هيكمّل في نظام المشاريع (فريق + زيارات + تقرير).</p>
+    <form method="post" action="{{ url_for('admin.survey_convert', sid=survey.id) }}" class="mt-2">
+        <button class="btn btn-success">🏗️ تحويل لمشروع تركيب</button>
+    </form>
+</div>
+{% endif %}
+
+{% if survey.converted_ticket_id %}
+<div class="card mt-4">
+    <p>✅ تم تحويلها لمشروع تركيب. <a href="{{ url_for('admin.ticket_view', tid=survey.converted_ticket_id) }}" class="btn btn-sm btn-primary">فتح المشروع</a></p>
+</div>
+{% endif %}
+{% endblock %}

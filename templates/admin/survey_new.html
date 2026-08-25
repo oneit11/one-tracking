@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}معاينة جديدة{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">➕ معاينة جديدة</h1>
+    <a href="{{ url_for('admin.surveys_list') }}" class="btn btn-secondary">← رجوع</a>
+</div>
+
+<div class="card">
+    <form method="post">
+        <div class="form-grid">
+            <div class="form-group full">
+                <label class="form-label">عميل مسجّل (اختياري)</label>
+                <select class="form-select" name="client_id">
+                    <option value="">— عميل جديد (اكتب بياناته تحت) —</option>
+                    {% for c in clients %}<option value="{{ c.id }}">{{ c.company_name }} ({{ c.phone }})</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">اسم العميل / جهة الاتصال</label>
+                <input class="form-input" name="contact_name" placeholder="لو عميل جديد">
+            </div>
+            <div class="form-group">
+                <label class="form-label">رقم التليفون</label>
+                <input class="form-input" name="contact_phone" dir="ltr" placeholder="01xxxxxxxxx">
+            </div>
+            <div class="form-group full">
+                <label class="form-label">الموقع / العنوان <span class="req">*</span></label>
+                <input class="form-input" name="location" required placeholder="المدينة / المنطقة / العنوان">
+            </div>
+            <div class="form-group full">
+                <label class="form-label">وصف المطلوب</label>
+                <textarea class="form-textarea" name="description" rows="3" placeholder="العميل عايز إيه بالظبط..."></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">الفني المسؤول</label>
+                <select class="form-select" name="technician_id">
+                    <option value="">— لاحقاً —</option>
+                    {% for t in technicians %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">موعد المعاينة</label>
+                <input class="form-input" type="datetime-local" name="visit_at">
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">💾 إنشاء المعاينة</button>
+            <a href="{{ url_for('admin.surveys_list') }}" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

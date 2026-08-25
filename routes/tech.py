@@ -38,6 +38,13 @@ def dashboard():
             SupportTicket.status != "closed",
         ).order_by(desc(SupportTicket.created_at)).all()
 
+    # Surveys assigned to this technician (not yet inspected/closed)
+    from models.extras import Survey
+    my_surveys = Survey.query.filter(
+        Survey.technician_id == current_user.id,
+        Survey.status.in_(["new", "assigned"]),
+    ).order_by(desc(Survey.created_at)).all()
+
     stats = {
         "open_count": len(my_open),
         "new": sum(1 for r in my_open if r.status == "assigned"),
@@ -45,11 +52,13 @@ def dashboard():
         "report_ready": sum(1 for r in my_open if r.status == "report_ready"),
         "followups": len(my_followups),
         "projects": len(my_projects),
+        "surveys": len(my_surveys),
     }
 
     return render_template("tech/dashboard.html", open_reqs=my_open,
                            followups=my_followups, stats=stats,
-                           projects=my_projects, current_uid=current_user.id)
+                           projects=my_projects, surveys=my_surveys,
+                           current_uid=current_user.id)
 
 
 # ================= Projects =================
@@ -241,3 +250,68 @@ def submit_report(rid):
         return redirect(url_for("tech.request_view", rid=rid))
 
     return render_template("tech/report_form.html", req=req)
+
+
+# ================= Surveys (المعاينات) =================
+@tech_bp.route("/surveys/<int:sid>")
+@tech_required
+def survey_view(sid):
+    from models.extras import Survey
+    survey = Survey.query.get_or_404(sid)
+    if survey.technician_id != current_user.id:
+        flash("هذه المعاينة غير مسندة إليك", "warning")
+        return redirect(url_for("tech.dashboard"))
+    return render_template("tech/survey_report.html", survey=survey)
+
+
+@tech_bp.route("/surveys/<int:sid>/report", methods=["POST"])
+@tech_required
+def survey_report(sid):
+    from models.extras import Survey, SurveyItem
+    survey = Survey.query.get_or_404(sid)
+    if survey.technician_id != current_user.id:
+        flash("هذه المعاينة غير مسندة إليك", "warning")
+        return redirect(url_for("tech.dashboard"))
+
+    survey.inspection_notes = request.form.get("inspection_notes", "").strip()
+    survey.inspected_at = datetime.utcnow()
+    if survey.status in ("new", "assigned"):
+        survey.status = "inspected"
+
+    # Add device items (parallel arrays)
+    names = request.form.getlist("item_name")
+    specs = request.form.getlist("item_spec")
+    qtys = request.form.getlist("item_qty")
+    for i, name in enumerate(names):
+        name = (name or "").strip()
+        if not name:
+            continue
+        try:
+            qty = int(qtys[i]) if i < len(qtys) and qtys[i] else 1
+        except ValueError:
+            qty = 1
+        db.session.add(SurveyItem(
+            survey_id=survey.id, name=name,
+            spec=(specs[i].strip() if i < len(specs) else ""),
+            quantity=qty, added_by_role="tech",
+        ))
+
+    # Photos of the site
+    files = request.files.getlist("photos")
+    for f in files:
+        if not f or not f.filename:
+            continue
+        p = save_upload(f, subfolder="surveys", prefix="survey_")
+        if not p:
+            continue
+        ext = (f.filename.rsplit(".", 1)[-1] or "").lower()
+        ftype = "video" if ext in current_app.config.get("VIDEO_EXTENSIONS", set()) else "image"
+        db.session.add(Attachment(entity_type="survey", entity_id=survey.id,
+                                  file_url=p, file_type=ftype))
+    db.session.commit()
+
+    notify_admins(f"تمت معاينة {survey.survey_number}",
+                  f"{survey.customer_name} — {len(survey.items)} بند",
+                  "📋", url_for("admin.survey_view", sid=survey.id))
+    flash("تم حفظ تقرير المعاينة وإرساله للإدارة", "success")
+    return redirect(url_for("tech.dashboard"))

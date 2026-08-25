@@ -86,6 +86,24 @@
 </div>
 {% endif %}
 
+{% if surveys %}
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">📋 معايناتي ({{ surveys|length }})</h3></div>
+    {% for s in surveys %}
+    <div class="task-row">
+        <div class="task-row-main">
+            <strong>{{ s.survey_number }}</strong> · {{ s.customer_name }}<br>
+            <span class="text-muted">{{ s.location }}</span><br>
+            <small>{% if s.visit_at %}📅 {{ s.visit_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}</small>
+        </div>
+        <div class="task-row-actions">
+            <a href="{{ url_for('tech.survey_view', sid=s.id) }}" class="btn btn-sm btn-primary">📝 كتابة التقرير</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 {% if followups %}
 <div class="card mt-4">
     <div class="card-header"><h3 class="card-title">📅 مواعيد متابعة قادمة</h3></div>

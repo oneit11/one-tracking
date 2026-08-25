@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}المعاينات{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">📋 المعاينات</h1>
+    <a href="{{ url_for('admin.survey_new') }}" class="btn btn-primary">➕ معاينة جديدة</a>
+</div>
+
+<div class="tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+    {% set tabs = [('', 'الكل', counts.all), ('new','جديدة',counts.new), ('assigned','مُسندة',counts.assigned), ('inspected','تمت المعاينة',counts.inspected), ('quoted','عرض مُرسل',counts.quoted), ('approved','موافقة',counts.approved), ('converted','تحوّلت لمشروع',counts.converted)] %}
+    {% for val, label, c in tabs %}
+    <a href="{{ url_for('admin.surveys_list', status=val) }}"
+       class="btn btn-sm {{ 'btn-primary' if status == val else 'btn-secondary' }}">
+        {{ label }} <span class="badge">{{ c }}</span>
+    </a>
+    {% endfor %}
+</div>
+
+<div class="card">
+    {% if surveys %}
+    <div style="overflow-x:auto;">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>رقم</th><th>العميل</th><th>الموقع</th><th>الفني</th>
+                <th>موعد المعاينة</th><th>الحالة</th><th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in surveys %}
+            <tr>
+                <td><strong>{{ s.survey_number }}</strong></td>
+                <td>{{ s.customer_name }}<br><span class="text-muted" dir="ltr" style="font-size:12px">{{ s.customer_phone }}</span></td>
+                <td>{{ s.location or '-' }}</td>
+                <td>{{ s.technician.name if s.technician else '—' }}</td>
+                <td style="white-space:nowrap;font-size:12px">{{ s.visit_at.strftime('%Y-%m-%d %H:%M') if s.visit_at else '—' }}</td>
+                <td>
+                    {% set cls = {'new':'badge-info','assigned':'badge-info','inspected':'badge-warning','quoted':'badge-warning','approved':'badge-success','converted':'badge-success','rejected':'badge-secondary'} %}
+                    <span class="badge {{ cls.get(s.status,'') }}">{{ s.status_label }}</span>
+                </td>
+                <td><a href="{{ url_for('admin.survey_view', sid=s.id) }}" class="btn btn-sm btn-secondary">عرض</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="text-align:center;padding:40px 20px;color:var(--text-muted);">
+        <div style="font-size:40px;">📋</div>
+        <p>لا توجد معاينات بعد.</p>
+        <a href="{{ url_for('admin.survey_new') }}" class="btn btn-primary btn-sm mt-2">➕ إنشاء أول معاينة</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

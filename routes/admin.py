@@ -1164,3 +1164,309 @@ def leads_qr_png():
     buf.seek(0)
     return send_file(buf, mimetype="image/png",
                      download_name="one-service-qr.png")
+
+
+# ================= Surveys (المعاينات) =================
+@admin_bp.route("/surveys")
+@admin_required
+def surveys_list():
+    from models.extras import Survey
+    status = request.args.get("status", "")
+    query = Survey.query
+    if status:
+        query = query.filter_by(status=status)
+    surveys = query.order_by(desc(Survey.created_at)).limit(200).all()
+    counts = {
+        "all": Survey.query.count(),
+        "new": Survey.query.filter_by(status="new").count(),
+        "assigned": Survey.query.filter_by(status="assigned").count(),
+        "inspected": Survey.query.filter_by(status="inspected").count(),
+        "quoted": Survey.query.filter_by(status="quoted").count(),
+        "approved": Survey.query.filter_by(status="approved").count(),
+        "converted": Survey.query.filter_by(status="converted").count(),
+    }
+    return render_template("admin/surveys_list.html", surveys=surveys,
+                           counts=counts, status=status)
+
+
+@admin_bp.route("/surveys/new", methods=["GET", "POST"])
+@admin_required
+def survey_new():
+    from models.extras import Survey
+    clients = Client.query.filter_by(active=True).order_by(Client.company_name).all()
+    technicians = User.query.filter_by(role="technician", active=True).all()
+    if request.method == "POST":
+        client_id = request.form.get("client_id") or None
+        tech_id = request.form.get("technician_id") or None
+        visit_raw = request.form.get("visit_at", "").strip()
+        visit_at = None
+        if visit_raw:
+            for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+                try:
+                    visit_at = datetime.strptime(visit_raw, fmt); break
+                except ValueError:
+                    continue
+        s = Survey(
+            survey_number=next_sequence(Survey, "survey_number", "SV"),
+            client_id=int(client_id) if client_id else None,
+            contact_name=request.form.get("contact_name", "").strip(),
+            contact_phone=request.form.get("contact_phone", "").strip(),
+            location=request.form.get("location", "").strip(),
+            description=request.form.get("description", "").strip(),
+            technician_id=int(tech_id) if tech_id else None,
+            visit_at=visit_at,
+            status="assigned" if tech_id else "new",
+            created_by=current_user.id,
+        )
+        db.session.add(s)
+        db.session.commit()
+        # Notify technician
+        if s.technician_id:
+            when = f" بتاريخ {s.visit_at.strftime('%Y-%m-%d %H:%M')}" if s.visit_at else ""
+            notify_user(s.technician_id, f"معاينة جديدة {s.survey_number}",
+                        f"{s.customer_name} — {s.location}{when}",
+                        "📋", url_for("tech.survey_view", sid=s.id))
+            try:
+                tech = User.query.get(s.technician_id)
+                if tech and tech.phone:
+                    wa.send_wa(tech.phone,
+                               f"📋 معاينة جديدة {s.survey_number}\n"
+                               f"العميل: {s.customer_name}\nالموقع: {s.location}{when}",
+                               event_type="survey_assigned", entity_type="survey", entity_id=s.id)
+            except Exception:
+                pass
+        log_action("survey.created", entity_type="survey", entity_id=s.id,
+                   details=s.survey_number)
+        flash(f"تم إنشاء المعاينة {s.survey_number}", "success")
+        return redirect(url_for("admin.survey_view", sid=s.id))
+    return render_template("admin/survey_new.html", clients=clients, technicians=technicians)
+
+
+@admin_bp.route("/surveys/<int:sid>")
+@admin_required
+def survey_view(sid):
+    from models.extras import Survey
+    survey = Survey.query.get_or_404(sid)
+    technicians = User.query.filter_by(role="technician", active=True).all()
+    return render_template("admin/survey_view.html", survey=survey,
+                           technicians=technicians,
+                           now_local=datetime.utcnow().strftime("%Y-%m-%dT%H:%M"))
+
+
+@admin_bp.route("/surveys/<int:sid>/assign", methods=["POST"])
+@admin_required
+def survey_assign(sid):
+    from models.extras import Survey
+    survey = Survey.query.get_or_404(sid)
+    tech_id = request.form.get("technician_id") or None
+    visit_raw = request.form.get("visit_at", "").strip()
+    if visit_raw:
+        for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+            try:
+                survey.visit_at = datetime.strptime(visit_raw, fmt); break
+            except ValueError:
+                continue
+    if tech_id:
+        survey.technician_id = int(tech_id)
+        if survey.status == "new":
+            survey.status = "assigned"
+    db.session.commit()
+    if survey.technician_id:
+        when = f" بتاريخ {survey.visit_at.strftime('%Y-%m-%d %H:%M')}" if survey.visit_at else ""
+        notify_user(survey.technician_id, f"تم إسنادك لمعاينة {survey.survey_number}",
+                    f"{survey.customer_name} — {survey.location}{when}",
+                    "📋", url_for("tech.survey_view", sid=survey.id))
+    flash("تم تحديث بيانات الإسناد", "success")
+    return redirect(url_for("admin.survey_view", sid=sid))
+
+
+@admin_bp.route("/surveys/<int:sid>/items/add", methods=["POST"])
+@admin_required
+def survey_item_add(sid):
+    from models.extras import Survey, SurveyItem
+    survey = Survey.query.get_or_404(sid)
+    name = request.form.get("name", "").strip()
+    if name:
+        price = request.form.get("unit_price", "").strip()
+        db.session.add(SurveyItem(
+            survey_id=survey.id, name=name,
+            spec=request.form.get("spec", "").strip(),
+            quantity=request.form.get("quantity", type=int) or 1,
+            unit_price=float(price) if price else None,
+            notes=request.form.get("notes", "").strip(),
+            added_by_role="admin",
+        ))
+        db.session.commit()
+        flash("تم إضافة البند", "success")
+    return redirect(url_for("admin.survey_view", sid=sid))
+
+
+@admin_bp.route("/surveys/items/<int:item_id>/delete", methods=["POST"])
+@admin_required
+def survey_item_delete(item_id):
+    from models.extras import SurveyItem
+    it = SurveyItem.query.get_or_404(item_id)
+    sid = it.survey_id
+    db.session.delete(it)
+    db.session.commit()
+    flash("تم حذف البند", "success")
+    return redirect(url_for("admin.survey_view", sid=sid))
+
+
+@admin_bp.route("/surveys/<int:sid>/quote", methods=["POST"])
+@admin_required
+def survey_quote(sid):
+    from models.extras import Survey
+    survey = Survey.query.get_or_404(sid)
+    if "quote_file" in request.files and request.files["quote_file"].filename:
+        p = save_upload(request.files["quote_file"], subfolder="quotes", prefix="quote_")
+        if p:
+            survey.quote_file_url = p
+        else:
+            flash("صيغة الملف غير مسموحة (ارفع PDF)", "warning")
+            return redirect(url_for("admin.survey_view", sid=sid))
+    amount = request.form.get("quote_amount", "").strip()
+    if amount:
+        try:
+            survey.quote_amount = float(amount)
+        except ValueError:
+            pass
+    survey.quote_sent_at = datetime.utcnow()
+    if survey.status in ("assigned", "inspected", "new"):
+        survey.status = "quoted"
+    db.session.commit()
+    # Send quote to customer via WhatsApp (best effort)
+    try:
+        phone = survey.customer_phone
+        if phone:
+            from services.settings_service import get_setting
+            company = get_setting("company_name", "الشركة")
+            app_url = get_setting("app_url", "")
+            msg = (f"أهلاً {survey.customer_name} 👋\n"
+                   f"ده عرض السعر الخاص بمعاينة {survey.survey_number} من {company}.")
+            if survey.quote_amount:
+                cur = get_setting("currency", "ج.م")
+                msg += f"\nالإجمالي: {survey.quote_amount:g} {cur}"
+            if app_url and survey.quote_file_url:
+                msg += f"\nرابط العرض: {app_url}{survey.quote_file_url}"
+            wa.send_wa(phone, msg, event_type="survey_quote",
+                       entity_type="survey", entity_id=survey.id)
+    except Exception:
+        pass
+    log_action("survey.quoted", entity_type="survey", entity_id=survey.id)
+    flash("تم حفظ عرض السعر وإرساله للعميل", "success")
+    return redirect(url_for("admin.survey_view", sid=sid))
+
+
+@admin_bp.route("/surveys/<int:sid>/approve", methods=["POST"])
+@admin_required
+def survey_approve(sid):
+    from models.extras import Survey
+    survey = Survey.query.get_or_404(sid)
+    survey.status = "approved"
+    survey.approved_at = datetime.utcnow()
+    survey.decision_note = request.form.get("decision_note", "").strip()
+    db.session.commit()
+    log_action("survey.approved", entity_type="survey", entity_id=survey.id)
+    flash("تم تسجيل موافقة العميل — تقدر تحوّلها لمشروع الآن", "success")
+    return redirect(url_for("admin.survey_view", sid=sid))
+
+
+@admin_bp.route("/surveys/<int:sid>/reject", methods=["POST"])
+@admin_required
+def survey_reject(sid):
+    from models.extras import Survey
+    survey = Survey.query.get_or_404(sid)
+    survey.status = "rejected"
+    survey.decision_note = request.form.get("decision_note", "").strip()
+    db.session.commit()
+    log_action("survey.rejected", entity_type="survey", entity_id=survey.id)
+    flash("تم تسجيل رفض العميل", "info")
+    return redirect(url_for("admin.survey_view", sid=sid))
+
+
+@admin_bp.route("/surveys/<int:sid>/convert", methods=["POST"])
+@admin_required
+def survey_convert(sid):
+    from models.extras import Survey
+    survey = Survey.query.get_or_404(sid)
+    if survey.converted_ticket_id:
+        flash("تم تحويل هذه المعاينة من قبل", "info")
+        return redirect(url_for("admin.ticket_view", tid=survey.converted_ticket_id))
+
+    # Ensure there's a client to attach the project to
+    client = survey.client
+    if not client:
+        client = Client.query.filter(
+            (Client.phone == survey.contact_phone) | (Client.whatsapp == survey.contact_phone)
+        ).first() if survey.contact_phone else None
+    if not client:
+        client = Client(
+            code=next_client_code(),
+            company_name=survey.contact_name or f"عميل معاينة {survey.survey_number}",
+            contact_person=survey.contact_name or "",
+            phone=survey.contact_phone or "",
+            whatsapp=survey.contact_phone or "",
+            city=survey.location or "",
+            address=survey.location or "",
+            notes=f"عميل من معاينة {survey.survey_number}",
+        )
+        db.session.add(client)
+        db.session.flush()
+
+    # Build the installation scope (device items) into the project description
+    lines = [f"مشروع تركيب ناتج عن المعاينة {survey.survey_number}."]
+    if survey.location:
+        lines.append(f"الموقع: {survey.location}")
+    if survey.description:
+        lines.append(f"طلب العميل: {survey.description}")
+    if survey.inspection_notes:
+        lines.append(f"\nملاحظات المعاينة:\n{survey.inspection_notes}")
+    if survey.items:
+        lines.append("\nبنود الأجهزة المطلوب تركيبها:")
+        for i, it in enumerate(survey.items, 1):
+            row = f"{i}. {it.name}"
+            if it.spec:
+                row += f" ({it.spec})"
+            row += f" × {it.quantity or 1}"
+            lines.append(row)
+    if survey.quote_amount:
+        lines.append(f"\nقيمة العرض المعتمد: {survey.quote_amount:g}")
+
+    t = SupportTicket(
+        ticket_number=next_sequence(SupportTicket, "ticket_number", "TK"),
+        client_id=client.id,
+        subject=f"تركيب — {survey.location or survey.customer_name}",
+        description="\n".join(lines),
+        priority="normal",
+        start_date=datetime.utcnow().date(),
+        created_by=current_user.id,
+    )
+    db.session.add(t)
+    db.session.flush()
+    survey.converted_ticket_id = t.id
+    survey.status = "converted"
+    db.session.commit()
+
+    notify_admins(f"تحوّلت معاينة لمشروع تركيب {t.ticket_number}",
+                  f"{client.company_name} — {len(survey.items)} بند",
+                  "🏗️", url_for("admin.ticket_view", tid=t.id))
+    log_action("survey.converted", entity_type="survey", entity_id=survey.id,
+               details=t.ticket_number)
+    flash(f"تم تحويل المعاينة إلى مشروع تركيب {t.ticket_number}", "success")
+    return redirect(url_for("admin.ticket_view", tid=t.id))
+
+
+@admin_bp.route("/surveys/<int:sid>/delete", methods=["POST"])
+@admin_required
+def survey_delete(sid):
+    from models.extras import Survey
+    survey = Survey.query.get_or_404(sid)
+    from models.attachment import Attachment
+    Attachment.query.filter_by(entity_type="survey", entity_id=sid).delete(synchronize_session=False)
+    num = survey.survey_number
+    db.session.delete(survey)
+    db.session.commit()
+    log_action("survey.deleted", entity_type="survey", entity_id=sid, details=num)
+    flash("تم حذف المعاينة", "success")
+    return redirect(url_for("admin.surveys_list"))
