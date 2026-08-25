@@ -26,6 +26,17 @@ from services.audit import log_action
 admin_bp = Blueprint("admin", __name__)
 
 
+def _surveys_open_count():
+    """Surveys still in progress (not converted/rejected)."""
+    try:
+        from models.extras import Survey
+        return Survey.query.filter(
+            Survey.status.in_(["new", "assigned", "inspected", "quoted", "approved"])
+        ).count()
+    except Exception:
+        return 0
+
+
 # ================= Dashboard =================
 @admin_bp.route("/")
 @admin_required
@@ -61,6 +72,7 @@ def dashboard():
         "tickets_open": SupportTicket.query.filter(
             SupportTicket.status.in_(["open", "in_progress"])
         ).count(),
+        "surveys_open": _surveys_open_count(),
         "technicians_total": User.query.filter_by(role="technician", active=True).count(),
         "qr_codes_total": QRCode.query.count(),
         "qr_codes_used": QRCode.query.filter(QRCode.device_id.isnot(None)).count(),
@@ -1167,6 +1179,29 @@ def leads_qr_png():
 
 
 # ================= Surveys (المعاينات) =================
+def _notify_survey_customer(survey):
+    """Send the customer a WhatsApp with their survey (inspection) appointment."""
+    if not survey.visit_at:
+        return
+    phone = survey.customer_phone
+    if not phone:
+        return
+    try:
+        from services.settings_service import get_setting
+        company = get_setting("company_name", "الشركة")
+        phone1 = get_setting("company_phone", "")
+        msg = (f"أهلاً {survey.customer_name} 👋\n"
+               f"تم تحديد موعد معاينة من {company} 📋\n"
+               f"📅 الموعد: {survey.visit_at.strftime('%Y-%m-%d %H:%M')}\n"
+               f"📍 الموقع: {survey.location}\n"
+               f"فريقنا الفني هيزورك في الميعاد ده."
+               + (f"\nلأي استفسار: {phone1}" if phone1 else ""))
+        wa.send_wa(phone, msg, event_type="survey_visit",
+                   entity_type="survey", entity_id=survey.id, dedupe=True)
+    except Exception:
+        pass
+
+
 @admin_bp.route("/surveys")
 @admin_required
 def surveys_list():
@@ -1235,6 +1270,8 @@ def survey_new():
                                event_type="survey_assigned", entity_type="survey", entity_id=s.id)
             except Exception:
                 pass
+        # Notify customer of the survey appointment
+        _notify_survey_customer(s)
         log_action("survey.created", entity_type="survey", entity_id=s.id,
                    details=s.survey_number)
         flash(f"تم إنشاء المعاينة {s.survey_number}", "success")
@@ -1276,7 +1313,9 @@ def survey_assign(sid):
         notify_user(survey.technician_id, f"تم إسنادك لمعاينة {survey.survey_number}",
                     f"{survey.customer_name} — {survey.location}{when}",
                     "📋", url_for("tech.survey_view", sid=survey.id))
-    flash("تم تحديث بيانات الإسناد", "success")
+    # Notify customer of the (updated) appointment
+    _notify_survey_customer(survey)
+    flash("تم تحديث بيانات الإسناد وإبلاغ العميل بالموعد", "success")
     return redirect(url_for("admin.survey_view", sid=sid))
 
 
@@ -1335,20 +1374,24 @@ def survey_quote(sid):
     if survey.status in ("assigned", "inspected", "new"):
         survey.status = "quoted"
     db.session.commit()
-    # Send quote to customer via WhatsApp (best effort)
+    # Send quote to customer via WhatsApp (best effort) — include a link to the file
     try:
         phone = survey.customer_phone
         if phone:
             from services.settings_service import get_setting
             company = get_setting("company_name", "الشركة")
-            app_url = get_setting("app_url", "")
+            base = (get_setting("app_url", "") or request.url_root or "").rstrip("/")
             msg = (f"أهلاً {survey.customer_name} 👋\n"
                    f"ده عرض السعر الخاص بمعاينة {survey.survey_number} من {company}.")
             if survey.quote_amount:
                 cur = get_setting("currency", "ج.م")
                 msg += f"\nالإجمالي: {survey.quote_amount:g} {cur}"
-            if app_url and survey.quote_file_url:
-                msg += f"\nرابط العرض: {app_url}{survey.quote_file_url}"
+            if survey.quote_file_url:
+                link = survey.quote_file_url
+                if base and link.startswith("/"):
+                    link = base + link
+                msg += f"\n📄 تحميل عرض السعر:\n{link}"
+            msg += "\nفي انتظار موافقتك ✅"
             wa.send_wa(phone, msg, event_type="survey_quote",
                        entity_type="survey", entity_id=survey.id)
     except Exception:
@@ -1394,6 +1437,18 @@ def survey_convert(sid):
         flash("تم تحويل هذه المعاينة من قبل", "info")
         return redirect(url_for("admin.ticket_view", tid=survey.converted_ticket_id))
 
+    # Installation date (chosen by admin before conversion)
+    install_raw = request.form.get("install_at", "").strip()
+    install_dt = None
+    if install_raw:
+        for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+            try:
+                install_dt = datetime.strptime(install_raw, fmt); break
+            except ValueError:
+                continue
+    if install_dt:
+        survey.install_at = install_dt
+
     # Ensure there's a client to attach the project to
     client = survey.client
     if not client:
@@ -1432,6 +1487,8 @@ def survey_convert(sid):
             lines.append(row)
     if survey.quote_amount:
         lines.append(f"\nقيمة العرض المعتمد: {survey.quote_amount:g}")
+    if install_dt:
+        lines.append(f"\n📅 موعد التركيب: {install_dt.strftime('%Y-%m-%d %H:%M')}")
 
     t = SupportTicket(
         ticket_number=next_sequence(SupportTicket, "ticket_number", "TK"),
@@ -1439,7 +1496,7 @@ def survey_convert(sid):
         subject=f"تركيب — {survey.location or survey.customer_name}",
         description="\n".join(lines),
         priority="normal",
-        start_date=datetime.utcnow().date(),
+        start_date=install_dt.date() if install_dt else datetime.utcnow().date(),
         created_by=current_user.id,
     )
     db.session.add(t)
@@ -1447,6 +1504,24 @@ def survey_convert(sid):
     survey.converted_ticket_id = t.id
     survey.status = "converted"
     db.session.commit()
+
+    # Notify the customer of the installation appointment
+    try:
+        phone = survey.customer_phone
+        if phone and install_dt:
+            from services.settings_service import get_setting
+            company = get_setting("company_name", "الشركة")
+            phone1 = get_setting("company_phone", "")
+            msg = (f"أهلاً {survey.customer_name} 🎉\n"
+                   f"تم اعتماد التركيب مع {company}.\n"
+                   f"📅 موعد التركيب: {install_dt.strftime('%Y-%m-%d %H:%M')}\n"
+                   f"📍 الموقع: {survey.location}\n"
+                   f"فريقنا هيكون عندك في الميعاد ده."
+                   + (f"\nلأي استفسار: {phone1}" if phone1 else ""))
+            wa.send_wa(phone, msg, event_type="survey_install",
+                       entity_type="survey", entity_id=survey.id, dedupe=True)
+    except Exception:
+        pass
 
     notify_admins(f"تحوّلت معاينة لمشروع تركيب {t.ticket_number}",
                   f"{client.company_name} — {len(survey.items)} بند",

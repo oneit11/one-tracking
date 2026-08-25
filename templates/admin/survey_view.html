@@ -160,9 +160,14 @@
 {% if survey.status == 'approved' %}
 <div class="card mt-4" style="border:1.5px solid var(--success);">
     <div class="card-header"><h3 class="card-title">🏗️ تحويل لمشروع تركيب</h3></div>
-    <p class="text-muted">العميل وافق. حوّل المعاينة لمشروع تركيب بالبنود المطلوبة — هيكمّل في نظام المشاريع (فريق + زيارات + تقرير).</p>
+    <p class="text-muted">العميل وافق. حدد <strong>موعد التركيب</strong> وحوّل المعاينة لمشروع — هيتبعت للعميل رسالة واتساب بموعد التركيب، ويكمّل في نظام المشاريع (فريق + زيارات + تقرير).</p>
     <form method="post" action="{{ url_for('admin.survey_convert', sid=survey.id) }}" class="mt-2">
-        <button class="btn btn-success">🏗️ تحويل لمشروع تركيب</button>
+        <div class="form-group" style="max-width:320px;">
+            <label class="form-label">📅 موعد التركيب <span class="req">*</span></label>
+            <input class="form-input" type="datetime-local" name="install_at" required
+                   value="{{ now_local }}">
+        </div>
+        <button class="btn btn-success mt-2">🏗️ تحويل لمشروع + إبلاغ العميل</button>
     </form>
 </div>
 {% endif %}

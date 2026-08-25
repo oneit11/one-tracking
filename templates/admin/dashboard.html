@@ -62,6 +62,14 @@
         </div>
         <div class="kpi-arrow">←</div>
     </a>
+    <a href="{{ url_for('admin.surveys_list') }}" class="kpi-card kpi-primary">
+        <div class="kpi-icon">📋</div>
+        <div class="kpi-body">
+            <div class="kpi-label">معاينات جارية</div>
+            <div class="kpi-value">{{ stats.surveys_open }}</div>
+        </div>
+        <div class="kpi-arrow">←</div>
+    </a>
     <a href="{{ url_for('admin.requests_list') }}" class="kpi-card kpi-info">
         <div class="kpi-icon">📅</div>
         <div class="kpi-body">

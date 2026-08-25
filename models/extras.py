@@ -140,6 +140,7 @@ class Survey(db.Model):
     quote_sent_at = db.Column(db.DateTime, nullable=True)
     approved_at = db.Column(db.DateTime, nullable=True)
     decision_note = db.Column(db.Text, default="")
+    install_at = db.Column(db.DateTime, nullable=True)   # موعد التركيب
     converted_ticket_id = db.Column(db.Integer, nullable=True)
     status = db.Column(db.String(20), default="new", index=True)
     # new, assigned, inspected, quoted, approved, converted, rejected
