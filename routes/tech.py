@@ -89,41 +89,58 @@ def project_visit_new(tid):
         flash("تسجيل الزيارات متاح لقائد الفريق فقط", "danger")
         return redirect(url_for("tech.project_view", tid=tid))
 
+    work_done = request.form.get("work_done", "").strip()
+    notes = request.form.get("notes", "").strip()
+    files = [f for f in request.files.getlist("photos") if f and f.filename]
+
+    # Don't create an empty visit — require some content
+    if not work_done and not files:
+        flash("اكتب العمل المنفذ أو أرفق صورة على الأقل", "warning")
+        return redirect(url_for("tech.project_view", tid=tid))
+
     visit = ProjectVisit(
         ticket_id=tid,
         technician_id=current_user.id,
         technician_name=current_user.name,
         visit_date=datetime.utcnow(),
-        work_done=request.form.get("work_done", "").strip(),
-        notes=request.form.get("notes", "").strip(),
+        work_done=work_done,
+        notes=notes,
     )
     db.session.add(visit)
-    db.session.commit()
+    db.session.flush()  # get visit.id without committing yet
 
-    # Multiple photos / videos
-    files = request.files.getlist("photos")
+    # Multiple photos / videos — save each; a failed file won't lose the visit
     video_exts = current_app.config.get("VIDEO_EXTENSIONS", set())
     saved = 0
+    failed = 0
     for f in files:
-        if f and f.filename:
+        try:
             url = save_upload(f, subfolder="reports", prefix="proj_")
-            if url:
-                ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else ""
-                ftype = "video" if ext in video_exts else "image"
-                db.session.add(Attachment(
-                    entity_type="project_visit", entity_id=visit.id,
-                    file_url=url, file_name=f.filename[:200], file_type=ftype,
-                    uploaded_by=current_user.id,
-                ))
-                saved += 1
+        except Exception as e:
+            current_app.logger.warning(f"visit upload failed: {str(e)[:150]}")
+            url = ""
+        if url:
+            ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else ""
+            ftype = "video" if ext in video_exts else "image"
+            db.session.add(Attachment(
+                entity_type="project_visit", entity_id=visit.id,
+                file_url=url, file_name=f.filename[:200], file_type=ftype,
+                uploaded_by=current_user.id,
+            ))
+            saved += 1
+        else:
+            failed += 1
     db.session.commit()
 
     notify_admins(
         f"زيارة جديدة بمشروع {project.ticket_number}",
-        f"{current_user.name} — {saved} صورة",
+        f"{current_user.name} — {saved} ملف",
         "🏗️", url_for("admin.ticket_view", tid=tid),
     )
-    flash(f"تم تسجيل الزيارة ({saved} صورة)", "success")
+    msg = f"تم تسجيل الزيارة ({saved} ملف)"
+    if failed:
+        msg += f" — ⚠️ {failed} ملف لم يُرفع (جرّب صور أقل أو أصغر)"
+    flash(msg, "warning" if failed and not saved else "success")
     return redirect(url_for("tech.project_view", tid=tid))
 
 
