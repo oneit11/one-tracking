@@ -10,7 +10,19 @@
 </div>
 
 <div class="card">
+    <div class="tabs mb-4">
+        <a href="{{ url_for('admin.clients_list') }}{% if q %}?q={{ q }}{% endif %}"
+           class="tab {% if filter != 'debtors' %}active{% endif %}">
+            👥 {{ t('admin.tab_all_clients') }}
+        </a>
+        <a href="{{ url_for('admin.clients_list', filter='debtors') }}{% if q %}&q={{ q }}{% endif %}"
+           class="tab {% if filter == 'debtors' %}active{% endif %}">
+            💰 {{ t('admin.tab_debtors') }} ({{ debtors_count }})
+        </a>
+    </div>
+
     <form method="get" class="d-flex gap-2 mb-4">
+        {% if filter %}<input type="hidden" name="filter" value="{{ filter }}">{% endif %}
         <input class="form-input" name="q" placeholder="{{ t('admin.search_clients_ph') }}" value="{{ q }}">
         <button class="btn btn-secondary">{{ t('btn.search') }}</button>
     </form>
@@ -70,8 +82,8 @@
     </div>
     {% else %}
     <div class="empty">
-        <h3>{{ t('admin.no_clients') }}</h3>
-        <a href="{{ url_for('admin.client_new') }}" class="btn btn-primary mt-2">{{ t('admin.first_client') }}</a>
+        <h3>{% if filter == 'debtors' %}{{ t('admin.no_debtors') }}{% else %}{{ t('admin.no_clients') }}{% endif %}</h3>
+        {% if filter != 'debtors' %}<a href="{{ url_for('admin.client_new') }}" class="btn btn-primary mt-2">{{ t('admin.first_client') }}</a>{% endif %}
     </div>
     {% endif %}
 </div>

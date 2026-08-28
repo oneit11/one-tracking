@@ -91,7 +91,7 @@
 <div class="dash-section">
     <div class="dash-section-head"><span class="sec-emoji">💰</span>{{ t('admin.sec_financial') }}</div>
     <div class="kpi-grid">
-        <a href="{{ url_for('admin.clients_list') }}" class="kpi-card kpi-danger">
+        <a href="{{ url_for('admin.clients_list', filter='debtors') }}" class="kpi-card kpi-danger">
             <div class="kpi-icon">🧾</div>
             <div class="kpi-body">
                 <div class="kpi-label">{{ t('admin.kpi_receivable') }}</div>
@@ -99,7 +99,7 @@
             </div>
             <div class="kpi-arrow">←</div>
         </a>
-        <a href="{{ url_for('admin.clients_list') }}" class="kpi-card kpi-warning">
+        <a href="{{ url_for('admin.clients_list', filter='debtors') }}" class="kpi-card kpi-warning">
             <div class="kpi-icon">👤</div>
             <div class="kpi-body">
                 <div class="kpi-label">{{ t('admin.kpi_clients_balance') }}</div>

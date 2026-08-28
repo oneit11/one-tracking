@@ -237,6 +237,9 @@ TRANSLATIONS = {
     "admin.col_balance": {"ar": "الرصيد", "en": "Balance"},
     "admin.no_clients": {"ar": "لا يوجد عملاء", "en": "No clients"},
     "admin.first_client": {"ar": "+ إضافة أول عميل", "en": "+ Add first client"},
+    "admin.tab_all_clients": {"ar": "كل العملاء", "en": "All Clients"},
+    "admin.tab_debtors": {"ar": "عليهم مديونية", "en": "With Balance"},
+    "admin.no_debtors": {"ar": "لا يوجد عملاء عليهم مديونية", "en": "No clients with an outstanding balance"},
     "admin.confirm_delete_client": {"ar": "متأكد من حذف {name}؟ سيتم فصل كل المستخدمين المرتبطين.",
                                      "en": "Delete {name}? All linked users will be detached."},
 

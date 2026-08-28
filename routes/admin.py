@@ -164,6 +164,7 @@ def global_search():
 @admin_required
 def clients_list():
     q = request.args.get("q", "").strip()
+    flt = request.args.get("filter", "").strip()  # "" | debtors
     query = Client.query
     if q:
         like = f"%{q}%"
@@ -172,7 +173,12 @@ def clients_list():
             Client.phone.ilike(like), Client.code.ilike(like),
         ))
     clients = query.order_by(Client.company_name).all()
-    return render_template("admin/clients_list.html", clients=clients, q=q)
+    # balance is a computed property, so filter in Python
+    if flt == "debtors":
+        clients = [c for c in clients if c.balance > 0]
+    debtors_count = sum(1 for c in Client.query.all() if c.balance > 0)
+    return render_template("admin/clients_list.html", clients=clients, q=q,
+                           filter=flt, debtors_count=debtors_count)
 
 
 @admin_bp.route("/clients/new", methods=["GET", "POST"])
