@@ -82,8 +82,43 @@
     </div>
     {% endif %}
 
+    {% set best = rating.stars or rating.tech_stars or 0 %}
+    {% if best >= (social_min_stars or 4) and (facebook_url or google_url) %}
+    <div class="social-review no-print">
+        <hr style="margin:20px 0;border:none;border-top:1px solid #e5e7eb">
+        <p class="text-center" style="font-weight:600;margin-bottom:12px;">
+            🙏 {{ t('rating.share_prompt') }}
+        </p>
+        <div class="social-btns">
+            {% if google_url %}
+            <a href="{{ google_url }}" target="_blank" rel="noopener" class="social-btn social-google">
+                <span style="font-size:20px;">🔵</span> {{ t('rating.review_google') }}
+            </a>
+            {% endif %}
+            {% if facebook_url %}
+            <a href="{{ facebook_url }}" target="_blank" rel="noopener" class="social-btn social-fb">
+                <span style="font-size:20px;">👍</span> {{ t('rating.review_facebook') }}
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <div class="text-center no-print mt-4">
         <button onclick="window.print()" class="btn btn-primary">{{ t('rating.print') }}</button>
     </div>
 </div>
+
+<style>
+.social-btns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.social-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 20px; border-radius: 10px; font-weight: 600;
+    color: #fff; text-decoration: none; font-size: 15px;
+    transition: transform .1s, box-shadow .1s;
+}
+.social-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+.social-google { background: #4285F4; }
+.social-fb { background: #1877F2; }
+</style>
 {% endblock %}

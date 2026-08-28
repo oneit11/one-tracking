@@ -1,48 +1,48 @@
 {% extends "base.html" %}
-{% block title %}طلب صيانة جديد{% endblock %}
+{% block title %}{{ t('req.new_title') }}{% endblock %}
 {% block content %}
 <div class="page-header">
-    <h1 class="page-title">طلب صيانة جديد</h1>
-    <a href="{{ url_for('portal.requests_list') }}" class="btn btn-secondary">← رجوع</a>
+    <h1 class="page-title">{{ t('req.new_title') }}</h1>
+    <a href="{{ url_for('portal.requests_list') }}" class="btn btn-secondary">{{ t('btn.back') }}</a>
 </div>
 
 <div class="card">
     <form method="post" enctype="multipart/form-data">
         <div class="form-grid">
             <div class="form-group">
-                <label class="form-label">الجهاز (اختياري)</label>
+                <label class="form-label">{{ t('req.device_optional') }}</label>
                 <select class="form-select" name="device_id">
-                    <option value="">-- طلب عام --</option>
+                    <option value="">{{ t('req.general') }}</option>
                     {% for d in devices %}
                     <option value="{{ d.id }}">{{ d.name }} {% if d.location %}({{ d.location }}){% endif %}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="form-group">
-                <label class="form-label">الأولوية</label>
+                <label class="form-label">{{ t('req.priority') }}</label>
                 <select class="form-select" name="priority">
-                    <option value="low">منخفض</option>
-                    <option value="normal" selected>عادي</option>
-                    <option value="high">عالي</option>
-                    <option value="urgent">عاجل</option>
+                    <option value="low">{{ t('priority.low') }}</option>
+                    <option value="normal" selected>{{ t('priority.normal') }}</option>
+                    <option value="high">{{ t('priority.high') }}</option>
+                    <option value="urgent">{{ t('priority.urgent') }}</option>
                 </select>
             </div>
             <div class="form-group full">
-                <label class="form-label">العنوان <span class="req">*</span></label>
-                <input class="form-input" name="title" required placeholder="مثال: الكاميرا في المدخل لا تعمل">
+                <label class="form-label">{{ t('req.title_label') }} <span class="req">*</span></label>
+                <input class="form-input" name="title" required placeholder="{{ t('req.title_ph') }}">
             </div>
             <div class="form-group full">
-                <label class="form-label">وصف المشكلة</label>
-                <textarea class="form-textarea" name="description" rows="4" placeholder="اذكر أي تفاصيل تساعد الفني..."></textarea>
+                <label class="form-label">{{ t('req.desc_label') }}</label>
+                <textarea class="form-textarea" name="description" rows="4" placeholder="{{ t('req.desc_ph') }}"></textarea>
             </div>
             <div class="form-group full">
-                <label class="form-label">صورة المشكلة</label>
+                <label class="form-label">{{ t('req.photo_label') }}</label>
                 <input class="form-input" type="file" name="photo" accept="image/*">
-                <span class="form-hint">تساعد الفني في تشخيص المشكلة قبل الزيارة</span>
+                <span class="form-hint">{{ t('req.photo_hint') }}</span>
             </div>
         </div>
         <div class="form-actions">
-            <button class="btn btn-primary btn-lg">📤 إرسال الطلب</button>
+            <button class="btn btn-primary btn-lg">{{ t('req.submit') }}</button>
         </div>
     </form>
 </div>

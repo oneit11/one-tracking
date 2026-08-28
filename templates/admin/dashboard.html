@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}لوحة التحكم - {{ APP_NAME }}{% endblock %}
+{% block title %}{{ t('admin.dashboard_title') }} - {{ APP_NAME }}{% endblock %}
 
 {% block head_extra %}
 <script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
@@ -8,15 +8,15 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title">لوحة التحكم</h1>
-        <p class="page-subtitle">نظرة عامة شاملة على النظام</p>
+        <h1 class="page-title">{{ t('admin.dashboard_title') }}</h1>
+        <p class="page-subtitle">{{ t('admin.dashboard_subtitle') }}</p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
         <form method="get" action="{{ url_for('admin.global_search') }}" style="display:flex;gap:6px">
-            <input class="form-input" name="q" placeholder="🔍 بحث سريع..." style="min-width:220px">
-            <button class="btn btn-secondary" type="submit">بحث</button>
+            <input class="form-input" name="q" placeholder="{{ t('admin.quick_search') }}" style="min-width:220px">
+            <button class="btn btn-secondary" type="submit">{{ t('btn.search') }}</button>
         </form>
-        <a href="{{ url_for('admin.request_new') }}" class="btn btn-primary">+ طلب جديد</a>
+        <a href="{{ url_for('admin.request_new') }}" class="btn btn-primary">{{ t('admin.new_request') }}</a>
     </div>
 </div>
 
@@ -25,7 +25,7 @@
     <a href="{{ url_for('admin.clients_list') }}" class="kpi-card kpi-primary">
         <div class="kpi-icon">👥</div>
         <div class="kpi-body">
-            <div class="kpi-label">العملاء</div>
+            <div class="kpi-label">{{ t('admin.kpi_clients') }}</div>
             <div class="kpi-value">{{ stats.clients_total }}</div>
         </div>
         <div class="kpi-arrow">←</div>
@@ -33,7 +33,7 @@
     <a href="{{ url_for('admin.devices_list') }}" class="kpi-card kpi-accent">
         <div class="kpi-icon">🖥️</div>
         <div class="kpi-body">
-            <div class="kpi-label">الأجهزة</div>
+            <div class="kpi-label">{{ t('admin.kpi_devices') }}</div>
             <div class="kpi-value">{{ stats.devices_total }}</div>
         </div>
         <div class="kpi-arrow">←</div>
@@ -41,7 +41,7 @@
     <a href="{{ url_for('admin.requests_list') }}?status=" class="kpi-card kpi-warning">
         <div class="kpi-icon">📋</div>
         <div class="kpi-body">
-            <div class="kpi-label">طلبات مفتوحة</div>
+            <div class="kpi-label">{{ t('admin.kpi_open_requests') }}</div>
             <div class="kpi-value">{{ stats.requests_open }}</div>
         </div>
         <div class="kpi-arrow">←</div>
@@ -49,7 +49,7 @@
     <a href="{{ url_for('admin.requests_list') }}?status=new" class="kpi-card kpi-danger">
         <div class="kpi-icon">🆕</div>
         <div class="kpi-body">
-            <div class="kpi-label">طلبات جديدة</div>
+            <div class="kpi-label">{{ t('admin.kpi_new_requests') }}</div>
             <div class="kpi-value">{{ stats.requests_new }}</div>
         </div>
         <div class="kpi-arrow">←</div>
@@ -57,7 +57,7 @@
     <a href="{{ url_for('admin.requests_list') }}?sla=breached" class="kpi-card kpi-danger">
         <div class="kpi-icon">⚠️</div>
         <div class="kpi-body">
-            <div class="kpi-label">تجاوز SLA</div>
+            <div class="kpi-label">{{ t('admin.kpi_sla_breached') }}</div>
             <div class="kpi-value">{{ stats.sla_breached }}</div>
         </div>
         <div class="kpi-arrow">←</div>
@@ -65,7 +65,7 @@
     <a href="{{ url_for('admin.surveys_list') }}" class="kpi-card kpi-primary">
         <div class="kpi-icon">📋</div>
         <div class="kpi-body">
-            <div class="kpi-label">معاينات جارية</div>
+            <div class="kpi-label">{{ t('admin.kpi_surveys') }}</div>
             <div class="kpi-value">{{ stats.surveys_open }}</div>
         </div>
         <div class="kpi-arrow">←</div>
@@ -73,7 +73,7 @@
     <a href="{{ url_for('admin.requests_list') }}" class="kpi-card kpi-info">
         <div class="kpi-icon">📅</div>
         <div class="kpi-body">
-            <div class="kpi-label">اليوم</div>
+            <div class="kpi-label">{{ t('admin.kpi_today') }}</div>
             <div class="kpi-value">{{ stats.requests_today }}</div>
         </div>
         <div class="kpi-arrow">←</div>
@@ -81,7 +81,7 @@
     <a href="{{ url_for('admin.requests_list') }}" class="kpi-card kpi-info">
         <div class="kpi-icon">🗓️</div>
         <div class="kpi-body">
-            <div class="kpi-label">الأسبوع</div>
+            <div class="kpi-label">{{ t('admin.kpi_week') }}</div>
             <div class="kpi-value">{{ stats.requests_week }}</div>
         </div>
         <div class="kpi-arrow">←</div>
@@ -89,7 +89,7 @@
     <a href="{{ url_for('admin.requests_list') }}?status=closed" class="kpi-card kpi-success">
         <div class="kpi-icon">✅</div>
         <div class="kpi-body">
-            <div class="kpi-label">مغلق (30 يوم)</div>
+            <div class="kpi-label">{{ t('admin.kpi_closed_month') }}</div>
             <div class="kpi-value">{{ stats.requests_closed_month }}</div>
         </div>
         <div class="kpi-arrow">←</div>
@@ -97,7 +97,7 @@
     <a href="{{ url_for('admin.tickets_list') }}" class="kpi-card kpi-warning">
         <div class="kpi-icon">🎫</div>
         <div class="kpi-body">
-            <div class="kpi-label">تذاكر مفتوحة</div>
+            <div class="kpi-label">{{ t('admin.kpi_open_tickets') }}</div>
             <div class="kpi-value">{{ stats.tickets_open }}</div>
         </div>
         <div class="kpi-arrow">←</div>
@@ -105,7 +105,7 @@
     <a href="{{ url_for('admin.users_list') }}" class="kpi-card kpi-primary">
         <div class="kpi-icon">🧑‍🔧</div>
         <div class="kpi-body">
-            <div class="kpi-label">الفنيين</div>
+            <div class="kpi-label">{{ t('admin.kpi_technicians') }}</div>
             <div class="kpi-value">{{ stats.technicians_total }}</div>
         </div>
         <div class="kpi-arrow">←</div>
@@ -113,7 +113,7 @@
     <a href="{{ url_for('admin.qr_home') }}" class="kpi-card kpi-accent">
         <div class="kpi-icon">🔗</div>
         <div class="kpi-body">
-            <div class="kpi-label">QR مستخدم</div>
+            <div class="kpi-label">{{ t('admin.kpi_qr_used') }}</div>
             <div class="kpi-value">{{ stats.qr_codes_used }}/{{ stats.qr_codes_total }}</div>
         </div>
         <div class="kpi-arrow">←</div>
@@ -121,7 +121,7 @@
     <a href="{{ url_for('reports.home') }}" class="kpi-card kpi-success">
         <div class="kpi-icon">⭐</div>
         <div class="kpi-body">
-            <div class="kpi-label">متوسط التقييم</div>
+            <div class="kpi-label">{{ t('admin.kpi_avg_rating') }}</div>
             <div class="kpi-value">{{ "%.1f"|format(stats.avg_rating) if stats.avg_rating else '-' }}</div>
         </div>
         <div class="kpi-arrow">←</div>
@@ -130,59 +130,59 @@
 
 <!-- Quick actions -->
 <div class="quick-actions">
-    <a href="{{ url_for('admin.request_new') }}" class="qa-btn"><span>➕</span><small>طلب صيانة</small></a>
-    <a href="{{ url_for('admin.ticket_new') }}" class="qa-btn"><span>🎫</span><small>تذكرة دعم</small></a>
-    <a href="{{ url_for('admin.client_new') }}" class="qa-btn"><span>🏢</span><small>عميل جديد</small></a>
-    <a href="{{ url_for('admin.device_new') }}" class="qa-btn"><span>🖥️</span><small>جهاز جديد</small></a>
-    <a href="{{ url_for('admin.user_new') }}" class="qa-btn"><span>👤</span><small>مستخدم</small></a>
-    <a href="{{ url_for('scanner.scan_page') }}" class="qa-btn"><span>📷</span><small>مسح QR</small></a>
-    <a href="{{ url_for('reports.home') }}" class="qa-btn"><span>📊</span><small>التقارير</small></a>
-    <a href="{{ url_for('settings.home') }}" class="qa-btn"><span>⚙️</span><small>الإعدادات</small></a>
+    <a href="{{ url_for('admin.request_new') }}" class="qa-btn"><span>➕</span><small>{{ t('admin.qa_request') }}</small></a>
+    <a href="{{ url_for('admin.ticket_new') }}" class="qa-btn"><span>🎫</span><small>{{ t('admin.qa_ticket') }}</small></a>
+    <a href="{{ url_for('admin.client_new') }}" class="qa-btn"><span>🏢</span><small>{{ t('admin.qa_client') }}</small></a>
+    <a href="{{ url_for('admin.device_new') }}" class="qa-btn"><span>🖥️</span><small>{{ t('admin.qa_device') }}</small></a>
+    <a href="{{ url_for('admin.user_new') }}" class="qa-btn"><span>👤</span><small>{{ t('admin.qa_user') }}</small></a>
+    <a href="{{ url_for('scanner.scan_page') }}" class="qa-btn"><span>📷</span><small>{{ t('admin.qa_scan') }}</small></a>
+    <a href="{{ url_for('reports.home') }}" class="qa-btn"><span>📊</span><small>{{ t('admin.qa_reports') }}</small></a>
+    <a href="{{ url_for('settings.home') }}" class="qa-btn"><span>⚙️</span><small>{{ t('admin.qa_settings') }}</small></a>
 </div>
 
 <div class="grid-2">
     <div class="card">
-        <div class="card-header"><h3 class="card-title">📈 طلبات آخر 14 يوم</h3></div>
+        <div class="card-header"><h3 class="card-title">{{ t('admin.chart_trend') }}</h3></div>
         <div class="chart-container"><canvas id="chartTrend"></canvas></div>
     </div>
 
     <div class="card">
-        <div class="card-header"><h3 class="card-title">🎯 توزيع الحالات</h3></div>
+        <div class="card-header"><h3 class="card-title">{{ t('admin.chart_status') }}</h3></div>
         <div class="chart-container"><canvas id="chartStatus"></canvas></div>
     </div>
 </div>
 
 <div class="card mt-4">
     <div class="card-header">
-        <h3 class="card-title">أحدث الطلبات</h3>
-        <a href="{{ url_for('admin.requests_list') }}" class="btn btn-sm btn-secondary">عرض الكل ←</a>
+        <h3 class="card-title">{{ t('admin.recent_requests') }}</h3>
+        <a href="{{ url_for('admin.requests_list') }}" class="btn btn-sm btn-secondary">{{ t('admin.view_all') }}</a>
     </div>
     {% if recent_requests %}
     <div class="table-wrap">
         <table class="table table-hover">
-            <thead><tr><th>الرقم</th><th>العميل</th><th>العنوان</th><th>الأولوية</th><th>الحالة</th><th></th></tr></thead>
+            <thead><tr><th>{{ t('admin.col_number') }}</th><th>{{ t('admin.col_client') }}</th><th>{{ t('admin.col_title') }}</th><th>{{ t('admin.col_priority') }}</th><th>{{ t('admin.col_status') }}</th><th></th></tr></thead>
             <tbody>
                 {% for r in recent_requests %}
                 <tr>
                     <td><strong>{{ r.request_number }}</strong></td>
                     <td>{{ r.client.company_name }}</td>
                     <td>{{ r.title[:45] }}</td>
-                    <td><span class="badge badge-{{ r.priority }}">{{ r.priority_label }}</span></td>
-                    <td><span class="badge badge-{{ r.status }}">{{ r.status_label }}</span></td>
-                    <td><a href="{{ url_for('admin.request_view', rid=r.id) }}" class="btn btn-sm btn-primary">فتح</a></td>
+                    <td><span class="badge badge-{{ r.priority }}">{{ t('priority.' + r.priority) }}</span></td>
+                    <td><span class="badge badge-{{ r.status }}">{{ t('status.' + r.status) }}</span></td>
+                    <td><a href="{{ url_for('admin.request_view', rid=r.id) }}" class="btn btn-sm btn-primary">{{ t('btn.open') }}</a></td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    {% else %}<div class="empty"><h3>لا يوجد طلبات</h3></div>{% endif %}
+    {% else %}<div class="empty"><h3>{{ t('admin.no_requests') }}</h3></div>{% endif %}
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof Chart === 'undefined') {
         document.querySelectorAll('.chart-container').forEach(function(c){
-            c.innerHTML = '<div class="chart-empty">تعذّر تحميل الرسم البياني</div>';
+            c.innerHTML = '<div class="chart-empty">—</div>';
         });
         return;
     }
@@ -196,14 +196,14 @@ document.addEventListener('DOMContentLoaded', function() {
     var hasTrend = trendData && trendData.some(function(v){ return v > 0; });
     if (!hasTrend) {
         document.getElementById('chartTrend').parentNode.innerHTML =
-            '<div class="chart-empty">لا توجد طلبات في آخر ١٤ يوم</div>';
+            '<div class="chart-empty">—</div>';
     } else
     new Chart(document.getElementById('chartTrend'), {
         type: 'line',
         data: {
             labels: {{ chart_labels|tojson }},
             datasets: [{
-                label: 'طلبات', data: {{ chart_data|tojson }},
+                label: 'Requests', data: {{ chart_data|tojson }},
                 borderColor: primary, backgroundColor: primary + '22',
                 fill: true, tension: 0.35, borderWidth: 2,
                 pointRadius: 3, pointBackgroundColor: primary
@@ -220,12 +220,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     var statusData = {{ status_counts|tojson }};
-    var statusLabels = {'new':'جديد','assigned':'تم التعيين','in_progress':'قيد التنفيذ','report_ready':'تقرير جاهز','closed':'مغلق','cancelled':'ملغي'};
+    var statusLabels = {{ status_labels_js|tojson }};
     var colors = ['#3b82f6','#f59e0b','#f97316','#8b5cf6','#10b981','#ef4444'];
     var hasStatus = statusData && Object.values(statusData).some(function(v){ return v > 0; });
     if (!hasStatus) {
         document.getElementById('chartStatus').parentNode.innerHTML =
-            '<div class="chart-empty">لا توجد بيانات لعرضها</div>';
+            '<div class="chart-empty">—</div>';
     } else
     new Chart(document.getElementById('chartStatus'), {
         type: 'doughnut',

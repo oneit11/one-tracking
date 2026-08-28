@@ -1,23 +1,23 @@
 {% extends "base.html" %}
-{% block title %}طلباتي{% endblock %}
+{% block title %}{{ t('nav.my_requests') }}{% endblock %}
 {% block content %}
 <div class="page-header">
-    <h1 class="page-title">طلبات الصيانة</h1>
-    <a href="{{ url_for('portal.request_new') }}" class="btn btn-primary">+ طلب جديد</a>
+    <h1 class="page-title">{{ t('req.list_title') }}</h1>
+    <a href="{{ url_for('portal.request_new') }}" class="btn btn-primary">{{ t('req.new_btn') }}</a>
 </div>
 
 <div class="tabs mb-4">
     <a href="{{ url_for('portal.requests_list', show='open') }}"
        class="tab {% if show == 'open' %}active{% endif %}">
-        📋 المفتوحة ({{ counts.open }})
+        📋 {{ t('req.tab_open') }} ({{ counts.open }})
     </a>
     <a href="{{ url_for('portal.requests_list', show='closed') }}"
        class="tab {% if show == 'closed' %}active{% endif %}">
-        ✅ المغلقة ({{ counts.closed }})
+        ✅ {{ t('req.tab_closed') }} ({{ counts.closed }})
     </a>
     <a href="{{ url_for('portal.requests_list', show='all') }}"
        class="tab {% if show == 'all' %}active{% endif %}">
-        الكل
+        {{ t('req.tab_all') }}
     </a>
 </div>
 
@@ -25,16 +25,16 @@
     {% if requests %}
     <div class="table-wrap">
         <table class="table">
-            <thead><tr><th>الرقم</th><th>الموضوع</th><th>الجهاز</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
+            <thead><tr><th>{{ t('req.col_number') }}</th><th>{{ t('req.col_subject') }}</th><th>{{ t('req.col_device') }}</th><th>{{ t('req.col_status') }}</th><th>{{ t('req.col_date') }}</th><th></th></tr></thead>
             <tbody>
                 {% for r in requests %}
                 <tr>
                     <td><strong>{{ r.request_number }}</strong></td>
                     <td>{{ r.title }}</td>
                     <td>{{ r.device.name if r.device else '-' }}</td>
-                    <td><span class="badge badge-{{ r.status }}">{{ r.status_label }}</span></td>
+                    <td><span class="badge badge-{{ r.status }}">{{ t('status.' + r.status) }}</span></td>
                     <td>{{ r.created_at.strftime('%Y-%m-%d') }}</td>
-                    <td><a href="{{ url_for('portal.request_view', rid=r.id) }}" class="btn btn-sm btn-secondary">فتح</a></td>
+                    <td><a href="{{ url_for('portal.request_view', rid=r.id) }}" class="btn btn-sm btn-secondary">{{ t('btn.open') }}</a></td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -43,12 +43,12 @@
     {% else %}
         <div class="empty">
             <h3>
-                {% if show == 'open' %}لا يوجد طلبات مفتوحة
-                {% elif show == 'closed' %}لا يوجد طلبات مغلقة
-                {% else %}لا يوجد طلبات{% endif %}
+                {% if show == 'open' %}{{ t('portal.no_open') }}
+                {% elif show == 'closed' %}{{ t('req.tab_closed') }}
+                {% else %}{{ t('req.list_title') }}{% endif %}
             </h3>
             {% if show != 'closed' %}
-            <a href="{{ url_for('portal.request_new') }}" class="btn btn-primary mt-2">+ إنشاء طلب</a>
+            <a href="{{ url_for('portal.request_new') }}" class="btn btn-primary mt-2">{{ t('req.new_btn') }}</a>
             {% endif %}
         </div>
     {% endif %}

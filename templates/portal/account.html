@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ t('account.my_account') }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ t('account.my_account') }}</h1>
+        <p class="page-subtitle">{{ client.company_name }}</p>
+    </div>
+    <button type="button" class="btn btn-secondary no-print" onclick="window.print()">🖨️ {{ t('btn.print') }}</button>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card kpi-warning">
+        <div class="kpi-icon">🧾</div>
+        <div class="kpi-body">
+            <div class="kpi-label">{{ t('account.total_charges') }}</div>
+            <div class="kpi-value">{{ '%g'|format(client.total_charges) }} <small>{{ currency }}</small></div>
+        </div>
+    </div>
+    <div class="kpi-card kpi-success">
+        <div class="kpi-icon">💵</div>
+        <div class="kpi-body">
+            <div class="kpi-label">{{ t('account.total_payments') }}</div>
+            <div class="kpi-value">{{ '%g'|format(client.total_payments) }} <small>{{ currency }}</small></div>
+        </div>
+    </div>
+    <div class="kpi-card {{ 'kpi-danger' if client.balance > 0 else 'kpi-info' }}">
+        <div class="kpi-icon">{{ '⚠️' if client.balance > 0 else '✅' }}</div>
+        <div class="kpi-body">
+            <div class="kpi-label">
+                {% if client.balance > 0 %}{{ t('account.you_owe') }}
+                {% elif client.balance < 0 %}{{ t('account.in_credit') }}
+                {% else %}{{ t('account.balance') }}{% endif %}
+            </div>
+            <div class="kpi-value">{{ '%g'|format(client.balance|abs) }} <small>{{ currency }}</small></div>
+        </div>
+    </div>
+</div>
+
+{% if client.balance > 0 and (bank_name or bank_account) %}
+<div class="card mt-4" style="border-inline-start:4px solid var(--accent);">
+    <h3 class="card-title">💳 {{ t('account.pay_via') }}</h3>
+    {% if bank_name %}<div class="detail-row"><span class="detail-label">{{ t('account.bank') }}</span><span class="detail-value">{{ bank_name }}</span></div>{% endif %}
+    {% if bank_account %}<div class="detail-row"><span class="detail-label">{{ t('account.account_no') }}</span><span class="detail-value" dir="ltr">{{ bank_account }}</span></div>{% endif %}
+</div>
+{% endif %}
+
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">{{ t('account.statement') }}</h3></div>
+    {% if rows %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>{{ t('account.date') }}</th>
+                    <th>{{ t('account.description') }}</th>
+                    <th>{{ t('account.charge') }}</th>
+                    <th>{{ t('account.payment') }}</th>
+                    <th>{{ t('account.running_balance') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                {% set e = row.entry %}
+                <tr>
+                    <td>{{ e.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ e.description or '-' }}</td>
+                    <td>{% if e.entry_type == 'charge' %}<span style="color:var(--danger)">{{ '%g'|format(e.amount) }}</span>{% else %}-{% endif %}</td>
+                    <td>{% if e.entry_type == 'payment' %}<span style="color:var(--success)">{{ '%g'|format(e.amount) }}</span>{% else %}-{% endif %}</td>
+                    <td><strong>{{ '%g'|format(row.balance) }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p class="text-muted">{{ t('account.no_entries') }}</p>
+    {% endif %}
+</div>
+{% endblock %}

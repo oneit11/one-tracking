@@ -130,6 +130,23 @@ def email_test():
     return redirect(url_for("settings.email"))
 
 
+# ============ Social Review Links ============
+@settings_bp.route("/social", methods=["GET", "POST"])
+@admin_required
+def social():
+    if request.method == "POST":
+        for key in ["facebook_page_url", "google_review_url"]:
+            Setting.set(key, request.form.get(key, "").strip(), "social")
+        Setting.set("social_review_min_stars",
+                    request.form.get("social_review_min_stars", "4").strip() or "4", "social")
+        db.session.commit()
+        log_action("settings.social_updated")
+        flash("تم حفظ روابط التقييمات", "success")
+        return redirect(url_for("settings.social"))
+    s = get_settings_by_category("social")
+    return render_template("admin/settings/social.html", s=s)
+
+
 # ============ Message Templates ============
 @settings_bp.route("/templates")
 @admin_required

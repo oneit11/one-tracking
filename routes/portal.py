@@ -92,6 +92,17 @@ def request_new():
     client = _my_client()
     if not client:
         return redirect(url_for("portal.dashboard"))
+
+    # Credit control: block a new request if the client is over their limit.
+    from services.account import can_place_request
+    from services.settings_service import get_setting
+    allowed, block_msg = can_place_request(client)
+    if not allowed:
+        flash(block_msg, "danger")
+        return render_template("portal/account_blocked.html", client=client,
+                               message=block_msg,
+                               currency=get_setting("currency", "ج.م"))
+
     devices = Device.query.filter_by(client_id=client.id, active=True).order_by(Device.name).all()
 
     if request.method == "POST":
@@ -122,6 +133,30 @@ def request_new():
         return redirect(url_for("portal.request_view", rid=req.id))
 
     return render_template("portal/request_form.html", client=client, devices=devices)
+
+
+@portal_bp.route("/account")
+@client_required
+def account():
+    """Client-facing statement: charges, payments, running balance."""
+    client = _my_client()
+    if not client:
+        return redirect(url_for("portal.dashboard"))
+    from services.settings_service import get_setting
+    entries = sorted(client.account_entries, key=lambda e: e.created_at)
+    # Build running balance for display
+    running = 0.0
+    rows = []
+    for e in entries:
+        running += e.signed_amount
+        rows.append({"entry": e, "balance": round(running, 2)})
+    rows.reverse()  # newest first
+    return render_template(
+        "portal/account.html", client=client, rows=rows,
+        currency=get_setting("currency", "ج.م"),
+        bank_name=get_setting("bank_name", ""),
+        bank_account=get_setting("bank_account", ""),
+    )
 
 
 @portal_bp.route("/projects")

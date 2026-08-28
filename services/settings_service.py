@@ -60,6 +60,12 @@ DEFAULT_SETTINGS = {
 
     "rating_enabled": ("true", "other"),
     "rating_link_message": ("قيّم الخدمة", "other"),
+    # Social review links — shown to the customer after they rate, to invite
+    # them to leave a public review on Facebook / Google.
+    "facebook_page_url": ("", "social"),
+    "google_review_url": ("", "social"),
+    # Only invite a public review when the customer gave us this many stars+
+    "social_review_min_stars": ("4", "social"),
 }
 
 

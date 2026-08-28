@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}حساب {{ client.company_name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">💰 حساب — {{ client.company_name }}</h1>
+        <p class="page-subtitle">{{ client.code }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-secondary no-print" onclick="window.print()">🖨️ طباعة</button>
+        <a href="{{ url_for('admin.client_view', cid=client.id) }}" class="btn btn-secondary">← عرض العميل</a>
+    </div>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card kpi-warning">
+        <div class="kpi-icon">🧾</div>
+        <div class="kpi-body">
+            <div class="kpi-label">إجمالي المستحقات</div>
+            <div class="kpi-value">{{ '%g'|format(client.total_charges) }} <small>{{ currency }}</small></div>
+        </div>
+    </div>
+    <div class="kpi-card kpi-success">
+        <div class="kpi-icon">💵</div>
+        <div class="kpi-body">
+            <div class="kpi-label">إجمالي المدفوعات</div>
+            <div class="kpi-value">{{ '%g'|format(client.total_payments) }} <small>{{ currency }}</small></div>
+        </div>
+    </div>
+    <div class="kpi-card {{ 'kpi-danger' if client.balance > 0 else 'kpi-info' }}">
+        <div class="kpi-icon">{{ '⚠️' if client.balance > 0 else '✅' }}</div>
+        <div class="kpi-body">
+            <div class="kpi-label">{{ 'مديونية العميل' if client.balance > 0 else ('رصيد للعميل' if client.balance < 0 else 'الرصيد') }}</div>
+            <div class="kpi-value">{{ '%g'|format(client.balance|abs) }} <small>{{ currency }}</small></div>
+        </div>
+    </div>
+</div>
+
+{% if client.is_overdue %}
+<div class="flash flash-danger mt-4">🚫 هذا العميل تخطى حد الدين — ممنوع من عمل طلبات جديدة حتى السداد.</div>
+{% endif %}
+
+<div class="grid-2 mt-4">
+    <!-- Add payment -->
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">➕ تسجيل دفعة (سداد)</h3></div>
+        <form method="post" action="{{ url_for('admin.client_add_payment', cid=client.id) }}">
+            <div class="form-group">
+                <label class="form-label">المبلغ ({{ currency }}) <span class="req">*</span></label>
+                <input class="form-input" type="number" step="0.01" min="0.01" name="amount" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">طريقة الدفع</label>
+                <select class="form-select" name="method">
+                    <option value="">-- اختر --</option>
+                    <option value="نقدي">نقدي</option>
+                    <option value="تحويل بنكي">تحويل بنكي</option>
+                    <option value="محفظة إلكترونية">محفظة إلكترونية</option>
+                    <option value="شيك">شيك</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">ملاحظات</label>
+                <input class="form-input" name="description" placeholder="اختياري">
+            </div>
+            <button class="btn btn-success btn-block">💵 تسجيل الدفعة</button>
+        </form>
+    </div>
+
+    <!-- Add manual charge -->
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">🧾 إضافة فاتورة / مستحق يدوي</h3></div>
+        <form method="post" action="{{ url_for('admin.client_add_charge', cid=client.id) }}">
+            <div class="form-group">
+                <label class="form-label">المبلغ ({{ currency }}) <span class="req">*</span></label>
+                <input class="form-input" type="number" step="0.01" min="0.01" name="amount" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">البيان</label>
+                <input class="form-input" name="description" placeholder="مثال: قطع غيار / تركيبات إضافية">
+            </div>
+            <button class="btn btn-primary btn-block">🧾 إضافة للحساب</button>
+        </form>
+    </div>
+</div>
+
+<!-- Credit control -->
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">⚙️ التحكم في حد الدين</h3></div>
+    <form method="post" action="{{ url_for('admin.client_account_settings', cid=client.id) }}">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">حد الدين المسموح ({{ currency }})</label>
+                <input class="form-input" type="number" step="0.01" min="0" name="credit_limit"
+                       value="{{ '%g'|format(client.credit_limit) if client.credit_limit else '' }}"
+                       placeholder="0 = بدون حد">
+                <span class="form-hint">لو المديونية تخطت الحد، العميل مايقدرش يعمل طلب جديد. (0 = بدون حد أقصى — يتوقف بمجرد وجود أي مديونية لو التفعيل شغّال)</span>
+            </div>
+            <div class="form-group">
+                <label class="form-label">منع الطلبات عند تخطي الحد</label>
+                <label class="switch-row">
+                    <input type="checkbox" name="block_on_overdue" {% if client.block_on_overdue %}checked{% endif %}>
+                    <span>تفعيل المنع لهذا العميل</span>
+                </label>
+                <span class="form-hint">لو مفعّل، هيظهر للعميل "برجاء سداد المبلغ المتأخر لإكمال الطلب".</span>
+            </div>
+        </div>
+        <button class="btn btn-primary mt-2">💾 حفظ الإعدادات</button>
+    </form>
+</div>
+
+<!-- Ledger -->
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">📄 كشف الحساب</h3></div>
+    {% if rows %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr><th>التاريخ</th><th>البيان</th><th>مستحق</th><th>مدفوع</th><th>الرصيد</th><th class="no-print"></th></tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                {% set e = row.entry %}
+                <tr>
+                    <td>{{ e.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>
+                        {{ e.description or '-' }}
+                        {% if e.method %}<span class="badge">{{ e.method }}</span>{% endif %}
+                        {% if e.request_id %}<a href="{{ url_for('admin.request_view', rid=e.request_id) }}" class="badge badge-new">طلب</a>{% endif %}
+                    </td>
+                    <td>{% if e.entry_type == 'charge' %}<span style="color:var(--danger)">{{ '%g'|format(e.amount) }}</span>{% else %}-{% endif %}</td>
+                    <td>{% if e.entry_type == 'payment' %}<span style="color:var(--success)">{{ '%g'|format(e.amount) }}</span>{% else %}-{% endif %}</td>
+                    <td><strong>{{ '%g'|format(row.balance) }}</strong></td>
+                    <td class="no-print">
+                        <form method="post" action="{{ url_for('admin.client_delete_entry', cid=client.id, eid=e.id) }}"
+                              data-confirm="حذف هذا القيد؟" style="display:inline">
+                            <button class="btn btn-sm btn-danger" type="submit">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p class="text-muted">لا يوجد حركات على الحساب بعد</p>
+    {% endif %}
+</div>
+{% endblock %}

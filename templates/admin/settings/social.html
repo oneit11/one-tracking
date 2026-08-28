@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}روابط التقييمات{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">⭐ روابط التقييمات (فيسبوك / جوجل)</h1>
+    <a href="{{ url_for('settings.home') }}" class="btn btn-secondary">← الإعدادات</a>
+</div>
+
+<div class="card">
+    <p class="text-muted mb-4">
+        بعد ما العميل يقيّم الخدمة داخل التطبيق، هيظهر له أزرار تدعوه يكتب تقييم عام على صفحتك على فيسبوك أو على جوجل.
+        الأزرار بتظهر فقط للعملاء اللي أعطوا تقييم عالي (حسب الحد اللي تحدده).
+    </p>
+
+    <form method="post">
+        <div class="form-group">
+            <label class="form-label">🔵 رابط تقييم جوجل (Google Review)</label>
+            <input class="form-input" name="google_review_url" dir="ltr"
+                   value="{{ s.google_review_url or '' }}"
+                   placeholder="https://g.page/r/XXXX/review">
+            <span class="form-hint">
+                من Google Business Profile → اطلب تقييمات → انسخ الرابط المختصر (بينتهي عادةً بـ <code dir="ltr">/review</code>).
+            </span>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">👍 رابط صفحة فيسبوك (تقييمات / Reviews)</label>
+            <input class="form-input" name="facebook_page_url" dir="ltr"
+                   value="{{ s.facebook_page_url or '' }}"
+                   placeholder="https://facebook.com/YourPage/reviews">
+            <span class="form-hint">
+                رابط صفحتك مع <code dir="ltr">/reviews</code> في آخره، أو رابط الصفحة العادي.
+            </span>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">⭐ الحد الأدنى للنجوم لعرض الأزرار</label>
+            <select class="form-select" name="social_review_min_stars">
+                {% for n in [3,4,5] %}
+                <option value="{{ n }}" {% if (s.social_review_min_stars or '4')|int == n %}selected{% endif %}>{{ n }} نجوم فأكثر</option>
+                {% endfor %}
+            </select>
+            <span class="form-hint">العملاء اللي أعطوا أقل من كده مش هيتعرض لهم الأزرار (لحماية سمعتك على المنصات).</span>
+        </div>
+
+        <button class="btn btn-primary">💾 حفظ</button>
+    </form>
+</div>
+
+{% if s.google_review_url or s.facebook_page_url %}
+<div class="card mt-4">
+    <h3 class="card-title">معاينة الأزرار</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+        {% if s.google_review_url %}<a href="{{ s.google_review_url }}" target="_blank" class="btn" style="background:#4285F4;color:#fff;">🔵 قيّمنا على Google</a>{% endif %}
+        {% if s.facebook_page_url %}<a href="{{ s.facebook_page_url }}" target="_blank" class="btn" style="background:#1877F2;color:#fff;">👍 قيّمنا على فيسبوك</a>{% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -258,6 +258,8 @@ def emergency_migrate():
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255) DEFAULT ''",
             "ALTER TABLE ratings ADD COLUMN IF NOT EXISTS tech_stars INTEGER",
             "ALTER TABLE ratings ADD COLUMN IF NOT EXISTS tech_comment TEXT DEFAULT ''",
+            "ALTER TABLE clients ADD COLUMN IF NOT EXISTS credit_limit NUMERIC(12,2) DEFAULT 0",
+            "ALTER TABLE clients ADD COLUMN IF NOT EXISTS block_on_overdue BOOLEAN DEFAULT FALSE",
         ]
         results = []
         for sql in migrations:

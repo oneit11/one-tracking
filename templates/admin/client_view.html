@@ -7,8 +7,23 @@
         <p class="page-subtitle">{{ client.code }}</p>
     </div>
     <div class="d-flex gap-2">
+        <a href="{{ url_for('admin.client_account', cid=client.id) }}" class="btn btn-primary">💰 الحساب</a>
         <a href="{{ url_for('admin.client_edit', cid=client.id) }}" class="btn btn-secondary">✏️ تعديل</a>
-        <a href="{{ url_for('admin.device_new', client_id=client.id) }}" class="btn btn-primary">+ جهاز</a>
+        <a href="{{ url_for('admin.device_new', client_id=client.id) }}" class="btn btn-secondary">+ جهاز</a>
+    </div>
+</div>
+
+{% set bal = client.balance %}
+<div class="card mt-2" style="border-inline-start:4px solid {{ 'var(--danger)' if bal > 0 else 'var(--success)' }};">
+    <div class="detail-row" style="border:none;">
+        <span class="detail-label">
+            {% if bal > 0 %}⚠️ مديونية العميل{% elif bal < 0 %}✅ رصيد للعميل{% else %}الرصيد{% endif %}
+            {% if client.is_overdue %}<span class="badge badge-danger">تخطى حد الدين — ممنوع من الطلبات</span>{% endif %}
+        </span>
+        <span class="detail-value">
+            <strong style="font-size:20px;color:{{ 'var(--danger)' if bal > 0 else 'var(--success)' }}">{{ '%g'|format(bal|abs) }} ج.م</strong>
+            <a href="{{ url_for('admin.client_account', cid=client.id) }}" class="btn btn-sm btn-secondary">تفاصيل ←</a>
+        </span>
     </div>
 </div>
 

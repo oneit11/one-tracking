@@ -1,18 +1,18 @@
 {% extends "base.html" %}
-{% block title %}العملاء - {{ APP_NAME }}{% endblock %}
+{% block title %}{{ t('admin.clients_title') }} - {{ APP_NAME }}{% endblock %}
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title">العملاء</h1>
-        <p class="page-subtitle">{{ clients|length }} عميل</p>
+        <h1 class="page-title">{{ t('admin.clients_title') }}</h1>
+        <p class="page-subtitle">{{ t('admin.clients_count', n=clients|length) }}</p>
     </div>
-    <a href="{{ url_for('admin.client_new') }}" class="btn btn-primary">+ عميل جديد</a>
+    <a href="{{ url_for('admin.client_new') }}" class="btn btn-primary">{{ t('admin.new_client') }}</a>
 </div>
 
 <div class="card">
     <form method="get" class="d-flex gap-2 mb-4">
-        <input class="form-input" name="q" placeholder="بحث بالاسم، التليفون، الكود..." value="{{ q }}">
-        <button class="btn btn-secondary">بحث</button>
+        <input class="form-input" name="q" placeholder="{{ t('admin.search_clients_ph') }}" value="{{ q }}">
+        <button class="btn btn-secondary">{{ t('btn.search') }}</button>
     </form>
 
     {% if clients %}
@@ -20,18 +20,20 @@
         <table class="table">
             <thead>
                 <tr>
-                    <th>الكود</th>
-                    <th>اسم الشركة</th>
-                    <th>المسؤول</th>
-                    <th>التليفون</th>
-                    <th>المدينة</th>
-                    <th>الأجهزة</th>
+                    <th>{{ t('admin.col_code') }}</th>
+                    <th>{{ t('admin.col_company') }}</th>
+                    <th>{{ t('admin.col_contact') }}</th>
+                    <th>{{ t('admin.col_phone') }}</th>
+                    <th>{{ t('admin.col_city') }}</th>
+                    <th>{{ t('admin.col_devices') }}</th>
+                    <th>{{ t('admin.col_balance') }}</th>
                     <th>AMC</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for c in clients %}
+                {% set bal = c.balance %}
                 <tr>
                     <td><strong>{{ c.code }}</strong></td>
                     <td>{{ c.company_name }}</td>
@@ -40,17 +42,23 @@
                     <td>{{ c.city }}</td>
                     <td>{{ c.devices|length }}</td>
                     <td>
+                        {% if bal > 0 %}<span style="color:var(--danger);font-weight:600">{{ '%g'|format(bal) }}</span>
+                        {% elif bal < 0 %}<span style="color:var(--success);font-weight:600">{{ '%g'|format(bal) }}</span>
+                        {% else %}0{% endif %}
+                        {% if c.is_overdue %}<span class="badge badge-danger">🚫</span>{% endif %}
+                    </td>
+                    <td>
                         {% if c.active_amc %}
-                            <span class="badge badge-closed">فعال</span>
+                            <span class="badge badge-closed">{{ t('badge.active') }}</span>
                         {% else %}
                             <span class="badge">-</span>
                         {% endif %}
                     </td>
                     <td>
                         <div class="d-flex gap-1">
-                            <a href="{{ url_for('admin.client_view', cid=c.id) }}" class="btn btn-sm btn-primary">فتح</a>
+                            <a href="{{ url_for('admin.client_view', cid=c.id) }}" class="btn btn-sm btn-primary">{{ t('btn.open') }}</a>
                             <form method="post" action="{{ url_for('admin.client_delete', cid=c.id) }}"
-                                  data-confirm="متأكد من حذف {{ c.company_name }}؟ سيتم فصل كل المستخدمين المرتبطين." style="display:inline">
+                                  data-confirm="{{ t('admin.confirm_delete_client', name=c.company_name) }}" style="display:inline">
                                 <button class="btn btn-sm btn-danger" type="submit">🗑️</button>
                             </form>
                         </div>
@@ -62,8 +70,8 @@
     </div>
     {% else %}
     <div class="empty">
-        <h3>لا يوجد عملاء</h3>
-        <a href="{{ url_for('admin.client_new') }}" class="btn btn-primary mt-2">+ إضافة أول عميل</a>
+        <h3>{{ t('admin.no_clients') }}</h3>
+        <a href="{{ url_for('admin.client_new') }}" class="btn btn-primary mt-2">{{ t('admin.first_client') }}</a>
     </div>
     {% endif %}
 </div>

@@ -1199,3 +1199,14 @@ html[dir="ltr"] .kpi-card:hover .kpi-arrow { transform: translateX(4px); }
 }
 .footer-contact a { color: var(--text-muted); font-size: 13px; }
 .footer-contact a:hover { color: var(--primary); }
+
+/* ===== Account / ledger additions ===== */
+.badge-danger { background: #fee2e2; color: #b91c1c; }
+.switch-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    margin-top: 4px;
+}
+.switch-row input[type="checkbox"] { width: 18px; height: 18px; }

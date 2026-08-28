@@ -101,10 +101,16 @@ def dashboard():
         chart_labels.append(d.strftime("%m-%d"))
         chart_data.append(count)
 
+    from utils.i18n import t as _t
+    status_labels_js = {
+        k: _t("status." + k) for k in
+        ["new", "assigned", "in_progress", "report_ready", "closed", "cancelled"]
+    }
     return render_template(
         "admin/dashboard.html",
         stats=stats, recent_requests=recent_requests, status_counts=status_counts,
         chart_labels=chart_labels, chart_data=chart_data,
+        status_labels_js=status_labels_js,
     )
 
 
@@ -231,6 +237,90 @@ def amc_new(cid):
     except Exception as e:
         flash(f"خطأ: {e}", "danger")
     return redirect(url_for("admin.client_view", cid=cid))
+
+
+# ================= Client Account (financial ledger) =================
+@admin_bp.route("/clients/<int:cid>/account")
+@admin_required
+def client_account(cid):
+    client = Client.query.get_or_404(cid)
+    from services.settings_service import get_setting
+    entries = sorted(client.account_entries, key=lambda e: e.created_at)
+    running = 0.0
+    rows = []
+    for e in entries:
+        running += e.signed_amount
+        rows.append({"entry": e, "balance": round(running, 2)})
+    rows.reverse()  # newest first
+    return render_template("admin/client_account.html", client=client, rows=rows,
+                           currency=get_setting("currency", "ج.م"))
+
+
+@admin_bp.route("/clients/<int:cid>/account/charge", methods=["POST"])
+@admin_required
+def client_add_charge(cid):
+    client = Client.query.get_or_404(cid)
+    from services.account import add_charge
+    amount = request.form.get("amount", "").strip()
+    desc = request.form.get("description", "").strip()
+    entry = add_charge(client.id, amount, description=desc or "فاتورة يدوية",
+                       source="manual", created_by=current_user.id)
+    if entry:
+        log_action("account.charge_added", entity_type="client", entity_id=cid,
+                   details=f"{amount} — {desc}")
+        flash("تمت إضافة الفاتورة للحساب", "success")
+    else:
+        flash("مبلغ غير صحيح", "danger")
+    return redirect(url_for("admin.client_account", cid=cid))
+
+
+@admin_bp.route("/clients/<int:cid>/account/payment", methods=["POST"])
+@admin_required
+def client_add_payment(cid):
+    client = Client.query.get_or_404(cid)
+    from services.account import add_payment
+    amount = request.form.get("amount", "").strip()
+    desc = request.form.get("description", "").strip()
+    method = request.form.get("method", "").strip()
+    entry = add_payment(client.id, amount, description=desc or "سداد من العميل",
+                        method=method, created_by=current_user.id)
+    if entry:
+        log_action("account.payment_added", entity_type="client", entity_id=cid,
+                   details=f"{amount} — {method}")
+        flash("تم تسجيل الدفعة", "success")
+    else:
+        flash("مبلغ غير صحيح", "danger")
+    return redirect(url_for("admin.client_account", cid=cid))
+
+
+@admin_bp.route("/clients/<int:cid>/account/entry/<int:eid>/delete", methods=["POST"])
+@admin_required
+def client_delete_entry(cid, eid):
+    from models.client import AccountEntry
+    from services.account import delete_entry
+    entry = AccountEntry.query.get_or_404(eid)
+    if entry.client_id != cid:
+        abort(403)
+    delete_entry(eid)
+    log_action("account.entry_deleted", entity_type="client", entity_id=cid, details=str(eid))
+    flash("تم حذف القيد", "info")
+    return redirect(url_for("admin.client_account", cid=cid))
+
+
+@admin_bp.route("/clients/<int:cid>/account/settings", methods=["POST"])
+@admin_required
+def client_account_settings(cid):
+    client = Client.query.get_or_404(cid)
+    limit_raw = request.form.get("credit_limit", "").strip()
+    try:
+        client.credit_limit = float(limit_raw) if limit_raw else 0
+    except ValueError:
+        client.credit_limit = 0
+    client.block_on_overdue = bool(request.form.get("block_on_overdue"))
+    db.session.commit()
+    log_action("account.settings_updated", entity_type="client", entity_id=cid)
+    flash("تم حفظ إعدادات الحساب", "success")
+    return redirect(url_for("admin.client_account", cid=cid))
 
 
 # ================= Devices =================
@@ -504,6 +594,12 @@ def request_close(rid):
     req.status = "closed"
     req.closed_at = datetime.utcnow()
     db.session.commit()
+    # Post the visit cost as a charge on the client's account (auto invoice).
+    try:
+        from services.account import sync_visit_charge
+        sync_visit_charge(req, created_by=current_user.id)
+    except Exception as e:
+        current_app.logger.warning(f"account charge sync failed: {e}")
     wa.notify_request_closed(req)
     log_action("request.closed", entity_type="request", entity_id=req.id)
     flash("تم إغلاق الطلب", "success")

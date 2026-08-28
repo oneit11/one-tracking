@@ -4,7 +4,7 @@ db = SQLAlchemy()
 
 # Import all models so create_all picks them up
 from models.user import User  # noqa: E402
-from models.client import Client, AMCContract  # noqa: E402
+from models.client import Client, AMCContract, AccountEntry  # noqa: E402
 from models.device import Device, QRBatch, QRCode  # noqa: E402
 from models.request import (  # noqa: E402
     MaintenanceRequest, VisitReport, SupportTicket, ProjectMember, ProjectVisit,

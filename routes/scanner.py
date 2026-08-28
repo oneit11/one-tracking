@@ -130,7 +130,17 @@ def rate(token):
                     pass
             r.rated_at = datetime.utcnow()
             db.session.commit()
-            return render_template("portal/rating/thanks.html", rating=r)
+            from services.settings_service import get_setting
+            try:
+                min_stars = int(get_setting("social_review_min_stars", "4"))
+            except (ValueError, TypeError):
+                min_stars = 4
+            return render_template(
+                "portal/rating/thanks.html", rating=r,
+                facebook_url=get_setting("facebook_page_url", ""),
+                google_url=get_setting("google_review_url", ""),
+                social_min_stars=min_stars,
+            )
         except (ValueError, TypeError):
             flash("رجاءً اختر تقييم من 1 إلى 5", "warning")
     return render_template("portal/rating/form.html", rating=r)
