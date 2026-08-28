@@ -346,6 +346,28 @@ def client_account_settings(cid):
     return redirect(url_for("admin.client_account", cid=cid))
 
 
+@admin_bp.route("/clients/<int:cid>/account/request-payment", methods=["POST"])
+@admin_required
+def client_request_payment(cid):
+    client = Client.query.get_or_404(cid)
+    balance = client.balance
+    if balance <= 0:
+        flash("لا يوجد مبلغ مستحق على هذا العميل", "info")
+        return redirect(url_for("admin.client_account", cid=cid))
+    if not client.notify_number:
+        flash("العميل ليس له رقم واتساب مسجّل", "warning")
+        return redirect(url_for("admin.client_account", cid=cid))
+    from services.whatsapp import notify_payment_request
+    sent = notify_payment_request(client, balance)
+    if sent:
+        log_action("account.payment_requested", entity_type="client", entity_id=cid,
+                   details=f"{balance:g}")
+        flash("تم إرسال طلب السداد للعميل عبر واتساب", "success")
+    else:
+        flash("تعذّر إرسال الرسالة", "danger")
+    return redirect(url_for("admin.client_account", cid=cid))
+
+
 # ================= Devices =================
 @admin_bp.route("/devices")
 @admin_required

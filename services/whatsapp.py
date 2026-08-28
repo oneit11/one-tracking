@@ -313,6 +313,42 @@ def notify_request_closed(request, app=None):
                         event_type="request_closed_admin", entity_type="request", entity_id=request.id, app=_app)
 
 
+def notify_payment_request(client, amount, app=None):
+    """Send the client a WhatsApp asking them to settle their outstanding
+    balance, including the bank/payment details. Returns True if a message
+    was dispatched (number present), False otherwise."""
+    _app = app or current_app._get_current_object()
+    company_name = get_setting("company_name", "الشركة")
+    currency = get_setting("currency", "ج.م")
+    bank_name = get_setting("bank_name", "")
+    bank_account = get_setting("bank_account", "")
+
+    try:
+        amount_txt = f"{float(amount):g}"
+    except (TypeError, ValueError):
+        amount_txt = str(amount)
+
+    msg = (
+        f"عميلنا العزيز {client.company_name}،\n"
+        f"نحيطكم علماً بأن لديكم مبلغاً مستحقاً بقيمة *{amount_txt} {currency}*.\n"
+        f"برجاء سداد المبلغ في أقرب وقت."
+    )
+    if bank_name or bank_account:
+        msg += "\n\nبيانات التحويل:"
+        if bank_name:
+            msg += f"\n🏦 البنك: {bank_name}"
+        if bank_account:
+            msg += f"\n💳 رقم الحساب: {bank_account}"
+    msg += f"\n\nشكراً لتعاونكم 🌹\n{company_name}"
+
+    number = getattr(client, "notify_number", "") or ""
+    if not number:
+        return False
+    send_wa(number, msg, event_type="payment_request",
+            entity_type="client", entity_id=client.id, app=_app)
+    return True
+
+
 def notify_new_user_credentials(user, password, app=None):
     """Send login credentials to newly created user via WA."""
     _app = app or current_app._get_current_object()

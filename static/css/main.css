@@ -1,6 +1,15 @@
 /* ========== ONE Tracking - Clean RTL Design ========== */
 
-:root {
+/* =========================================================
+   THEME SYSTEM
+   The active theme is chosen in Settings → Branding and applied
+   globally via data-theme on <html>. Each theme sets the full
+   palette, so switching restyles the whole app for every user.
+   Default (no data-theme) = light. Brand accent (--primary /
+   --accent) can still be overridden per-install via base.html.
+   ========================================================= */
+:root,
+[data-theme="light"] {
     --primary: #0b3d91;
     --primary-hover: #082c6b;
     --accent: #14b8a6;
@@ -18,6 +27,17 @@
     --text-muted: #64748b;
     --text-soft: #94a3b8;
 
+    /* KPI card look (per-theme) */
+    --kpi-bg: linear-gradient(135deg, #ffffff 0%, #f3f5fa 100%);
+    --kpi-edge: linear-gradient(180deg, var(--accent), var(--primary));
+    --kpi-text: var(--text);
+    --kpi-value: var(--primary);
+    --kpi-label: var(--text-muted);
+    --kpi-border: var(--border);
+    --kpi-icon-bg: rgba(11,61,145,0.08);
+    --kpi-icon-ring: rgba(11,61,145,0.18);
+    --kpi-arrow: var(--text-soft);
+
     --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
     --shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
     --shadow-lg: 0 10px 28px rgba(15, 23, 42, 0.12);
@@ -29,17 +49,210 @@
     --header-h: 60px;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg: #0f172a;
-        --surface: #1e293b;
-        --border: #334155;
-        --border-strong: #475569;
-        --text: #f1f5f9;
-        --text-muted: #94a3b8;
-        --text-soft: #64748b;
-    }
+/* ---- Black & Gold (فاخر) ---- */
+[data-theme="midnight-gold"] {
+    --primary: #d4af37;
+    --primary-hover: #b8952c;
+    --accent: #f0d178;
+    --danger: #f87171;
+    --warning: #fbbf24;
+    --success: #34d399;
+    --info: #60a5fa;
+
+    --bg: #0e0f13;
+    --surface: #191b22;
+    --border: #2a2d38;
+    --border-strong: #3a3e4c;
+
+    --text: #f5f3ea;
+    --text-muted: #a8a89c;
+    --text-soft: #7a7a70;
+
+    --kpi-bg: linear-gradient(135deg, #232733 0%, #14161c 100%);
+    --kpi-edge: linear-gradient(180deg, #f7d774, #d4af37 55%, #a9832a);
+    --kpi-text: #ffffff;
+    --kpi-value: #f0d178;
+    --kpi-label: rgba(255,255,255,0.72);
+    --kpi-border: rgba(212,175,55,0.18);
+    --kpi-icon-bg: linear-gradient(135deg, rgba(212,175,55,0.28), rgba(212,175,55,0.10));
+    --kpi-icon-ring: rgba(212,175,55,0.35);
+    --kpi-arrow: rgba(212,175,55,0.75);
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow: 0 4px 12px rgba(0,0,0,0.4);
+    --shadow-lg: 0 10px 28px rgba(0,0,0,0.55);
 }
+
+/* ---- Navy & Silver (احترافي) ---- */
+[data-theme="navy-silver"] {
+    --primary: #38bdf8;
+    --primary-hover: #0ea5e9;
+    --accent: #94a3b8;
+    --danger: #f87171;
+    --warning: #fbbf24;
+    --success: #34d399;
+    --info: #60a5fa;
+
+    --bg: #0b1220;
+    --surface: #131c2e;
+    --border: #24334b;
+    --border-strong: #33455f;
+
+    --text: #e8eef7;
+    --text-muted: #94a3b8;
+    --text-soft: #64748b;
+
+    --kpi-bg: linear-gradient(135deg, #1c2941 0%, #0e1626 100%);
+    --kpi-edge: linear-gradient(180deg, #cbd5e1, #94a3b8 55%, #64748b);
+    --kpi-text: #ffffff;
+    --kpi-value: #cbd5e1;
+    --kpi-label: rgba(255,255,255,0.7);
+    --kpi-border: rgba(148,163,184,0.2);
+    --kpi-icon-bg: linear-gradient(135deg, rgba(148,163,184,0.28), rgba(148,163,184,0.10));
+    --kpi-icon-ring: rgba(148,163,184,0.4);
+    --kpi-arrow: rgba(148,163,184,0.8);
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow: 0 4px 12px rgba(0,0,0,0.4);
+    --shadow-lg: 0 10px 28px rgba(0,0,0,0.5);
+}
+
+/* ---- Clean White (مينمال) ---- */
+[data-theme="clean-white"] {
+    --primary: #111827;
+    --primary-hover: #000000;
+    --accent: #6b7280;
+    --danger: #dc2626;
+    --warning: #d97706;
+    --success: #16a34a;
+    --info: #2563eb;
+
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --border: #ececf0;
+    --border-strong: #d4d4d8;
+
+    --text: #18181b;
+    --text-muted: #71717a;
+    --text-soft: #a1a1aa;
+
+    --kpi-bg: #ffffff;
+    --kpi-edge: linear-gradient(180deg, #18181b, #52525b);
+    --kpi-text: #18181b;
+    --kpi-value: #111827;
+    --kpi-label: #71717a;
+    --kpi-border: #ececf0;
+    --kpi-icon-bg: #f4f4f5;
+    --kpi-icon-ring: #e4e4e7;
+    --kpi-arrow: #a1a1aa;
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow: 0 2px 8px rgba(0,0,0,0.06);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+/* ---- Emerald (أخضر زمردي) ---- */
+[data-theme="emerald"] {
+    --primary: #059669;
+    --primary-hover: #047857;
+    --accent: #34d399;
+    --danger: #dc2626;
+    --warning: #d97706;
+    --success: #16a34a;
+    --info: #0284c7;
+
+    --bg: #f0fdf9;
+    --surface: #ffffff;
+    --border: #d1fae5;
+    --border-strong: #a7f3d0;
+
+    --text: #064e3b;
+    --text-muted: #4b7d6c;
+    --text-soft: #6ca390;
+
+    --kpi-bg: linear-gradient(135deg, #059669 0%, #065f46 100%);
+    --kpi-edge: linear-gradient(180deg, #6ee7b7, #34d399 55%, #10b981);
+    --kpi-text: #ffffff;
+    --kpi-value: #d1fae5;
+    --kpi-label: rgba(255,255,255,0.85);
+    --kpi-border: rgba(16,185,129,0.25);
+    --kpi-icon-bg: rgba(255,255,255,0.2);
+    --kpi-icon-ring: rgba(255,255,255,0.3);
+    --kpi-arrow: rgba(255,255,255,0.85);
+
+    --shadow-sm: 0 1px 2px rgba(6,78,59,0.06);
+    --shadow: 0 4px 12px rgba(6,78,59,0.1);
+    --shadow-lg: 0 10px 28px rgba(6,78,59,0.15);
+}
+
+/* ---- Violet (بنفسجي عصري) ---- */
+[data-theme="violet"] {
+    --primary: #7c3aed;
+    --primary-hover: #6d28d9;
+    --accent: #a78bfa;
+    --danger: #e11d48;
+    --warning: #d97706;
+    --success: #16a34a;
+    --info: #2563eb;
+
+    --bg: #faf5ff;
+    --surface: #ffffff;
+    --border: #ede9fe;
+    --border-strong: #ddd6fe;
+
+    --text: #2e1065;
+    --text-muted: #6d5b93;
+    --text-soft: #9683b8;
+
+    --kpi-bg: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    --kpi-edge: linear-gradient(180deg, #c4b5fd, #a78bfa 55%, #8b5cf6);
+    --kpi-text: #ffffff;
+    --kpi-value: #ede9fe;
+    --kpi-label: rgba(255,255,255,0.85);
+    --kpi-border: rgba(139,92,246,0.25);
+    --kpi-icon-bg: rgba(255,255,255,0.2);
+    --kpi-icon-ring: rgba(255,255,255,0.3);
+    --kpi-arrow: rgba(255,255,255,0.85);
+
+    --shadow-sm: 0 1px 2px rgba(46,16,101,0.06);
+    --shadow: 0 4px 12px rgba(46,16,101,0.1);
+    --shadow-lg: 0 10px 28px rgba(46,16,101,0.15);
+}
+
+/* ---- Dark Slate (رمادي داكن) ---- */
+[data-theme="dark-slate"] {
+    --primary: #60a5fa;
+    --primary-hover: #3b82f6;
+    --accent: #38bdf8;
+    --danger: #f87171;
+    --warning: #fbbf24;
+    --success: #34d399;
+    --info: #60a5fa;
+
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --border: #334155;
+    --border-strong: #475569;
+
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --text-soft: #64748b;
+
+    --kpi-bg: linear-gradient(135deg, #273449 0%, #1a2233 100%);
+    --kpi-edge: linear-gradient(180deg, #7dd3fc, #38bdf8 55%, #0ea5e9);
+    --kpi-text: #ffffff;
+    --kpi-value: #7dd3fc;
+    --kpi-label: rgba(255,255,255,0.72);
+    --kpi-border: rgba(56,189,248,0.2);
+    --kpi-icon-bg: linear-gradient(135deg, rgba(56,189,248,0.28), rgba(56,189,248,0.10));
+    --kpi-icon-ring: rgba(56,189,248,0.35);
+    --kpi-arrow: rgba(56,189,248,0.75);
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow: 0 4px 12px rgba(0,0,0,0.4);
+    --shadow-lg: 0 10px 28px rgba(0,0,0,0.5);
+}
+
 
 * { box-sizing: border-box; }
 
@@ -869,111 +1082,94 @@ html[dir="ltr"] .brand-text {
 /* ========== Modern Dashboard KPI Cards ========== */
 .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 14px;
-    margin-bottom: 24px;
+    margin-bottom: 22px;
 }
 .kpi-card {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 20px 18px;
-    /* Brand identity: deep charcoal-to-black gradient for every card */
-    background: linear-gradient(135deg, #232733 0%, #14161c 100%);
-    border: 1px solid rgba(212, 175, 55, 0.18);
-    border-radius: 18px;
-    box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.55);
+    gap: 13px;
+    padding: 16px 16px;
+    background: var(--kpi-bg);
+    border: 1px solid var(--kpi-border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
     text-decoration: none;
-    color: #fff;
+    color: var(--kpi-text);
     position: relative;
     overflow: hidden;
-    transition: transform 0.2s cubic-bezier(.2,.8,.2,1), box-shadow 0.2s, border-color 0.2s;
+    transition: transform 0.18s cubic-bezier(.2,.8,.2,1), box-shadow 0.18s, border-color 0.18s;
     cursor: pointer;
     isolation: isolate;
 }
-/* gold accent edge on the start side */
+/* themed accent edge on the start side */
 .kpi-card::before {
     content: "";
     position: absolute;
     inset-inline-start: 0;
     top: 0; bottom: 0;
-    width: 4px;
-    background: linear-gradient(180deg, #f7d774, #d4af37 55%, #a9832a);
+    width: 3px;
+    background: var(--kpi-edge);
     z-index: 1;
 }
-/* soft gold glow in the corner for depth */
-.kpi-card::after {
-    content: "";
-    position: absolute;
-    width: 150px;
-    height: 150px;
-    top: -60px;
-    inset-inline-end: -40px;
-    background: radial-gradient(circle, rgba(212,175,55,0.18) 0%, transparent 70%);
-    border-radius: 50%;
-    z-index: -1;
-}
 .kpi-card:hover {
-    transform: translateY(-4px) scale(1.015);
-    box-shadow: 0 14px 30px -10px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,175,55,0.35);
-    border-color: rgba(212, 175, 55, 0.55);
-    color: #fff;
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--kpi-icon-ring);
+    color: var(--kpi-text);
 }
 .kpi-card:focus { outline: none; }
 .kpi-card:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px #14161c, 0 0 0 5px #d4af37;
+    box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--primary);
 }
 .kpi-icon {
-    font-size: 26px;
-    width: 54px;
-    height: 54px;
+    font-size: 20px;
+    width: 42px;
+    height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
-    /* gold-tinted glass chip */
-    background: linear-gradient(135deg, rgba(212,175,55,0.28), rgba(212,175,55,0.10));
-    border-radius: 14px;
+    background: var(--kpi-icon-bg);
+    border-radius: 11px;
     flex-shrink: 0;
-    box-shadow: inset 0 0 0 1px rgba(212,175,55,0.35);
+    box-shadow: inset 0 0 0 1px var(--kpi-icon-ring);
 }
 .kpi-body { flex: 1; min-width: 0; }
 .kpi-label {
-    font-size: 13px;
-    color: rgba(255,255,255,0.72);
+    font-size: 12.5px;
+    color: var(--kpi-label);
     font-weight: 600;
-    margin-bottom: 5px;
+    margin-bottom: 3px;
     letter-spacing: 0.1px;
 }
 .kpi-value {
-    font-size: 28px;
+    font-size: 25px;
     font-weight: 800;
-    /* gold value text — the signature accent */
-    color: #f0d178;
+    color: var(--kpi-value);
     line-height: 1.05;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
-.kpi-value small { font-weight: 600; opacity: 0.8; color: rgba(255,255,255,0.7); }
+.kpi-value small { font-weight: 600; opacity: 0.75; font-size: 13px; }
 .kpi-arrow {
-    font-size: 18px;
-    color: rgba(212,175,55,0.75);
-    opacity: 0.6;
+    font-size: 16px;
+    color: var(--kpi-arrow);
+    opacity: 0.5;
     transition: opacity 0.18s, transform 0.18s;
 }
-.kpi-card:hover .kpi-arrow { opacity: 1; transform: translateX(-4px); }
-html[dir="ltr"] .kpi-card:hover .kpi-arrow { transform: translateX(4px); }
+.kpi-card:hover .kpi-arrow { opacity: 1; transform: translateX(-3px); }
+html[dir="ltr"] .kpi-card:hover .kpi-arrow { transform: translateX(3px); }
 
-/* All KPI variants share the black & gold identity. The status hue only tints
-   the small alert badge, not the whole card — kept subtle to stay on-brand. */
-.kpi-primary, .kpi-accent, .kpi-warning,
-.kpi-danger, .kpi-success, .kpi-info { /* unified — no per-color override */ }
-
-/* Danger cards (e.g. SLA breaches, debts) get a subtle red edge instead of gold
-   so problems still stand out without breaking the palette. */
+/* Danger cards (SLA breaches, debts) get a red accent regardless of theme. */
 .kpi-danger::before { background: linear-gradient(180deg, #f87171, #dc2626 55%, #991b1b); }
-.kpi-danger .kpi-value { color: #fca5a5; }
+.kpi-danger .kpi-value { color: #ef4444; }
+[data-theme="midnight-gold"] .kpi-danger .kpi-value,
+[data-theme="navy-silver"] .kpi-danger .kpi-value,
+[data-theme="dark-slate"] .kpi-danger .kpi-value,
+[data-theme="emerald"] .kpi-danger .kpi-value,
+[data-theme="violet"] .kpi-danger .kpi-value { color: #fca5a5; }
 .kpi-danger .kpi-icon {
-    background: linear-gradient(135deg, rgba(220,38,38,0.30), rgba(220,38,38,0.10));
+    background: linear-gradient(135deg, rgba(220,38,38,0.28), rgba(220,38,38,0.10));
     box-shadow: inset 0 0 0 1px rgba(248,113,113,0.4);
 }
 
@@ -982,7 +1178,7 @@ html[dir="ltr"] .kpi-card:hover .kpi-arrow { transform: translateX(4px); }
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
-    margin-bottom: 24px;
+    margin-bottom: 22px;
 }
 .qa-btn {
     display: flex;
@@ -990,8 +1186,8 @@ html[dir="ltr"] .kpi-card:hover .kpi-arrow { transform: translateX(4px); }
     align-items: center;
     justify-content: center;
     gap: 6px;
-    min-width: 100px;
-    padding: 14px 10px;
+    min-width: 92px;
+    padding: 12px 10px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -1002,19 +1198,18 @@ html[dir="ltr"] .kpi-card:hover .kpi-arrow { transform: translateX(4px); }
     transition: all 0.16s cubic-bezier(.2,.8,.2,1);
 }
 .qa-btn span:first-child {
-    font-size: 24px;
-    width: 46px; height: 46px;
+    font-size: 19px;
+    width: 40px; height: 40px;
     display: flex; align-items: center; justify-content: center;
-    /* black chip with gold ring — matches the KPI identity */
-    background: linear-gradient(135deg, #232733, #14161c);
-    border: 1px solid rgba(212,175,55,0.4);
-    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 11px;
+    color: #fff;
 }
 .qa-btn small { font-size: 12px; color: var(--text-muted); }
 .qa-btn:hover {
-    border-color: #d4af37;
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-lg);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
     color: var(--text);
 }
 

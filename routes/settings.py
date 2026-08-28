@@ -28,6 +28,13 @@ def branding():
             if val:
                 Setting.set(key, val, "branding")
 
+        # Global theme (applies to every user immediately)
+        theme = request.form.get("theme", "").strip()
+        valid_themes = {"light", "midnight-gold", "navy-silver", "clean-white",
+                        "emerald", "violet", "dark-slate"}
+        if theme in valid_themes:
+            Setting.set("theme", theme, "branding")
+
         if "logo" in request.files and request.files["logo"].filename:
             path = save_upload(request.files["logo"], subfolder="branding", prefix="logo_")
             if path:

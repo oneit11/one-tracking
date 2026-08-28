@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ current_lang }}" dir="{{ 'rtl' if is_rtl else 'ltr' }}">
+<html lang="{{ current_lang }}" dir="{{ 'rtl' if is_rtl else 'ltr' }}" data-theme="{{ THEME or 'light' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -14,10 +14,12 @@
     <link rel="apple-touch-icon" href="{{ LOGO_URL or '/static/img/pwa/icon-192.png' }}">
 
     <style>
+        {% if not THEME or THEME == 'light' %}
         :root {
             --primary: {{ PRIMARY_COLOR }};
             --accent: {{ ACCENT_COLOR }};
         }
+        {% endif %}
     </style>
     {% block head_extra %}{% endblock %}
 

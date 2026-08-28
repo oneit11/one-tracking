@@ -40,6 +40,27 @@
 <div class="flash flash-danger mt-4">🚫 هذا العميل تخطى حد الدين — ممنوع من عمل طلبات جديدة حتى السداد.</div>
 {% endif %}
 
+{% if client.balance > 0 %}
+<div class="card mt-4" style="border-inline-start:4px solid var(--success);">
+    <div class="detail-row" style="border:none;align-items:center;">
+        <span class="detail-label">
+            📲 طلب السداد
+            <span class="form-hint" style="display:block;margin-top:2px;">إرسال رسالة واتساب للعميل بالمبلغ المستحق ({{ '%g'|format(client.balance) }} {{ currency }}) وبيانات الدفع.</span>
+        </span>
+        <form method="post" action="{{ url_for('admin.client_request_payment', cid=client.id) }}"
+              data-confirm="إرسال طلب سداد بمبلغ {{ '%g'|format(client.balance) }} {{ currency }} للعميل عبر واتساب؟">
+            <button class="btn btn-success" type="submit"
+                    {% if not client.notify_number %}disabled title="لا يوجد رقم واتساب للعميل"{% endif %}>
+                💬 إرسال طلب السداد
+            </button>
+        </form>
+    </div>
+    {% if not client.notify_number %}
+    <p class="form-hint" style="color:var(--danger)">⚠️ العميل ليس له رقم واتساب مسجّل — عدّل بيانات العميل وأضف رقم.</p>
+    {% endif %}
+</div>
+{% endif %}
+
 <div class="grid-2 mt-4">
     <!-- Add payment -->
     <div class="card">

@@ -6,8 +6,43 @@
     <a href="{{ url_for('settings.home') }}" class="btn btn-secondary">← الإعدادات</a>
 </div>
 
-<div class="card">
-    <form method="post" enctype="multipart/form-data">
+<form method="post" enctype="multipart/form-data">
+    <!-- ===== Theme picker ===== -->
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">🎭 ثيم البرنامج</h3></div>
+        <p class="text-muted mb-4">اختر ثيم — هيتطبّق على البرنامج كله ولكل المستخدمين فوراً بعد الحفظ.</p>
+
+        {% set current_theme = s.get('theme', 'midnight-gold') %}
+        <div class="theme-grid">
+            {% set themes = [
+                ('midnight-gold', 'أسود وذهبي', '#14161c', '#d4af37', '#232733'),
+                ('navy-silver', 'كحلي وفضي', '#0e1626', '#cbd5e1', '#1c2941'),
+                ('clean-white', 'أبيض نظيف', '#ffffff', '#18181b', '#f4f4f5'),
+                ('emerald', 'أخضر زمردي', '#065f46', '#6ee7b7', '#059669'),
+                ('violet', 'بنفسجي عصري', '#5b21b6', '#c4b5fd', '#7c3aed'),
+                ('dark-slate', 'رمادي داكن', '#1a2233', '#7dd3fc', '#273449'),
+                ('light', 'كلاسيك (ألوان مخصصة)', '#ffffff', '#0b3d91', '#f3f5fa')
+            ] %}
+            {% for id, name, bg, accent, card in themes %}
+            <label class="theme-card {% if current_theme == id %}selected{% endif %}">
+                <input type="radio" name="theme" value="{{ id }}" {% if current_theme == id %}checked{% endif %}>
+                <div class="theme-preview" style="background:{{ bg }}">
+                    <div class="theme-swatch-card" style="background:{{ card }};border-color:{{ accent }}44">
+                        <span class="theme-dot" style="background:{{ accent }}"></span>
+                        <span class="theme-bar" style="background:{{ accent }}"></span>
+                        <span class="theme-bar short" style="background:{{ accent }}66"></span>
+                    </div>
+                </div>
+                <div class="theme-name">{{ name }}</div>
+                <span class="theme-check">✓</span>
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ===== Identity ===== -->
+    <div class="card mt-4">
+        <div class="card-header"><h3 class="card-title">🏷️ الهوية</h3></div>
         <div class="form-grid">
             <div class="form-group">
                 <label class="form-label">اسم البرنامج <span class="req">*</span></label>
@@ -19,12 +54,12 @@
                 <span class="form-hint">يظهر تحت الأيقونة على شاشة الموبايل</span>
             </div>
             <div class="form-group">
-                <label class="form-label">اللون الأساسي</label>
-                <input class="form-input" type="color" name="primary_color" value="{{ s.get('primary_color', '#0b3d91') }}">
+                <label class="form-label">اللون الأساسي <span class="text-muted">(لثيم «كلاسيك» فقط)</span></label>
+                <input class="form-input" type="color" name="primary_color" value="{{ s.get('primary_color', '#1a1d24') }}">
             </div>
             <div class="form-group">
-                <label class="form-label">اللون الثانوي</label>
-                <input class="form-input" type="color" name="accent_color" value="{{ s.get('accent_color', '#14b8a6') }}">
+                <label class="form-label">اللون الثانوي <span class="text-muted">(لثيم «كلاسيك» فقط)</span></label>
+                <input class="form-input" type="color" name="accent_color" value="{{ s.get('accent_color', '#d4af37') }}">
             </div>
             <div class="form-group full">
                 <label class="form-label">لوجو الشركة</label>
@@ -42,9 +77,70 @@
                 {% endif %}
             </div>
         </div>
-        <div class="form-actions">
-            <button class="btn btn-primary">💾 حفظ</button>
-        </div>
-    </form>
-</div>
+    </div>
+
+    <div class="form-actions mt-4">
+        <button class="btn btn-primary btn-lg">💾 حفظ وتطبيق</button>
+    </div>
+</form>
+
+<style>
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 14px;
+}
+.theme-card {
+    position: relative;
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.16s;
+    background: var(--surface);
+}
+.theme-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: var(--shadow); }
+.theme-card.selected { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary)22; }
+.theme-card input { position: absolute; opacity: 0; }
+.theme-preview {
+    height: 88px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.theme-swatch-card {
+    width: 78%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.theme-dot { width: 14px; height: 14px; border-radius: 50%; display: block; }
+.theme-bar { height: 5px; border-radius: 3px; width: 100%; display: block; }
+.theme-bar.short { width: 60%; }
+.theme-name { text-align: center; font-weight: 600; font-size: 13px; margin-top: 8px; color: var(--text); }
+.theme-check {
+    position: absolute;
+    top: 12px; inset-inline-end: 12px;
+    width: 22px; height: 22px;
+    background: var(--primary); color: #fff;
+    border-radius: 50%;
+    display: none; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+}
+.theme-card.selected .theme-check { display: flex; }
+</style>
+
+<script>
+document.querySelectorAll('.theme-card input').forEach(function(radio){
+    radio.addEventListener('change', function(){
+        document.querySelectorAll('.theme-card').forEach(function(c){ c.classList.remove('selected'); });
+        this.closest('.theme-card').classList.add('selected');
+    });
+});
+</script>
 {% endblock %}
