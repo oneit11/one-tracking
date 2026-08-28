@@ -106,11 +106,28 @@ def dashboard():
         k: _t("status." + k) for k in
         ["new", "assigned", "in_progress", "report_ready", "closed", "cancelled"]
     }
+
+    # Financial: total outstanding receivables across all clients + overdue count
+    from models.client import AccountEntry
+    total_charges = db.session.query(func.coalesce(func.sum(AccountEntry.amount), 0))\
+        .filter(AccountEntry.entry_type == "charge").scalar() or 0
+    total_payments = db.session.query(func.coalesce(func.sum(AccountEntry.amount), 0))\
+        .filter(AccountEntry.entry_type == "payment").scalar() or 0
+    stats["total_receivable"] = float(total_charges) - float(total_payments)
+    # Count clients who currently owe money (positive balance)
+    overdue_clients = 0
+    for cl in Client.query.filter_by(active=True).all():
+        if cl.balance > 0:
+            overdue_clients += 1
+    stats["clients_with_balance"] = overdue_clients
+    from services.settings_service import get_setting
+    currency = get_setting("currency", "ج.م")
+
     return render_template(
         "admin/dashboard.html",
         stats=stats, recent_requests=recent_requests, status_counts=status_counts,
         chart_labels=chart_labels, chart_data=chart_data,
-        status_labels_js=status_labels_js,
+        status_labels_js=status_labels_js, currency=currency,
     )
 
 

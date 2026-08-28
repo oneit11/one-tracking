@@ -49,7 +49,7 @@
         <div class="kpi-arrow">←</div>
     </a>
     {% set bal = client.balance %}
-    <a href="{{ url_for('portal.account') }}" class="kpi-card {{ 'kpi-danger' if bal > 0 else 'kpi-success' }}">
+    <a href="{{ url_for('portal.account') }}" class="kpi-card {{ 'kpi-danger' if bal > 0 else 'kpi-accent' }}">
         <div class="kpi-icon">💰</div>
         <div class="kpi-body">
             <div class="kpi-label">{% if bal > 0 %}{{ t('portal.owed_by_you') }}{% elif bal < 0 %}{{ t('portal.credit_you') }}{% else %}{{ t('portal.my_account_card') }}{% endif %}</div>
@@ -58,7 +58,7 @@
         <div class="kpi-arrow">←</div>
     </a>
     {% if client.active_amc %}
-    <div class="kpi-card kpi-accent">
+    <div class="kpi-card kpi-success">
         <div class="kpi-icon">📜</div>
         <div class="kpi-body">
             <div class="kpi-label">{{ t('portal.amc_active') }}</div>
@@ -72,6 +72,7 @@
     <a href="{{ url_for('portal.request_new') }}" class="qa-btn"><span>➕</span><small>{{ t('portal.qa_new') }}</small></a>
     <a href="{{ url_for('portal.requests_list') }}" class="qa-btn"><span>📋</span><small>{{ t('portal.qa_requests') }}</small></a>
     <a href="{{ url_for('portal.devices') }}" class="qa-btn"><span>🖥️</span><small>{{ t('portal.qa_devices') }}</small></a>
+    <a href="{{ url_for('portal.account') }}" class="qa-btn"><span>💰</span><small>{{ t('account.my_account') }}</small></a>
 </div>
 
 <div class="card">

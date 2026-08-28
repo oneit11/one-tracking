@@ -238,6 +238,9 @@ def _light_migrate(app):
         db.session.rollback()
         app.logger.warning(f"create_all warning: {str(e)[:150]}")
 
+    # Backfill old visit costs onto client accounts (runs on any DB). Idempotent.
+    _backfill_visit_charges(app)
+
     if db.engine.dialect.name != "postgresql":
         return
 
@@ -275,6 +278,54 @@ def _light_migrate(app):
             except Exception as e:
                 db.session.rollback()
                 app.logger.warning(f"migrate skip {table.name}.{col.name}: {str(e)[:120]}")
+
+
+def _backfill_visit_charges(app):
+    """Create account charges for closed requests that have a visit_cost but no
+    ledger entry yet. Safe to run on every startup (idempotent)."""
+    try:
+        from models.request import MaintenanceRequest
+        from models.client import AccountEntry
+    except Exception:
+        return
+    try:
+        # Requests that carry a cost
+        reqs = MaintenanceRequest.query.filter(
+            MaintenanceRequest.visit_cost.isnot(None),
+            MaintenanceRequest.visit_cost > 0,
+        ).all()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.warning(f"backfill query failed: {str(e)[:120]}")
+        return
+
+    created = 0
+    for req in reqs:
+        if not req.client_id:
+            continue
+        try:
+            exists = AccountEntry.query.filter_by(
+                request_id=req.id, source="visit", entry_type="charge"
+            ).first()
+            if exists:
+                continue
+            entry = AccountEntry(
+                client_id=req.client_id,
+                entry_type="charge",
+                amount=float(req.visit_cost),
+                description=f"تكلفة زيارة — طلب {req.request_number}",
+                request_id=req.id,
+                source="visit",
+                created_at=req.closed_at or req.created_at,
+            )
+            db.session.add(entry)
+            db.session.commit()
+            created += 1
+        except Exception as e:
+            db.session.rollback()
+            app.logger.warning(f"backfill skip req {req.id}: {str(e)[:120]}")
+    if created:
+        app.logger.info(f"backfill: created {created} visit charges")
 
 
 app = create_app()

@@ -20,114 +20,6 @@
     </div>
 </div>
 
-<!-- Modern KPI grid — every card is a link -->
-<div class="kpi-grid">
-    <a href="{{ url_for('admin.clients_list') }}" class="kpi-card kpi-primary">
-        <div class="kpi-icon">👥</div>
-        <div class="kpi-body">
-            <div class="kpi-label">{{ t('admin.kpi_clients') }}</div>
-            <div class="kpi-value">{{ stats.clients_total }}</div>
-        </div>
-        <div class="kpi-arrow">←</div>
-    </a>
-    <a href="{{ url_for('admin.devices_list') }}" class="kpi-card kpi-accent">
-        <div class="kpi-icon">🖥️</div>
-        <div class="kpi-body">
-            <div class="kpi-label">{{ t('admin.kpi_devices') }}</div>
-            <div class="kpi-value">{{ stats.devices_total }}</div>
-        </div>
-        <div class="kpi-arrow">←</div>
-    </a>
-    <a href="{{ url_for('admin.requests_list') }}?status=" class="kpi-card kpi-warning">
-        <div class="kpi-icon">📋</div>
-        <div class="kpi-body">
-            <div class="kpi-label">{{ t('admin.kpi_open_requests') }}</div>
-            <div class="kpi-value">{{ stats.requests_open }}</div>
-        </div>
-        <div class="kpi-arrow">←</div>
-    </a>
-    <a href="{{ url_for('admin.requests_list') }}?status=new" class="kpi-card kpi-danger">
-        <div class="kpi-icon">🆕</div>
-        <div class="kpi-body">
-            <div class="kpi-label">{{ t('admin.kpi_new_requests') }}</div>
-            <div class="kpi-value">{{ stats.requests_new }}</div>
-        </div>
-        <div class="kpi-arrow">←</div>
-    </a>
-    <a href="{{ url_for('admin.requests_list') }}?sla=breached" class="kpi-card kpi-danger">
-        <div class="kpi-icon">⚠️</div>
-        <div class="kpi-body">
-            <div class="kpi-label">{{ t('admin.kpi_sla_breached') }}</div>
-            <div class="kpi-value">{{ stats.sla_breached }}</div>
-        </div>
-        <div class="kpi-arrow">←</div>
-    </a>
-    <a href="{{ url_for('admin.surveys_list') }}" class="kpi-card kpi-primary">
-        <div class="kpi-icon">📋</div>
-        <div class="kpi-body">
-            <div class="kpi-label">{{ t('admin.kpi_surveys') }}</div>
-            <div class="kpi-value">{{ stats.surveys_open }}</div>
-        </div>
-        <div class="kpi-arrow">←</div>
-    </a>
-    <a href="{{ url_for('admin.requests_list') }}" class="kpi-card kpi-info">
-        <div class="kpi-icon">📅</div>
-        <div class="kpi-body">
-            <div class="kpi-label">{{ t('admin.kpi_today') }}</div>
-            <div class="kpi-value">{{ stats.requests_today }}</div>
-        </div>
-        <div class="kpi-arrow">←</div>
-    </a>
-    <a href="{{ url_for('admin.requests_list') }}" class="kpi-card kpi-info">
-        <div class="kpi-icon">🗓️</div>
-        <div class="kpi-body">
-            <div class="kpi-label">{{ t('admin.kpi_week') }}</div>
-            <div class="kpi-value">{{ stats.requests_week }}</div>
-        </div>
-        <div class="kpi-arrow">←</div>
-    </a>
-    <a href="{{ url_for('admin.requests_list') }}?status=closed" class="kpi-card kpi-success">
-        <div class="kpi-icon">✅</div>
-        <div class="kpi-body">
-            <div class="kpi-label">{{ t('admin.kpi_closed_month') }}</div>
-            <div class="kpi-value">{{ stats.requests_closed_month }}</div>
-        </div>
-        <div class="kpi-arrow">←</div>
-    </a>
-    <a href="{{ url_for('admin.tickets_list') }}" class="kpi-card kpi-warning">
-        <div class="kpi-icon">🎫</div>
-        <div class="kpi-body">
-            <div class="kpi-label">{{ t('admin.kpi_open_tickets') }}</div>
-            <div class="kpi-value">{{ stats.tickets_open }}</div>
-        </div>
-        <div class="kpi-arrow">←</div>
-    </a>
-    <a href="{{ url_for('admin.users_list') }}" class="kpi-card kpi-primary">
-        <div class="kpi-icon">🧑‍🔧</div>
-        <div class="kpi-body">
-            <div class="kpi-label">{{ t('admin.kpi_technicians') }}</div>
-            <div class="kpi-value">{{ stats.technicians_total }}</div>
-        </div>
-        <div class="kpi-arrow">←</div>
-    </a>
-    <a href="{{ url_for('admin.qr_home') }}" class="kpi-card kpi-accent">
-        <div class="kpi-icon">🔗</div>
-        <div class="kpi-body">
-            <div class="kpi-label">{{ t('admin.kpi_qr_used') }}</div>
-            <div class="kpi-value">{{ stats.qr_codes_used }}/{{ stats.qr_codes_total }}</div>
-        </div>
-        <div class="kpi-arrow">←</div>
-    </a>
-    <a href="{{ url_for('reports.home') }}" class="kpi-card kpi-success">
-        <div class="kpi-icon">⭐</div>
-        <div class="kpi-body">
-            <div class="kpi-label">{{ t('admin.kpi_avg_rating') }}</div>
-            <div class="kpi-value">{{ "%.1f"|format(stats.avg_rating) if stats.avg_rating else '-' }}</div>
-        </div>
-        <div class="kpi-arrow">←</div>
-    </a>
-</div>
-
 <!-- Quick actions -->
 <div class="quick-actions">
     <a href="{{ url_for('admin.request_new') }}" class="qa-btn"><span>➕</span><small>{{ t('admin.qa_request') }}</small></a>
@@ -140,12 +32,160 @@
     <a href="{{ url_for('settings.home') }}" class="qa-btn"><span>⚙️</span><small>{{ t('admin.qa_settings') }}</small></a>
 </div>
 
+<!-- ===== Operations ===== -->
+<div class="dash-section">
+    <div class="dash-section-head"><span class="sec-emoji">📋</span>{{ t('admin.sec_operations') }}</div>
+    <div class="kpi-grid">
+        <a href="{{ url_for('admin.requests_list') }}?status=" class="kpi-card kpi-warning">
+            <div class="kpi-icon">📋</div>
+            <div class="kpi-body">
+                <div class="kpi-label">{{ t('admin.kpi_open_requests') }}</div>
+                <div class="kpi-value">{{ stats.requests_open }}</div>
+            </div>
+            <div class="kpi-arrow">←</div>
+        </a>
+        <a href="{{ url_for('admin.requests_list') }}?status=new" class="kpi-card kpi-primary">
+            <div class="kpi-icon">🆕</div>
+            <div class="kpi-body">
+                <div class="kpi-label">{{ t('admin.kpi_new_requests') }}</div>
+                <div class="kpi-value">{{ stats.requests_new }}</div>
+            </div>
+            <div class="kpi-arrow">←</div>
+        </a>
+        <a href="{{ url_for('admin.requests_list') }}?sla=breached" class="kpi-card kpi-danger">
+            <div class="kpi-icon">⚠️</div>
+            <div class="kpi-body">
+                <div class="kpi-label">{{ t('admin.kpi_sla_breached') }}</div>
+                <div class="kpi-value">{{ stats.sla_breached }}</div>
+            </div>
+            <div class="kpi-arrow">←</div>
+        </a>
+        <a href="{{ url_for('admin.tickets_list') }}" class="kpi-card kpi-info">
+            <div class="kpi-icon">🎫</div>
+            <div class="kpi-body">
+                <div class="kpi-label">{{ t('admin.kpi_open_tickets') }}</div>
+                <div class="kpi-value">{{ stats.tickets_open }}</div>
+            </div>
+            <div class="kpi-arrow">←</div>
+        </a>
+        <a href="{{ url_for('admin.surveys_list') }}" class="kpi-card kpi-accent">
+            <div class="kpi-icon">🔍</div>
+            <div class="kpi-body">
+                <div class="kpi-label">{{ t('admin.kpi_surveys') }}</div>
+                <div class="kpi-value">{{ stats.surveys_open }}</div>
+            </div>
+            <div class="kpi-arrow">←</div>
+        </a>
+        <a href="{{ url_for('admin.requests_list') }}?status=closed" class="kpi-card kpi-success">
+            <div class="kpi-icon">✅</div>
+            <div class="kpi-body">
+                <div class="kpi-label">{{ t('admin.kpi_closed_month') }}</div>
+                <div class="kpi-value">{{ stats.requests_closed_month }}</div>
+            </div>
+            <div class="kpi-arrow">←</div>
+        </a>
+    </div>
+</div>
+
+<!-- ===== Financial ===== -->
+<div class="dash-section">
+    <div class="dash-section-head"><span class="sec-emoji">💰</span>{{ t('admin.sec_financial') }}</div>
+    <div class="kpi-grid">
+        <a href="{{ url_for('admin.clients_list') }}" class="kpi-card kpi-danger">
+            <div class="kpi-icon">🧾</div>
+            <div class="kpi-body">
+                <div class="kpi-label">{{ t('admin.kpi_receivable') }}</div>
+                <div class="kpi-value">{{ '%g'|format(stats.total_receivable) }} <small>{{ currency }}</small></div>
+            </div>
+            <div class="kpi-arrow">←</div>
+        </a>
+        <a href="{{ url_for('admin.clients_list') }}" class="kpi-card kpi-warning">
+            <div class="kpi-icon">👤</div>
+            <div class="kpi-body">
+                <div class="kpi-label">{{ t('admin.kpi_clients_balance') }}</div>
+                <div class="kpi-value">{{ stats.clients_with_balance }}</div>
+            </div>
+            <div class="kpi-arrow">←</div>
+        </a>
+        <a href="{{ url_for('reports.home') }}" class="kpi-card kpi-success">
+            <div class="kpi-icon">⭐</div>
+            <div class="kpi-body">
+                <div class="kpi-label">{{ t('admin.kpi_avg_rating') }}</div>
+                <div class="kpi-value">{{ "%.1f"|format(stats.avg_rating) if stats.avg_rating else '-' }}</div>
+            </div>
+            <div class="kpi-arrow">←</div>
+        </a>
+    </div>
+</div>
+
+<!-- ===== Clients & Assets ===== -->
+<div class="dash-section">
+    <div class="dash-section-head"><span class="sec-emoji">🏢</span>{{ t('admin.sec_catalog') }}</div>
+    <div class="kpi-grid">
+        <a href="{{ url_for('admin.clients_list') }}" class="kpi-card kpi-primary">
+            <div class="kpi-icon">👥</div>
+            <div class="kpi-body">
+                <div class="kpi-label">{{ t('admin.kpi_clients') }}</div>
+                <div class="kpi-value">{{ stats.clients_total }}</div>
+            </div>
+            <div class="kpi-arrow">←</div>
+        </a>
+        <a href="{{ url_for('admin.devices_list') }}" class="kpi-card kpi-accent">
+            <div class="kpi-icon">🖥️</div>
+            <div class="kpi-body">
+                <div class="kpi-label">{{ t('admin.kpi_devices') }}</div>
+                <div class="kpi-value">{{ stats.devices_total }}</div>
+            </div>
+            <div class="kpi-arrow">←</div>
+        </a>
+        <a href="{{ url_for('admin.qr_home') }}" class="kpi-card kpi-info">
+            <div class="kpi-icon">🔗</div>
+            <div class="kpi-body">
+                <div class="kpi-label">{{ t('admin.kpi_qr_used') }}</div>
+                <div class="kpi-value">{{ stats.qr_codes_used }}/{{ stats.qr_codes_total }}</div>
+            </div>
+            <div class="kpi-arrow">←</div>
+        </a>
+    </div>
+</div>
+
+<!-- ===== Team & Performance ===== -->
+<div class="dash-section">
+    <div class="dash-section-head"><span class="sec-emoji">📈</span>{{ t('admin.sec_team') }}</div>
+    <div class="kpi-grid">
+        <a href="{{ url_for('admin.users_list') }}" class="kpi-card kpi-primary">
+            <div class="kpi-icon">🧑‍🔧</div>
+            <div class="kpi-body">
+                <div class="kpi-label">{{ t('admin.kpi_technicians') }}</div>
+                <div class="kpi-value">{{ stats.technicians_total }}</div>
+            </div>
+            <div class="kpi-arrow">←</div>
+        </a>
+        <a href="{{ url_for('admin.requests_list') }}" class="kpi-card kpi-info">
+            <div class="kpi-icon">📅</div>
+            <div class="kpi-body">
+                <div class="kpi-label">{{ t('admin.kpi_today') }}</div>
+                <div class="kpi-value">{{ stats.requests_today }}</div>
+            </div>
+            <div class="kpi-arrow">←</div>
+        </a>
+        <a href="{{ url_for('admin.requests_list') }}" class="kpi-card kpi-accent">
+            <div class="kpi-icon">🗓️</div>
+            <div class="kpi-body">
+                <div class="kpi-label">{{ t('admin.kpi_week') }}</div>
+                <div class="kpi-value">{{ stats.requests_week }}</div>
+            </div>
+            <div class="kpi-arrow">←</div>
+        </a>
+    </div>
+</div>
+
+<!-- Charts -->
 <div class="grid-2">
     <div class="card">
         <div class="card-header"><h3 class="card-title">{{ t('admin.chart_trend') }}</h3></div>
         <div class="chart-container"><canvas id="chartTrend"></canvas></div>
     </div>
-
     <div class="card">
         <div class="card-header"><h3 class="card-title">{{ t('admin.chart_status') }}</h3></div>
         <div class="chart-container"><canvas id="chartStatus"></canvas></div>
@@ -181,22 +221,18 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof Chart === 'undefined') {
-        document.querySelectorAll('.chart-container').forEach(function(c){
-            c.innerHTML = '<div class="chart-empty">—</div>';
-        });
+        document.querySelectorAll('.chart-container').forEach(function(c){ c.innerHTML = '<div class="chart-empty">—</div>'; });
         return;
     }
     var css = getComputedStyle(document.documentElement);
     var primary = (css.getPropertyValue('--primary') || '#0b3d91').trim();
-    var accent  = (css.getPropertyValue('--accent') || '#14b8a6').trim();
     Chart.defaults.font.family = "Tajawal, 'Segoe UI', Tahoma, sans-serif";
     Chart.defaults.color = '#64748b';
 
     var trendData = {{ chart_data|tojson }};
     var hasTrend = trendData && trendData.some(function(v){ return v > 0; });
     if (!hasTrend) {
-        document.getElementById('chartTrend').parentNode.innerHTML =
-            '<div class="chart-empty">—</div>';
+        document.getElementById('chartTrend').parentNode.innerHTML = '<div class="chart-empty">—</div>';
     } else
     new Chart(document.getElementById('chartTrend'), {
         type: 'line',
@@ -212,20 +248,16 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, ticks: { precision: 0 } },
-                x: { grid: { display: false } }
-            }
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { grid: { display: false } } }
         }
     });
 
     var statusData = {{ status_counts|tojson }};
     var statusLabels = {{ status_labels_js|tojson }};
-    var colors = ['#3b82f6','#f59e0b','#f97316','#8b5cf6','#10b981','#ef4444'];
+    var colors = ['#2563eb','#f59e0b','#f97316','#8b5cf6','#10b981','#f43f5e'];
     var hasStatus = statusData && Object.values(statusData).some(function(v){ return v > 0; });
     if (!hasStatus) {
-        document.getElementById('chartStatus').parentNode.innerHTML =
-            '<div class="chart-empty">—</div>';
+        document.getElementById('chartStatus').parentNode.innerHTML = '<div class="chart-empty">—</div>';
     } else
     new Chart(document.getElementById('chartStatus'), {
         type: 'doughnut',
@@ -233,10 +265,7 @@ document.addEventListener('DOMContentLoaded', function() {
             labels: Object.keys(statusData).map(function(k){ return statusLabels[k] || k; }),
             datasets: [{ data: Object.values(statusData), backgroundColor: colors, borderWidth: 0 }]
         },
-        options: {
-            responsive: true, maintainAspectRatio: false, cutout: '60%',
-            plugins: { legend: { position: 'bottom' } }
-        }
+        options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom' } } }
     });
 });
 </script>

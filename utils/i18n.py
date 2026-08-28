@@ -215,6 +215,13 @@ TRANSLATIONS = {
     "admin.col_priority": {"ar": "الأولوية", "en": "Priority"},
     "admin.col_status": {"ar": "الحالة", "en": "Status"},
     "admin.no_requests": {"ar": "لا يوجد طلبات", "en": "No requests"},
+    # Dashboard sections + financial
+    "admin.sec_operations": {"ar": "العمليات", "en": "Operations"},
+    "admin.sec_financial": {"ar": "الحسابات والمالية", "en": "Accounts & Finance"},
+    "admin.sec_catalog": {"ar": "العملاء والأصول", "en": "Clients & Assets"},
+    "admin.sec_team": {"ar": "الفريق والأداء", "en": "Team & Performance"},
+    "admin.kpi_receivable": {"ar": "إجمالي المستحقات", "en": "Total Receivables"},
+    "admin.kpi_clients_balance": {"ar": "عملاء عليهم مديونية", "en": "Clients with Balance"},
 
     # Admin clients list
     "admin.clients_title": {"ar": "العملاء", "en": "Clients"},
