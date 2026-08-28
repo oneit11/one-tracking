@@ -10,8 +10,8 @@ DEFAULT_SETTINGS = {
     "app_short_name": ("ONE Track", "branding"),
     "logo_url": ("", "branding"),
     "favicon_url": ("", "branding"),
-    "primary_color": ("#0b3d91", "branding"),
-    "accent_color": ("#14b8a6", "branding"),
+    "primary_color": ("#1a1d24", "branding"),
+    "accent_color": ("#d4af37", "branding"),
 
     # Company
     "company_name": ("ONE For Integrated Solutions", "company"),
