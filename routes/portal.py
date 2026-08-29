@@ -106,13 +106,39 @@ def request_new():
     devices = Device.query.filter_by(client_id=client.id, active=True).order_by(Device.name).all()
 
     if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        description = request.form.get("description", "").strip()
+        contact_phone = request.form.get("contact_phone", "").strip()
+        location = request.form.get("location", "").strip()
+
+        from utils.helpers import is_valid_eg_mobile
+        errors = []
+        if not title:
+            errors.append("نوع المشكلة / عنوان الطلب مطلوب")
+        if not description:
+            errors.append("وصف المشكلة مطلوب")
+        if not location:
+            errors.append("العنوان / الموقع مطلوب")
+        # phone: fall back to the client's stored number if not provided
+        phone = contact_phone or client.phone or client.whatsapp or ""
+        if not phone:
+            errors.append("رقم الموبايل مطلوب")
+        elif not is_valid_eg_mobile(phone):
+            errors.append("رقم الموبايل غير صحيح — لازم رقم مصري صحيح مثل 01xxxxxxxxx")
+        if errors:
+            for e in errors:
+                flash(e, "warning")
+            return render_template("portal/request_form.html", client=client,
+                                   devices=devices, form=request.form)
+
         req = MaintenanceRequest(
             request_number=next_sequence(MaintenanceRequest, "request_number", "MR"),
             client_id=client.id,
             device_id=int(request.form.get("device_id")) if request.form.get("device_id") else None,
-            title=request.form.get("title", "").strip(),
-            description=request.form.get("description", "").strip(),
+            title=title,
+            description=(description + (f"\nالموقع: {location}" if location else "")).strip(),
             priority=request.form.get("priority", "normal"),
+            contact_phone=phone,
             created_by=current_user.id,
         )
         if "photo" in request.files and request.files["photo"].filename:

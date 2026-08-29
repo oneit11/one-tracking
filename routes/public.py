@@ -62,18 +62,39 @@ def service_landing():
             abort(400)
         name = request.form.get("name", "").strip()
         phone = request.form.get("phone", "").strip()
-        if not name or not phone:
-            flash("رجاءً اكتب الاسم ورقم التليفون", "warning")
-            return redirect(url_for("public.service_landing"))
+        service_type = request.form.get("service_type", "").strip()
+        location = request.form.get("location", "").strip()
+        description = request.form.get("description", "").strip()
+
+        from utils.helpers import is_valid_eg_mobile
+        errors = []
+        if not name:
+            errors.append("الاسم مطلوب")
+        if not phone:
+            errors.append("رقم الموبايل مطلوب")
+        elif not is_valid_eg_mobile(phone):
+            errors.append("رقم الموبايل غير صحيح — لازم رقم مصري صحيح مثل 01xxxxxxxxx")
+        if not service_type:
+            errors.append("نوع الخدمة / المشكلة مطلوب")
+        if not location:
+            errors.append("العنوان مطلوب")
+        if errors:
+            for e in errors:
+                flash(e, "warning")
+            # keep what they typed so they don't retype everything
+            return render_template("public/service.html",
+                                   customer_types=CUSTOMER_TYPES,
+                                   service_types=SERVICE_TYPES,
+                                   form=request.form)
 
         from models.extras import Lead
         from utils.helpers import save_upload
         lead = Lead(
             name=name, phone=phone,
             customer_type=request.form.get("customer_type", "").strip(),
-            service_type=request.form.get("service_type", "").strip(),
-            description=request.form.get("description", "").strip(),
-            location=request.form.get("location", "").strip(),
+            service_type=service_type,
+            description=description,
+            location=location,
             source=request.form.get("source", "facebook"),
         )
         if "photo" in request.files and request.files["photo"].filename:

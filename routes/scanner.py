@@ -181,7 +181,7 @@ def manifest():
 def service_worker():
     from flask import Response
     sw = """
-const CACHE_NAME = 'one-tracking-v1';
+const CACHE_NAME = 'one-tracking-v2';
 const STATIC = ['/', '/static/css/main.css', '/static/js/main.js', '/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -199,7 +199,6 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
     if (e.request.method !== 'GET') return;
     const url = new URL(e.request.url);
-    // Network-first for API/dynamic, cache-first for static
     if (url.pathname.startsWith('/static/') || url.pathname === '/manifest.json') {
         e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(res => {
             const clone = res.clone();
@@ -207,6 +206,40 @@ self.addEventListener('fetch', e => {
             return res;
         }).catch(() => caches.match('/'))));
     }
+});
+
+// The page posts a message when it detects a new alert; we show a system
+// notification (with vibration) so it appears even when the tab is in the
+// background. Works whenever the service worker is alive.
+self.addEventListener('message', event => {
+    const d = event.data || {};
+    if (d.type === 'notify') {
+        const title = d.title || 'تنبيه جديد';
+        self.registration.showNotification(title, {
+            body: d.body || '',
+            icon: '/static/img/pwa/icon-192.png',
+            badge: '/static/img/pwa/icon-192.png',
+            tag: d.tag || ('n-' + (d.id || Date.now())),
+            renotify: true,
+            requireInteraction: true,
+            vibrate: [300, 120, 300, 120, 300],
+            data: { link: d.link || '/' }
+        });
+    }
+});
+
+// Focus (or open) the app when a notification is clicked.
+self.addEventListener('notificationclick', event => {
+    event.notification.close();
+    const link = (event.notification.data && event.notification.data.link) || '/';
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(wins => {
+            for (const w of wins) {
+                if ('focus' in w) { w.focus(); if (w.navigate) w.navigate(link); return; }
+            }
+            if (clients.openWindow) return clients.openWindow(link);
+        })
+    );
 });
 """
     return Response(sw, mimetype="application/javascript")

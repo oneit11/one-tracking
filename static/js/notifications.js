@@ -48,20 +48,77 @@
         if (!soundOn()) return;
         // Do nothing until audio has been unlocked by a user gesture (prevents warnings)
         if (!audioUnlocked || !audioCtx || audioCtx.state !== 'running') return;
-        const now = audioCtx.currentTime;
-        // Two-tone pleasant "ding-dong"
-        [[880, 0], [1174, 0.16]].forEach(function (pair) {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.value = pair[0];
-            const t = now + pair[1];
-            gain.gain.setValueAtTime(0.0001, t);
-            gain.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(t); osc.stop(t + 0.5);
-        });
+        const base = audioCtx.currentTime;
+        // Three louder "ding-dong" pairs so it's hard to miss.
+        for (let rep = 0; rep < 3; rep++) {
+            const start = base + rep * 0.6;
+            [[880, 0], [1174, 0.16]].forEach(function (pair) {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = pair[0];
+                const t = start + pair[1];
+                gain.gain.setValueAtTime(0.0001, t);
+                gain.gain.exponentialRampToValueAtTime(0.6, t + 0.02);  // louder
+                gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(t); osc.stop(t + 0.5);
+            });
+        }
+    }
+
+    // ===== Native OS notification permission =====
+    function ensurePermission() {
+        if (!('Notification' in window)) return;
+        if (Notification.permission === 'default') {
+            // Ask on the first user gesture (some browsers require a gesture)
+            Notification.requestPermission().catch(function () {});
+        }
+    }
+    document.addEventListener('click', ensurePermission, { once: true });
+    // also try immediately (desktop usually allows it)
+    try { ensurePermission(); } catch (e) {}
+
+    function vibrate() {
+        try { if (navigator.vibrate) navigator.vibrate([300, 120, 300, 120, 300]); } catch (e) {}
+    }
+
+    // Show a system notification via the service worker (survives backgrounded tab)
+    // and fall back to a page-level Notification if no SW is controlling.
+    function systemNotify(n) {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        var payload = {
+            type: 'notify',
+            id: n.id,
+            title: n.title || 'تنبيه جديد',
+            body: n.body || '',
+            link: n.link || '/',
+            tag: 'notif-' + n.id
+        };
+        try {
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage(payload);
+                return;
+            }
+            if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+                navigator.serviceWorker.ready.then(function (reg) {
+                    reg.showNotification(payload.title, {
+                        body: payload.body,
+                        icon: '/static/img/pwa/icon-192.png',
+                        badge: '/static/img/pwa/icon-192.png',
+                        tag: payload.tag, renotify: true, requireInteraction: true,
+                        vibrate: [300, 120, 300, 120, 300],
+                        data: { link: payload.link }
+                    });
+                });
+                return;
+            }
+        } catch (e) {}
+        // Last resort: basic page notification
+        try {
+            var note = new Notification(payload.title, { body: payload.body, icon: '/static/img/pwa/icon-192.png' });
+            note.onclick = function () { window.focus(); if (payload.link) location.href = payload.link; };
+        } catch (e) {}
     }
 
     // ===== Track newest notification to detect fresh arrivals =====
@@ -74,14 +131,17 @@
             const d = await r.json();
 
             // Detect new notifications by max id
-            let maxId = 0, hasUnread = false;
+            let maxId = 0, hasUnread = false, newest = null;
             (d.items || []).forEach(function (n) {
-                if (n.id > maxId) maxId = n.id;
+                if (n.id > maxId) { maxId = n.id; }
+                if (n.id > (lastMaxId || 0) && !newest) newest = n;
                 if (!n.is_read) hasUnread = true;
             });
             if (primed && maxId > (lastMaxId || 0) && hasUnread) {
                 playChime();
+                vibrate();
                 flashTitle();
+                if (newest) systemNotify(newest);
             }
             if (maxId > (lastMaxId || 0)) lastMaxId = maxId;
             primed = true;
@@ -159,7 +219,37 @@
         });
     }
 
-    // Poll every 15s so alerts arrive quickly; only re-render the list when the panel is open.
-    setInterval(function () { fetchNotifs(panel.classList.contains('open')); }, 15000);
+    // ===== Enable-notifications button =====
+    const enableBtn = document.getElementById('notifEnable');
+    function refreshEnableBtn() {
+        if (!enableBtn || !('Notification' in window)) return;
+        enableBtn.style.display = (Notification.permission === 'granted') ? 'none' : 'inline-flex';
+    }
+    if (enableBtn) {
+        enableBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            unlockAudio();
+            if (!('Notification' in window)) {
+                alert('متصفحك لا يدعم إشعارات النظام');
+                return;
+            }
+            Notification.requestPermission().then(function (perm) {
+                refreshEnableBtn();
+                if (perm === 'granted') {
+                    // confirmation notification so the user sees it works
+                    systemNotify({ id: Date.now(), title: 'تم تفعيل الإشعارات ✅',
+                                   body: 'هتوصلك التنبيهات هنا بصوت واهتزاز.', link: '/' });
+                    vibrate();
+                    setTimeout(playChime, 150);
+                } else {
+                    alert('لم يتم تفعيل الإشعارات. فعّلها من إعدادات المتصفح للموقع.');
+                }
+            });
+        });
+        refreshEnableBtn();
+    }
+
+    // Poll every 10s so alerts arrive quickly; only re-render the list when the panel is open.
+    setInterval(function () { fetchNotifs(panel.classList.contains('open')); }, 10000);
     setTimeout(function () { fetchNotifs(false); }, 2000);
 })();

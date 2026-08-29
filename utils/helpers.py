@@ -66,6 +66,28 @@ def normalize_phone(phone):
     return "+" + p
 
 
+def is_valid_eg_mobile(phone):
+    """True if `phone` is a valid Egyptian mobile number.
+
+    Accepts common formats (01xxxxxxxxx, +2001..., 201..., 1x...) and checks
+    it resolves to an 11-digit local number starting with 010/011/012/015.
+    """
+    if not phone:
+        return False
+    p = re.sub(r"[^\d+]", "", str(phone))
+    # strip country code to a local 0-prefixed form
+    if p.startswith("+20"):
+        p = "0" + p[3:]
+    elif p.startswith("0020"):
+        p = "0" + p[4:]
+    elif p.startswith("20") and len(p) == 12:
+        p = "0" + p[2:]
+    elif len(p) == 10 and p.startswith("1"):
+        p = "0" + p
+    # now expect 11 digits: 01[0125]xxxxxxxx
+    return bool(re.fullmatch(r"01[0125]\d{8}", p))
+
+
 def format_datetime(dt, fmt="%Y-%m-%d %H:%M"):
     if not dt:
         return ""

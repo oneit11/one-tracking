@@ -7,33 +7,46 @@
 </div>
 
 <div class="card">
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" enctype="multipart/form-data" id="portalReqForm" novalidate>
         <div class="form-grid">
             <div class="form-group">
                 <label class="form-label">{{ t('req.device_optional') }}</label>
                 <select class="form-select" name="device_id">
                     <option value="">{{ t('req.general') }}</option>
                     {% for d in devices %}
-                    <option value="{{ d.id }}">{{ d.name }} {% if d.location %}({{ d.location }}){% endif %}</option>
+                    <option value="{{ d.id }}" {% if form and form.device_id == d.id|string %}selected{% endif %}>{{ d.name }} {% if d.location %}({{ d.location }}){% endif %}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="form-group">
                 <label class="form-label">{{ t('req.priority') }}</label>
                 <select class="form-select" name="priority">
-                    <option value="low">{{ t('priority.low') }}</option>
-                    <option value="normal" selected>{{ t('priority.normal') }}</option>
-                    <option value="high">{{ t('priority.high') }}</option>
-                    <option value="urgent">{{ t('priority.urgent') }}</option>
+                    <option value="low" {% if form and form.priority == 'low' %}selected{% endif %}>{{ t('priority.low') }}</option>
+                    <option value="normal" {% if not form or form.priority == 'normal' %}selected{% endif %}>{{ t('priority.normal') }}</option>
+                    <option value="high" {% if form and form.priority == 'high' %}selected{% endif %}>{{ t('priority.high') }}</option>
+                    <option value="urgent" {% if form and form.priority == 'urgent' %}selected{% endif %}>{{ t('priority.urgent') }}</option>
                 </select>
             </div>
             <div class="form-group full">
                 <label class="form-label">{{ t('req.title_label') }} <span class="req">*</span></label>
-                <input class="form-input" name="title" required placeholder="{{ t('req.title_ph') }}">
+                <input class="form-input" name="title" required placeholder="{{ t('req.title_ph') }}"
+                       value="{{ form.title if form else '' }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">رقم الموبايل <span class="req">*</span></label>
+                <input class="form-input" name="contact_phone" dir="ltr" inputmode="tel"
+                       pattern="01[0125][0-9]{8}" maxlength="11" placeholder="01xxxxxxxxx"
+                       value="{{ form.contact_phone if form else (client.phone or client.whatsapp or '') }}">
+                <span class="form-hint">رقم مصري صحيح للتواصل</span>
+            </div>
+            <div class="form-group">
+                <label class="form-label">العنوان / الموقع <span class="req">*</span></label>
+                <input class="form-input" name="location" required placeholder="المدينة / المنطقة / العنوان"
+                       value="{{ form.location if form else (client.address or client.city or '') }}">
             </div>
             <div class="form-group full">
-                <label class="form-label">{{ t('req.desc_label') }}</label>
-                <textarea class="form-textarea" name="description" rows="4" placeholder="{{ t('req.desc_ph') }}"></textarea>
+                <label class="form-label">{{ t('req.desc_label') }} <span class="req">*</span></label>
+                <textarea class="form-textarea" name="description" rows="4" required placeholder="{{ t('req.desc_ph') }}">{{ form.description if form else '' }}</textarea>
             </div>
             <div class="form-group full">
                 <label class="form-label">{{ t('req.photo_label') }}</label>
@@ -46,4 +59,37 @@
         </div>
     </form>
 </div>
+
+<script>
+(function(){
+    var f = document.getElementById('portalReqForm');
+    if (!f) return;
+    function normEg(v){
+        v = (v||'').replace(/[^\d+]/g,'');
+        if (v.indexOf('+20')===0) v = '0'+v.slice(3);
+        else if (v.indexOf('0020')===0) v = '0'+v.slice(4);
+        else if (v.indexOf('20')===0 && v.length===12) v = '0'+v.slice(2);
+        else if (v.length===10 && v[0]==='1') v = '0'+v;
+        return v;
+    }
+    f.addEventListener('submit', function(e){
+        var title = f.title.value.trim();
+        var desc = f.description.value.trim();
+        var loc = f.location.value.trim();
+        var phone = normEg(f.contact_phone.value.trim());
+        var errs = [];
+        if (!title) errs.push('• نوع المشكلة / العنوان مطلوب');
+        if (!desc) errs.push('• وصف المشكلة مطلوب');
+        if (!loc) errs.push('• العنوان مطلوب');
+        if (!phone) errs.push('• رقم الموبايل مطلوب');
+        else if (!/^01[0125]\d{8}$/.test(phone)) errs.push('• رقم الموبايل غير صحيح (يبدأ بـ 010/011/012/015)');
+        if (errs.length){
+            e.preventDefault();
+            alert('برجاء استكمال البيانات:\n\n' + errs.join('\n'));
+        } else {
+            f.contact_phone.value = phone;
+        }
+    });
+})();
+</script>
 {% endblock %}

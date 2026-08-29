@@ -31,39 +31,44 @@
     <!-- Request form -->
     <div class="card landing-form">
         <div class="card-header"><h3 class="card-title">📝 اطلب صيانة الآن</h3></div>
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" id="serviceForm" novalidate>
             <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off">
             <input type="hidden" name="source" value="facebook">
             <div class="form-grid">
                 <div class="form-group">
                     <label class="form-label">الاسم <span class="req">*</span></label>
-                    <input class="form-input" name="name" required placeholder="اسمك">
+                    <input class="form-input" name="name" required placeholder="اسمك"
+                           value="{{ form.name if form else '' }}">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">رقم التليفون <span class="req">*</span></label>
-                    <input class="form-input" name="phone" dir="ltr" required inputmode="tel" placeholder="01xxxxxxxxx">
+                    <label class="form-label">رقم الموبايل <span class="req">*</span></label>
+                    <input class="form-input" name="phone" dir="ltr" required inputmode="tel"
+                           pattern="01[0125][0-9]{8}" maxlength="11"
+                           placeholder="01xxxxxxxxx" value="{{ form.phone if form else '' }}">
+                    <span class="form-hint">رقم مصري صحيح (11 رقم يبدأ بـ 010/011/012/015)</span>
                 </div>
                 <div class="form-group">
                     <label class="form-label">نوع العميل</label>
                     <select class="form-select" name="customer_type">
                         <option value="">اختر...</option>
-                        {% for t in customer_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+                        {% for t in customer_types %}<option value="{{ t }}" {% if form and form.customer_type == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">نوع الخدمة</label>
-                    <select class="form-select" name="service_type">
+                    <label class="form-label">نوع الخدمة / المشكلة <span class="req">*</span></label>
+                    <select class="form-select" name="service_type" required>
                         <option value="">اختر...</option>
-                        {% for s in service_types %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+                        {% for s in service_types %}<option value="{{ s }}" {% if form and form.service_type == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
                     </select>
                 </div>
                 <div class="form-group full">
-                    <label class="form-label">العنوان / الموقع</label>
-                    <input class="form-input" name="location" placeholder="المدينة / المنطقة / العنوان">
+                    <label class="form-label">العنوان / الموقع <span class="req">*</span></label>
+                    <input class="form-input" name="location" required placeholder="المدينة / المنطقة / العنوان"
+                           value="{{ form.location if form else '' }}">
                 </div>
                 <div class="form-group full">
                     <label class="form-label">تفاصيل الطلب</label>
-                    <textarea class="form-textarea" name="description" rows="4" placeholder="اكتب المشكلة أو الخدمة المطلوبة..."></textarea>
+                    <textarea class="form-textarea" name="description" rows="4" placeholder="اكتب المشكلة أو الخدمة المطلوبة...">{{ form.description if form else '' }}</textarea>
                 </div>
                 <div class="form-group full">
                     <label class="form-label">📷 صورة (اختياري)</label>
@@ -73,6 +78,41 @@
             <button class="btn btn-primary btn-block mt-4" style="font-size:17px;padding:14px;">📤 إرسال الطلب</button>
         </form>
     </div>
+
+    <script>
+    (function(){
+        var f = document.getElementById('serviceForm');
+        if (!f) return;
+        function normEg(v){
+            v = (v||'').replace(/[^\d+]/g,'');
+            if (v.indexOf('+20')===0) v = '0'+v.slice(3);
+            else if (v.indexOf('0020')===0) v = '0'+v.slice(4);
+            else if (v.indexOf('20')===0 && v.length===12) v = '0'+v.slice(2);
+            else if (v.length===10 && v[0]==='1') v = '0'+v;
+            return v;
+        }
+        f.addEventListener('submit', function(e){
+            var name = f.name.value.trim();
+            var phoneRaw = f.phone.value.trim();
+            var phone = normEg(phoneRaw);
+            var service = f.service_type.value.trim();
+            var location = f.location.value.trim();
+            var errs = [];
+            if (!name) errs.push('• الاسم مطلوب');
+            if (!phone) errs.push('• رقم الموبايل مطلوب');
+            else if (!/^01[0125]\d{8}$/.test(phone)) errs.push('• رقم الموبايل غير صحيح (11 رقم يبدأ بـ 010/011/012/015)');
+            if (!service) errs.push('• اختر نوع الخدمة / المشكلة');
+            if (!location) errs.push('• العنوان مطلوب');
+            if (errs.length){
+                e.preventDefault();
+                alert('برجاء استكمال البيانات:\n\n' + errs.join('\n'));
+            } else {
+                // normalize phone before submit
+                f.phone.value = phone;
+            }
+        });
+    })();
+    </script>
 
     <div class="landing-footer">
         <strong>{{ COMPANY_NAME }}</strong>
