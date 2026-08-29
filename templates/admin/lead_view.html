@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}عرض الطلب الوارد - {{ lead.name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">📣 طلب وارد — {{ lead.name }}</h1>
+        <p class="page-subtitle">
+            {% set cls = {'new':'badge-info','contacted':'badge-warning','converted':'badge-success','closed':'badge-secondary'} %}
+            <span class="badge {{ cls.get(lead.status,'') }}">{{ lead.status_label }}</span>
+            · {{ lead.created_at.strftime('%Y-%m-%d %H:%M') }}
+            · المصدر: {{ lead.source or '-' }}
+        </p>
+    </div>
+    <a href="{{ url_for('admin.leads_list') }}" class="btn btn-secondary">← رجوع للقائمة</a>
+</div>
+
+<div class="card">
+    <div class="card-header"><h3 class="card-title">بيانات الطلب</h3></div>
+
+    <div class="detail-row">
+        <span class="detail-label">👤 الاسم</span>
+        <span class="detail-value"><strong>{{ lead.name }}</strong></span>
+    </div>
+    <div class="detail-row">
+        <span class="detail-label">📞 التليفون</span>
+        <span class="detail-value" dir="ltr">
+            <a href="tel:{{ lead.phone }}">{{ lead.phone }}</a>
+            &nbsp;·&nbsp;
+            <a href="https://wa.me/{{ lead.phone|replace('0','20',1) if lead.phone.startswith('0') else lead.phone }}" target="_blank">💬 واتساب</a>
+        </span>
+    </div>
+    <div class="detail-row">
+        <span class="detail-label">🏢 نوع العميل</span>
+        <span class="detail-value">{{ lead.customer_type or '-' }}</span>
+    </div>
+    <div class="detail-row">
+        <span class="detail-label">🛠️ الخدمة المطلوبة</span>
+        <span class="detail-value">{{ lead.service_type or '-' }}</span>
+    </div>
+    <div class="detail-row">
+        <span class="detail-label">📍 الموقع</span>
+        <span class="detail-value">{{ lead.location or '-' }}</span>
+    </div>
+    <div class="detail-row" style="align-items:flex-start;">
+        <span class="detail-label">📝 تفاصيل الطلب</span>
+        <span class="detail-value" style="white-space:pre-wrap;">{{ lead.description or '-' }}</span>
+    </div>
+    {% if lead.photo_url %}
+    <div class="detail-row" style="align-items:flex-start;">
+        <span class="detail-label">📷 صورة</span>
+        <span class="detail-value">
+            <a href="{{ lead.photo_url }}" target="_blank">
+                <img src="{{ lead.photo_url }}" alt="صورة الطلب" style="max-width:260px;border-radius:10px;border:1px solid var(--border);">
+            </a>
+        </span>
+    </div>
+    {% endif %}
+    {% if lead.status == 'converted' and lead.converted_request_id %}
+    <div class="detail-row">
+        <span class="detail-label">✅ الطلب المحوّل</span>
+        <span class="detail-value">
+            <a href="{{ url_for('admin.request_view', rid=lead.converted_request_id) }}" class="btn btn-sm btn-secondary">عرض طلب الصيانة ←</a>
+        </span>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Actions -->
+<div class="card mt-4">
+    <div class="card-header"><h3 class="card-title">الإجراءات</h3></div>
+    <div class="d-flex gap-2 flex-wrap">
+        {% if lead.status == 'converted' and lead.converted_request_id %}
+            <a href="{{ url_for('admin.request_view', rid=lead.converted_request_id) }}" class="btn btn-primary">عرض طلب الصيانة</a>
+        {% else %}
+            <form method="post" action="{{ url_for('admin.lead_convert', lid=lead.id) }}"
+                  data-confirm="تحويل هذا الطلب لطلب صيانة؟">
+                <button class="btn btn-success" type="submit">➡️ تحويل لطلب صيانة</button>
+            </form>
+            {% if lead.status == 'new' %}
+            <form method="post" action="{{ url_for('admin.lead_status', lid=lead.id) }}">
+                <input type="hidden" name="status" value="contacted">
+                <button class="btn btn-secondary" type="submit">✅ تم التواصل</button>
+            </form>
+            {% endif %}
+            {% if lead.status != 'closed' %}
+            <form method="post" action="{{ url_for('admin.lead_status', lid=lead.id) }}">
+                <input type="hidden" name="status" value="closed">
+                <button class="btn btn-secondary" type="submit">🚫 إغلاق</button>
+            </form>
+            {% endif %}
+        {% endif %}
+        <form method="post" action="{{ url_for('admin.lead_delete', lid=lead.id) }}"
+              data-confirm="حذف هذا الطلب نهائياً؟">
+            <button class="btn btn-danger" type="submit">🗑️ حذف</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -49,8 +49,8 @@
             {% for l in leads %}
             <tr>
                 <td>
-                    <strong>{{ l.name }}</strong>
-                    {% if l.description %}<div class="text-muted" style="font-size:12px;max-width:220px;">{{ l.description }}</div>{% endif %}
+                    <a href="{{ url_for('admin.lead_view', lid=l.id) }}"><strong>{{ l.name }}</strong></a>
+                    {% if l.description %}<div class="text-muted" style="font-size:12px;max-width:220px;">{{ l.description[:60] }}{% if l.description|length > 60 %}…{% endif %}</div>{% endif %}
                     {% if l.photo_url %}<a href="{{ l.photo_url }}" target="_blank" style="font-size:12px;">📷 صورة</a>{% endif %}
                 </td>
                 <td dir="ltr">
@@ -67,10 +67,12 @@
                 </td>
                 <td>
                     <div class="d-flex gap-1 flex-wrap">
+                        <a href="{{ url_for('admin.lead_view', lid=l.id) }}" class="btn btn-sm btn-primary">👁️ عرض الطلب</a>
                         {% if l.status == 'converted' and l.converted_request_id %}
-                        <a href="{{ url_for('admin.request_view', rid=l.converted_request_id) }}" class="btn btn-sm btn-secondary">عرض الطلب</a>
+                        <a href="{{ url_for('admin.request_view', rid=l.converted_request_id) }}" class="btn btn-sm btn-secondary">طلب الصيانة</a>
                         {% else %}
-                        <form method="post" action="{{ url_for('admin.lead_convert', lid=l.id) }}" style="display:inline;">
+                        <form method="post" action="{{ url_for('admin.lead_convert', lid=l.id) }}" style="display:inline;"
+                              data-confirm="تحويل هذا الطلب لطلب صيانة؟">
                             <button class="btn btn-sm btn-success" type="submit">➡️ تحويل لطلب</button>
                         </form>
                         {% if l.status == 'new' %}
@@ -81,7 +83,7 @@
                         {% endif %}
                         {% endif %}
                         <form method="post" action="{{ url_for('admin.lead_delete', lid=l.id) }}" style="display:inline;"
-                              onsubmit="return confirm('حذف هذا الطلب نهائياً؟');">
+                              data-confirm="حذف هذا الطلب نهائياً؟">
                             <button class="btn btn-sm btn-danger" type="submit">🗑️</button>
                         </form>
                     </div>

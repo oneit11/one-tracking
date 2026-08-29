@@ -1210,6 +1210,14 @@ def leads_list():
                            status=status, service_url=service_url)
 
 
+@admin_bp.route("/leads/<int:lid>")
+@admin_required
+def lead_view(lid):
+    from models.extras import Lead
+    lead = Lead.query.get_or_404(lid)
+    return render_template("admin/lead_view.html", lead=lead)
+
+
 @admin_bp.route("/leads/<int:lid>/status", methods=["POST"])
 @admin_required
 def lead_status(lid):
