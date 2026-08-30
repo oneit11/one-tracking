@@ -13,18 +13,132 @@ def allowed_file(filename):
     return ext in current_app.config["ALLOWED_EXTENSIONS"]
 
 
+def _r2_config():
+    """Return R2/S3 config dict if all required env vars are set, else None."""
+    cfg = {
+        "access_key": os.getenv("R2_ACCESS_KEY_ID", ""),
+        "secret_key": os.getenv("R2_SECRET_ACCESS_KEY", ""),
+        "endpoint": os.getenv("R2_ENDPOINT", ""),
+        "bucket": os.getenv("R2_BUCKET", ""),
+        "public_url": os.getenv("R2_PUBLIC_URL", "").rstrip("/"),
+    }
+    if all([cfg["access_key"], cfg["secret_key"], cfg["endpoint"],
+            cfg["bucket"], cfg["public_url"]]):
+        return cfg
+    return None
+
+
+def _upload_to_r2(file_storage, key, cfg):
+    """Upload a file object to Cloudflare R2 (S3-compatible). Returns public URL or ''."""
+    try:
+        import boto3  # noqa: F401
+        from botocore.config import Config as _BotoConfig
+    except ImportError:
+        current_app.logger.warning("boto3 not installed — falling back to local upload")
+        return ""
+    try:
+        import boto3
+        client = boto3.client(
+            "s3",
+            endpoint_url=cfg["endpoint"],
+            aws_access_key_id=cfg["access_key"],
+            aws_secret_access_key=cfg["secret_key"],
+            config=_BotoConfig(signature_version="s3v4"),
+            region_name="auto",
+        )
+        content_type = getattr(file_storage, "mimetype", None) or "application/octet-stream"
+        file_storage.stream.seek(0)
+        client.upload_fileobj(
+            file_storage.stream, cfg["bucket"], key,
+            ExtraArgs={"ContentType": content_type},
+        )
+        return f"{cfg['public_url']}/{key}"
+    except Exception as e:
+        current_app.logger.error(f"R2 upload failed: {str(e)[:150]}")
+        return ""
+
+
+def _cloudinary_config():
+    """Return Cloudinary config if all required env vars are set, else None."""
+    cfg = {
+        "cloud_name": os.getenv("CLOUDINARY_CLOUD_NAME", ""),
+        "api_key": os.getenv("CLOUDINARY_API_KEY", ""),
+        "api_secret": os.getenv("CLOUDINARY_API_SECRET", ""),
+    }
+    if all(cfg.values()):
+        return cfg
+    return None
+
+
+def _upload_to_cloudinary(file_storage, key, cfg):
+    """Upload to Cloudinary. Returns secure URL or ''."""
+    try:
+        import cloudinary
+        import cloudinary.uploader
+    except ImportError:
+        current_app.logger.warning("cloudinary not installed — falling back")
+        return ""
+    try:
+        cloudinary.config(
+            cloud_name=cfg["cloud_name"],
+            api_key=cfg["api_key"],
+            api_secret=cfg["api_secret"],
+            secure=True,
+        )
+        file_storage.stream.seek(0)
+        # PDFs and non-images go as "raw"; images auto-optimised
+        ext = (file_storage.filename.rsplit(".", 1)[-1] or "").lower()
+        resource_type = "image" if ext in {"png", "jpg", "jpeg", "gif", "webp"} else "raw"
+        folder = os.getenv("CLOUDINARY_FOLDER", "one-tracking")
+        result = cloudinary.uploader.upload(
+            file_storage.stream,
+            public_id=key.rsplit(".", 1)[0],
+            folder=folder,
+            resource_type=resource_type,
+            overwrite=True,
+        )
+        return result.get("secure_url", "")
+    except Exception as e:
+        current_app.logger.error(f"Cloudinary upload failed: {str(e)[:150]}")
+        return ""
+
+
 def save_upload(file_storage, subfolder="", prefix=""):
-    """Save uploaded file with unique name. Returns relative URL from /static/uploads/."""
+    """Save an uploaded file and return its URL.
+
+    Storage backend is chosen automatically by which env vars are set:
+      1. Cloudinary  (CLOUDINARY_CLOUD_NAME / API_KEY / API_SECRET)
+      2. Cloudflare R2  (R2_* vars)
+      3. Local disk  (default fallback — original behaviour)
+    """
     if not file_storage or not file_storage.filename:
         return ""
     if not allowed_file(file_storage.filename):
         return ""
     ext = file_storage.filename.rsplit(".", 1)[1].lower()
-    unique = f"{prefix}{uuid.uuid4().hex[:12]}.{ext}"
-    unique = secure_filename(unique)
+    unique = secure_filename(f"{prefix}{uuid.uuid4().hex[:12]}.{ext}")
+    key = f"{subfolder}/{unique}" if subfolder else unique
+    key = key.replace("\\", "/").lstrip("/")
+
+    # ---- Cloudinary ----
+    ccfg = _cloudinary_config()
+    if ccfg:
+        url = _upload_to_cloudinary(file_storage, key, ccfg)
+        if url:
+            return url
+
+    # ---- Cloudflare R2 ----
+    cfg = _r2_config()
+    if cfg:
+        url = _upload_to_r2(file_storage, key, cfg)
+        if url:
+            return url
+
+    # ---- Local disk (fallback / default) ----
     folder = os.path.join(current_app.config["UPLOAD_FOLDER"], subfolder)
     os.makedirs(folder, exist_ok=True)
     path = os.path.join(folder, unique)
+    file_storage.stream.seek(0)
     file_storage.save(path)
     rel = f"/static/uploads/{subfolder}/{unique}" if subfolder else f"/static/uploads/{unique}"
     return rel.replace("\\", "/").replace("//", "/")
