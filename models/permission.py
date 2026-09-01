@@ -33,6 +33,10 @@ PERMISSION_CATALOG = {
         ("tickets.create", "إنشاء تذكرة"),
         ("tickets.resolve", "حل التذكرة"),
     ],
+    "leads": [
+        ("leads.view", "عرض الطلبات الواردة"),
+        ("leads.manage", "تحويل / تعديل الطلبات الواردة"),
+    ],
     "amc": [
         ("amc.view", "عرض عقود الصيانة"),
         ("amc.manage", "إدارة عقود AMC"),

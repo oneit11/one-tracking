@@ -370,7 +370,7 @@ def client_request_payment(cid):
 
 # ================= Devices =================
 @admin_bp.route("/devices")
-@admin_required
+@permission_required("devices.view")
 def devices_list():
     q = request.args.get("q", "").strip()
     query = Device.query
@@ -384,7 +384,7 @@ def devices_list():
 
 
 @admin_bp.route("/devices/new", methods=["GET", "POST"])
-@admin_required
+@permission_required("devices.create")
 def device_new():
     client_id = request.args.get("client_id", type=int)
     clients = Client.query.filter_by(active=True).order_by(Client.company_name).all()
@@ -427,14 +427,14 @@ def device_new():
 
 
 @admin_bp.route("/devices/<int:did>")
-@admin_required
+@permission_required("devices.view")
 def device_view(did):
     device = Device.query.get_or_404(did)
     return render_template("admin/device_view.html", device=device)
 
 
 @admin_bp.route("/devices/<int:did>/edit", methods=["GET", "POST"])
-@admin_required
+@permission_required("devices.edit")
 def device_edit(did):
     device = Device.query.get_or_404(did)
     clients = Client.query.filter_by(active=True).order_by(Client.company_name).all()
@@ -460,7 +460,7 @@ def device_edit(did):
 
 # ================= Maintenance Requests =================
 @admin_bp.route("/requests")
-@admin_required
+@permission_required("requests.view_all", "requests.view_own")
 def requests_list():
     status = request.args.get("status", "")
     priority = request.args.get("priority", "")
@@ -486,7 +486,7 @@ def requests_list():
 
 
 @admin_bp.route("/requests/<int:rid>", methods=["GET", "POST"])
-@admin_required
+@permission_required("requests.view_all", "requests.view_own")
 def request_view(rid):
     req = MaintenanceRequest.query.get_or_404(rid)
     if request.method == "POST":
@@ -513,7 +513,7 @@ def request_view(rid):
 
 
 @admin_bp.route("/requests/new", methods=["GET", "POST"])
-@admin_required
+@permission_required("requests.create")
 def request_new():
     clients = Client.query.filter_by(active=True).order_by(Client.company_name).all()
     if request.method == "POST":
@@ -653,7 +653,7 @@ def request_close(rid):
 
 # ================= Projects (was Support Tickets) =================
 @admin_bp.route("/tickets")
-@admin_required
+@permission_required("tickets.view")
 def tickets_list():
     status = request.args.get("status", "")
     query = SupportTicket.query
@@ -664,7 +664,7 @@ def tickets_list():
 
 
 @admin_bp.route("/tickets/new", methods=["GET", "POST"])
-@admin_required
+@permission_required("tickets.create")
 def ticket_new():
     clients = Client.query.filter_by(active=True).order_by(Client.company_name).all()
     if request.method == "POST":
@@ -687,7 +687,7 @@ def ticket_new():
 
 
 @admin_bp.route("/tickets/<int:tid>")
-@admin_required
+@permission_required("tickets.view")
 def ticket_view(tid):
     project = SupportTicket.query.get_or_404(tid)
     technicians = User.query.filter_by(role="technician", active=True).all()
@@ -744,7 +744,7 @@ def ticket_assign(tid):
 
 
 @admin_bp.route("/tickets/<int:tid>/report.pdf")
-@admin_required
+@permission_required("tickets.view")
 def ticket_report_pdf(tid):
     project = SupportTicket.query.get_or_404(tid)
     from services.pdf_service import generate_project_report
@@ -1190,7 +1190,7 @@ def device_delete(did):
 
 # ================= Leads (Marketing / Facebook) =================
 @admin_bp.route("/leads")
-@admin_required
+@permission_required("leads.view")
 def leads_list():
     from models.extras import Lead
     status = request.args.get("status", "")
@@ -1211,7 +1211,7 @@ def leads_list():
 
 
 @admin_bp.route("/leads/<int:lid>")
-@admin_required
+@permission_required("leads.view")
 def lead_view(lid):
     from models.extras import Lead
     lead = Lead.query.get_or_404(lid)
@@ -1219,7 +1219,7 @@ def lead_view(lid):
 
 
 @admin_bp.route("/leads/<int:lid>/status", methods=["POST"])
-@admin_required
+@permission_required("leads.manage")
 def lead_status(lid):
     from models.extras import Lead
     lead = Lead.query.get_or_404(lid)
@@ -1232,7 +1232,7 @@ def lead_status(lid):
 
 
 @admin_bp.route("/leads/<int:lid>/convert", methods=["POST"])
-@admin_required
+@permission_required("leads.manage")
 def lead_convert(lid):
     from models.extras import Lead
     lead = Lead.query.get_or_404(lid)
@@ -1303,7 +1303,7 @@ def lead_convert(lid):
 
 
 @admin_bp.route("/leads/<int:lid>/delete", methods=["POST"])
-@admin_required
+@permission_required("leads.manage")
 def lead_delete(lid):
     from models.extras import Lead
     lead = Lead.query.get_or_404(lid)
@@ -1315,7 +1315,7 @@ def lead_delete(lid):
 
 
 @admin_bp.route("/leads/qr.png")
-@admin_required
+@permission_required("leads.view")
 def leads_qr_png():
     """QR code image that points to the public marketing landing page."""
     from services.qr_service import build_qr_image
