@@ -32,33 +32,38 @@
         .toolbar a { display:inline-block; margin-inline-start:10px; color:#555; text-decoration:none; }
         .toolbar .count { color:#888; font-size:14px; display:block; margin-top:6px; }
 
-        /* Label physical size: 25mm wide x 35mm tall */
+        /* Label physical size: 38mm wide x 25mm tall (die-cut) */
         .sheet { padding: 20px 0; }
         .label {
-            width: 25mm;
-            height: 35mm;
+            width: 38mm;
+            height: 25mm;
             background: #fff;
             margin: 8px auto;
             box-sizing: border-box;
             box-shadow: 0 1px 4px rgba(0,0,0,.12);
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
             justify-content: center;
+            gap: 1.5mm;
             page-break-after: always;
             break-after: page;
             overflow: hidden;
         }
-        /* QR fills most of the width; code sits underneath */
-        .label img { width: 22mm; height: 22mm; display: block; }
-        .label .code { font-size: 6px; color: #000; margin-top: 0.5mm; direction: ltr; letter-spacing: .2px; line-height: 1; }
+        /* QR fills the label height; code sits beside it (vertical) */
+        .label img { width: 23mm; height: 23mm; display: block; flex-shrink: 0; }
+        .label .code {
+            font-size: 6.5px; color: #000; direction: ltr;
+            writing-mode: vertical-rl; transform: rotate(180deg);
+            letter-spacing: .3px; line-height: 1;
+        }
 
         @media print {
             .toolbar { display: none; }
             body { background: #fff; }
             .sheet { padding: 0; }
             .label { box-shadow: none; margin: 0 auto; }
-            @page { size: 25mm 35mm; margin: 0; }
+            @page { size: 38mm 25mm; margin: 0; }
         }
     </style>
 </head>
@@ -66,7 +71,7 @@
     <div class="toolbar">
         <button onclick="window.print()">🖨️ طباعة {{ codes|length }} ملصق</button>
         <a href="{{ url_for('admin.qr_batch_view', bid=batch.id) }}">← رجوع</a>
-        <span class="count">باتش {{ batch.batch_code }} — {{ codes|length }} كود · مقاس الملصق 25×35mm</span>
+        <span class="count">باتش {{ batch.batch_code }} — {{ codes|length }} كود · مقاس الملصق 38×25mm</span>
     </div>
 
     <div class="sheet">
