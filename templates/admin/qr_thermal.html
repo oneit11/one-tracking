@@ -32,27 +32,33 @@
         .toolbar a { display:inline-block; margin-inline-start:10px; color:#555; text-decoration:none; }
         .toolbar .count { color:#888; font-size:14px; display:block; margin-top:6px; }
 
+        /* Label physical size: 25mm wide x 35mm tall */
         .sheet { padding: 20px 0; }
         .label {
-            width: 48mm;
+            width: 25mm;
+            height: 35mm;
             background: #fff;
             margin: 8px auto;
-            padding: 2mm;
             box-sizing: border-box;
             box-shadow: 0 1px 4px rgba(0,0,0,.12);
-            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             page-break-after: always;
             break-after: page;
+            overflow: hidden;
         }
-        .label img { width: 40mm; height: 40mm; display: block; margin: 0 auto; }
-        .label .code { font-size: 9px; color: #333; margin-top: 1mm; direction: ltr; letter-spacing: .5px; }
+        /* QR fills most of the width; code sits underneath */
+        .label img { width: 22mm; height: 22mm; display: block; }
+        .label .code { font-size: 6px; color: #000; margin-top: 0.5mm; direction: ltr; letter-spacing: .2px; line-height: 1; }
 
         @media print {
             .toolbar { display: none; }
             body { background: #fff; }
             .sheet { padding: 0; }
             .label { box-shadow: none; margin: 0 auto; }
-            @page { size: 48mm auto; margin: 0; }
+            @page { size: 25mm 35mm; margin: 0; }
         }
     </style>
 </head>
@@ -60,7 +66,7 @@
     <div class="toolbar">
         <button onclick="window.print()">🖨️ طباعة {{ codes|length }} ملصق</button>
         <a href="{{ url_for('admin.qr_batch_view', bid=batch.id) }}">← رجوع</a>
-        <span class="count">باتش {{ batch.batch_code }} — {{ codes|length }} كود · مقاس الملصق 48mm</span>
+        <span class="count">باتش {{ batch.batch_code }} — {{ codes|length }} كود · مقاس الملصق 25×35mm</span>
     </div>
 
     <div class="sheet">
