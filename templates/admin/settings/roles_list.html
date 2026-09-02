@@ -5,6 +5,10 @@
     <h1 class="page-title">🔐 الأدوار والصلاحيات</h1>
     <div class="d-flex gap-2">
         <a href="{{ url_for('settings.role_new') }}" class="btn btn-primary">+ دور جديد</a>
+        <form method="post" action="{{ url_for('settings.roles_refresh_system') }}" style="display:inline"
+              data-confirm="تحديث صلاحيات الأدوار الأساسية (استقبال/مدير/فني) لآخر إصدار؟ الأدوار المخصصة لن تتأثر.">
+            <button class="btn btn-secondary" type="submit">🔄 تحديث صلاحيات الأدوار الأساسية</button>
+        </form>
         <a href="{{ url_for('settings.home') }}" class="btn btn-secondary">← الإعدادات</a>
     </div>
 </div>

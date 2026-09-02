@@ -281,6 +281,9 @@ def emergency_migrate():
             "ALTER TABLE ratings ADD COLUMN IF NOT EXISTS tech_comment TEXT DEFAULT ''",
             "ALTER TABLE clients ADD COLUMN IF NOT EXISTS credit_limit NUMERIC(12,2) DEFAULT 0",
             "ALTER TABLE clients ADD COLUMN IF NOT EXISTS block_on_overdue BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE roles ADD COLUMN IF NOT EXISTS permissions_csv TEXT DEFAULT ''",
+            "ALTER TABLE roles ADD COLUMN IF NOT EXISTS is_system BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE roles ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''",
         ]
         results = []
         for sql in migrations:

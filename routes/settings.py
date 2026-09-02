@@ -223,6 +223,34 @@ def role_new():
                            role=None, catalog=PERMISSION_CATALOG)
 
 
+@settings_bp.route("/roles/refresh-system", methods=["POST"])
+@admin_required
+def roles_refresh_system():
+    """Re-apply the latest preset permissions to the built-in system roles.
+
+    Useful after an update that added new permissions (e.g. leads.*): system
+    roles created in an older version get their permission lists refreshed to
+    match the current catalog, without touching custom roles.
+    """
+    from models.permission import PRESET_ROLES
+    updated = []
+    for code, data in PRESET_ROLES.items():
+        role = Role.query.filter_by(code=code).first()
+        if role:
+            role.permissions_list = data["permissions"]
+            updated.append(code)
+        else:
+            r = Role(code=code, name=data["name"],
+                     description=data.get("description", ""), is_system=True)
+            r.permissions_list = data["permissions"]
+            db.session.add(r)
+            updated.append(code + " (new)")
+    db.session.commit()
+    log_action("roles.refresh_system", details=", ".join(updated))
+    flash("تم تحديث صلاحيات الأدوار الأساسية: " + "، ".join(updated), "success")
+    return redirect(url_for("settings.roles_list"))
+
+
 @settings_bp.route("/roles/<int:rid>", methods=["GET", "POST"])
 @admin_required
 def role_edit(rid):

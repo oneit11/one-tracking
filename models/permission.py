@@ -105,6 +105,7 @@ PRESET_ROLES = {
             "requests.view_all", "requests.create", "requests.assign", "requests.close",
             "requests.comment",
             "tickets.view", "tickets.create", "tickets.resolve",
+            "leads.view", "leads.manage",
             "amc.view", "amc.manage",
             "qr.generate", "qr.print", "qr.bind",
             "inventory.view", "inventory.movement",
@@ -131,6 +132,7 @@ PRESET_ROLES = {
             "devices.view",
             "requests.view_all", "requests.create",
             "tickets.view", "tickets.create",
+            "leads.view", "leads.manage",
         ],
     },
     "client": {
