@@ -14,7 +14,7 @@ from models.request import MaintenanceRequest, VisitReport, SupportTicket
 from models.extras import Notification, Comment, Rating, Followup, PMSchedule
 from models.permission import Role
 from models.wa_log import WhatsAppLog
-from utils.decorators import admin_required, permission_required
+from utils.decorators import admin_required, permission_required, primary_admin_delete
 from utils.helpers import save_upload, next_sequence, next_client_code, next_qr_batch_code, next_qr_code
 from services import whatsapp as wa
 from services.whatsapp import (get_sidecar_status, get_sidecar_qr, logout_sidecar,
@@ -492,7 +492,7 @@ def device_edit(did):
 
 # ================= Maintenance Requests =================
 @admin_bp.route("/requests")
-@permission_required("requests.view_all", "requests.view_own")
+@permission_required("requests.view_all")
 def requests_list():
     status = request.args.get("status", "")
     priority = request.args.get("priority", "")
@@ -518,7 +518,7 @@ def requests_list():
 
 
 @admin_bp.route("/requests/<int:rid>", methods=["GET", "POST"])
-@permission_required("requests.view_all", "requests.view_own")
+@permission_required("requests.view_all")
 def request_view(rid):
     req = MaintenanceRequest.query.get_or_404(rid)
     if request.method == "POST":
@@ -1089,13 +1089,14 @@ def followup_cancel(fid):
 
 # ================= Delete (Admin only) =================
 @admin_bp.route("/users/<int:uid>/delete", methods=["POST"])
-@admin_required
+@primary_admin_delete
 def user_delete(uid):
     if uid == current_user.id:
         flash("لا يمكنك حذف حسابك", "danger")
         return redirect(url_for("admin.users_list"))
     u = User.query.get_or_404(uid)
-    # Detach from requests instead of orphaning
+    from models.request import ProjectMember, ProjectVisit
+    # Detach from everything that references this user instead of blocking
     for r in MaintenanceRequest.query.filter_by(technician_id=uid).all():
         r.technician_id = None
     for r in MaintenanceRequest.query.filter_by(created_by=uid).all():
@@ -1104,6 +1105,13 @@ def user_delete(uid):
         t.assigned_to = None
     for t in SupportTicket.query.filter_by(created_by=uid).all():
         t.created_by = None
+    # Project links (this is what blocked technician deletion before)
+    ProjectMember.query.filter_by(user_id=uid).delete(synchronize_session=False)
+    for pv in ProjectVisit.query.filter_by(technician_id=uid).all():
+        pv.technician_id = None
+    # Visit reports authored by this technician
+    for vr in VisitReport.query.filter_by(technician_id=uid).all():
+        vr.technician_id = None
     name = u.name
     try:
         db.session.delete(u)
@@ -1130,7 +1138,7 @@ def _purge_requests(req_ids):
 
 
 @admin_bp.route("/requests/<int:rid>/delete", methods=["POST"])
-@admin_required
+@primary_admin_delete
 def request_delete(rid):
     req = MaintenanceRequest.query.get_or_404(rid)
     num = req.request_number
@@ -1148,7 +1156,7 @@ def request_delete(rid):
 
 
 @admin_bp.route("/tickets/<int:tid>/delete", methods=["POST"])
-@admin_required
+@primary_admin_delete
 def ticket_delete(tid):
     t = SupportTicket.query.get_or_404(tid)
     num = t.ticket_number
@@ -1186,7 +1194,7 @@ def ticket_close(tid):
 
 
 @admin_bp.route("/clients/<int:cid>/delete", methods=["POST"])
-@admin_required
+@primary_admin_delete
 def client_delete(cid):
     client = Client.query.get_or_404(cid)
     name = client.company_name
@@ -1222,7 +1230,7 @@ def client_delete(cid):
 
 
 @admin_bp.route("/devices/<int:did>/delete", methods=["POST"])
-@admin_required
+@primary_admin_delete
 def device_delete(did):
     d = Device.query.get_or_404(did)
     name = d.name

@@ -69,10 +69,12 @@
                     <td>
                         <div class="d-flex gap-1">
                             <a href="{{ url_for('admin.client_view', cid=c.id) }}" class="btn btn-sm btn-primary">{{ t('btn.open') }}</a>
+                            {% if current_user.is_primary_admin %}
                             <form method="post" action="{{ url_for('admin.client_delete', cid=c.id) }}"
-                                  data-confirm="{{ t('admin.confirm_delete_client', name=c.company_name) }}" style="display:inline">
+                                  data-confirm-password="{{ t('admin.confirm_delete_client', name=c.company_name) }}" style="display:inline">
                                 <button class="btn btn-sm btn-danger" type="submit">🗑️</button>
                             </form>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>

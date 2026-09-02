@@ -11,10 +11,12 @@
         <button type="button" class="btn btn-secondary no-print" onclick="window.print()">🖨️ طباعة</button>
         <span class="badge badge-{{ req.status }}" style="font-size:14px;padding:6px 14px;">{{ req.status_label }}</span>
         <span class="badge badge-{{ req.priority }}" style="font-size:14px;padding:6px 14px;">{{ req.priority_label }}</span>
+        {% if current_user.is_primary_admin %}
         <form method="post" action="{{ url_for('admin.request_delete', rid=req.id) }}"
-              data-confirm="متأكد من حذف الطلب {{ req.request_number }} نهائياً؟" style="display:inline">
+              data-confirm-password="متأكد من حذف الطلب {{ req.request_number }} نهائياً؟" style="display:inline">
             <button class="btn btn-danger" type="submit">🗑️ حذف الطلب</button>
         </form>
+        {% endif %}
     </div>
 </div>
 

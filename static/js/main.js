@@ -30,6 +30,24 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // Delete-with-password (primary admin only). Forms with
+    // data-confirm-password prompt for the admin password and inject it.
+    document.querySelectorAll('form[data-confirm-password]').forEach(function (f) {
+        f.addEventListener('submit', function (e) {
+            // avoid double-prompt if already added
+            if (f.querySelector('input[name="confirm_password"]')) return;
+            e.preventDefault();
+            var msg = f.getAttribute('data-confirm-password') || 'تأكيد الحذف';
+            if (!confirm(msg + '\n\nهذا الإجراء نهائي.')) return;
+            var pw = window.prompt('اكتب كلمة سر الأدمن الأساسي للتأكيد:');
+            if (pw === null || pw === '') return;
+            var inp = document.createElement('input');
+            inp.type = 'hidden'; inp.name = 'confirm_password'; inp.value = pw;
+            f.appendChild(inp);
+            f.submit();
+        });
+    });
+
     // Client → devices dynamic dropdown
     var clientSelect = document.getElementById('client_id_selector');
     var deviceSelect = document.getElementById('device_id_selector');

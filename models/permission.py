@@ -117,7 +117,6 @@ PRESET_ROLES = {
         "name": "فني",
         "description": "المهام المعينة والتقارير",
         "permissions": [
-            "devices.view",
             "requests.view_own", "requests.report", "requests.comment",
             "qr.bind",
             "inventory.view",

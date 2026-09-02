@@ -12,10 +12,12 @@
         {% endif %}
         <button type="button" class="btn btn-secondary no-print" onclick="window.print()">🖨️ طباعة</button>
         <span class="badge badge-{{ project.status }}" style="font-size:14px;padding:6px 14px;">{{ project.status_label }}</span>
+        {% if current_user.is_primary_admin %}
         <form method="post" action="{{ url_for('admin.ticket_delete', tid=project.id) }}"
-              data-confirm="متأكد من حذف المشروع {{ project.ticket_number }} نهائياً؟" style="display:inline">
+              data-confirm-password="متأكد من حذف المشروع {{ project.ticket_number }} نهائياً؟" style="display:inline">
             <button class="btn btn-danger no-print" type="submit">🗑️ حذف</button>
         </form>
+        {% endif %}
     </div>
 </div>
 

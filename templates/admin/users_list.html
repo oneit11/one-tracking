@@ -22,10 +22,12 @@
                         <div class="d-flex gap-1">
                             <a class="btn btn-sm btn-secondary" href="{{ url_for('admin.user_edit', uid=u.id) }}">تعديل</a>
                             {% if u.id != current_user.id %}
+                            {% if current_user.is_primary_admin %}
                             <form method="post" action="{{ url_for('admin.user_delete', uid=u.id) }}"
-                                  data-confirm="متأكد من حذف {{ u.name }}؟ لا يمكن التراجع." style="display:inline">
+                                  data-confirm-password="متأكد من حذف {{ u.name }}؟ لا يمكن التراجع." style="display:inline">
                                 <button class="btn btn-sm btn-danger" type="submit">🗑️</button>
                             </form>
+                            {% endif %}
                             {% endif %}
                         </div>
                     </td>

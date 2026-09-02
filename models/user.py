@@ -31,6 +31,14 @@ class User(UserMixin, db.Model):
         return self.role == "admin"
 
     @property
+    def is_primary_admin(self):
+        """The main/owner admin — the only account allowed to delete records.
+        Configurable via PRIMARY_ADMIN_EMAIL env var; defaults to the seeded admin."""
+        import os
+        primary = os.getenv("PRIMARY_ADMIN_EMAIL", "admin@one4in.com").strip().lower()
+        return self.role == "admin" and (self.email or "").strip().lower() == primary
+
+    @property
     def is_technician(self):
         return self.role == "technician"
 

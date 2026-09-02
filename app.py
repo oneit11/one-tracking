@@ -89,25 +89,32 @@ def create_app():
             return redirect(url_for("auth.login"))
         if current_user.role == "admin":
             return redirect(url_for("admin.dashboard"))
-        # Staff with a custom role (e.g. receptionist): send them to the first
-        # section they have access to, based on their permissions.
-        if current_user.role != "client":
-            perm_targets = [
-                ("requests.view_all", "admin.requests_list"),
-                ("requests.view_own", "admin.requests_list"),
-                ("leads.view", "admin.leads_list"),
-                ("tickets.view", "admin.tickets_list"),
-                ("clients.view", "admin.clients_list"),
-                ("devices.view", "admin.devices_list"),
-            ]
-            for code, endpoint in perm_targets:
-                try:
-                    if current_user.has_permission(code):
-                        return redirect(url_for(endpoint))
-                except Exception:
-                    pass
-            if current_user.role == "technician":
-                return redirect(url_for("tech.dashboard"))
+        if current_user.role == "client":
+            return redirect(url_for("portal.dashboard"))
+
+        # Plain technician (role_code technician or empty) → their own dashboard.
+        # They must NOT be routed into admin pages.
+        rc = (current_user.role_code or "").strip()
+        if current_user.role == "technician" and rc in ("", "technician"):
+            return redirect(url_for("tech.dashboard"))
+
+        # Office staff with a custom role (e.g. receptionist/manager): send them
+        # to the first admin section their permissions actually allow.
+        perm_targets = [
+            ("requests.view_all", "admin.requests_list"),
+            ("leads.view", "admin.leads_list"),
+            ("tickets.view", "admin.tickets_list"),
+            ("clients.view", "admin.clients_list"),
+            ("devices.view", "admin.devices_list"),
+        ]
+        for code, endpoint in perm_targets:
+            try:
+                if current_user.has_permission(code):
+                    return redirect(url_for(endpoint))
+            except Exception:
+                pass
+
+        # Fallback: technician dashboard for any remaining staff, else portal.
         if current_user.role == "technician":
             return redirect(url_for("tech.dashboard"))
         return redirect(url_for("portal.dashboard"))

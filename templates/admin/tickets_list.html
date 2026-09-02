@@ -34,10 +34,12 @@
                     <td>
                         <div class="d-flex gap-1">
                             <a href="{{ url_for('admin.ticket_view', tid=t.id) }}" class="btn btn-sm btn-primary">فتح</a>
+                            {% if current_user.is_primary_admin %}
                             <form method="post" action="{{ url_for('admin.ticket_delete', tid=t.id) }}"
-                                  data-confirm="متأكد من حذف المشروع {{ t.ticket_number }}؟" style="display:inline">
+                                  data-confirm-password="متأكد من حذف المشروع {{ t.ticket_number }}؟" style="display:inline">
                                 <button class="btn btn-sm btn-danger" type="submit">🗑️</button>
                             </form>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>
