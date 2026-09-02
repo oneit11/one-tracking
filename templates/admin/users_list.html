@@ -15,7 +15,7 @@
                     <td><strong>{{ u.name }}</strong></td>
                     <td dir="ltr">{{ u.email }}</td>
                     <td dir="ltr">{{ u.phone or '-' }}</td>
-                    <td><span class="badge">{{ {'admin':'أدمن','technician':'فني','client':'عميل'}[u.role] }}</span></td>
+                    <td><span class="badge">{{ u.role_display }}</span></td>
                     <td>{{ u.client.company_name if u.client else '-' }}</td>
                     <td>{% if u.active %}<span class="badge badge-closed">نشط</span>{% else %}<span class="badge badge-cancelled">معطل</span>{% endif %}</td>
                     <td>

@@ -22,6 +22,16 @@ def health():
     return jsonify({"status": "ok", "time": datetime.utcnow().isoformat()})
 
 
+@public_bp.route("/dev/<int:did>")
+def device_direct(did):
+    """Public device page reached by scanning a device label that isn't tied to
+    a QR-batch code. Shows the device and lets the visitor open a request."""
+    device = Device.query.get_or_404(did)
+    client = device.client
+    return render_template("public/device_public.html", device=device,
+                           client=client, qr=device.qr_code)
+
+
 @public_bp.route("/d/<code>")
 def scan(code):
     """QR scan endpoint. Public entry — routes to appropriate view."""

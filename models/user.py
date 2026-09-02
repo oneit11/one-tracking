@@ -38,6 +38,20 @@ class User(UserMixin, db.Model):
     def is_client(self):
         return self.role == "client"
 
+    @property
+    def role_display(self):
+        """Human-readable role name from role_code (falls back to legacy role)."""
+        code = self.role_code or self.role
+        try:
+            from models.permission import Role
+            r = Role.query.filter_by(code=code).first()
+            if r:
+                return r.name
+        except Exception:
+            pass
+        return {"admin": "أدمن", "technician": "فني", "client": "عميل",
+                "manager": "مدير", "receptionist": "استقبال"}.get(code, code)
+
     def has_permission(self, code):
         """Check if user has a given permission code."""
         # Admin has all

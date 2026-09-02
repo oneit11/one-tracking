@@ -77,11 +77,22 @@
                 <a href="{{ url_for('admin.users_list') }}">{{ t('nav.users') }}</a>
                 <a href="{{ url_for('admin.wa_home') }}">{{ t('nav.whatsapp') }}</a>
                 <a href="{{ url_for('settings.home') }}">{{ t('nav.settings') }}</a>
-            {% elif current_user.has_permission('requests.view_all') or current_user.has_permission('requests.view_own')
-                    or current_user.has_permission('leads.view') or current_user.has_permission('tickets.view')
-                    or current_user.has_permission('devices.view') or current_user.has_permission('clients.view') %}
-                {# Staff member with a custom role (e.g. receptionist) — show only what they can access #}
-                {% if current_user.has_permission('requests.view_all') or current_user.has_permission('requests.view_own') %}
+            {% elif current_user.role_code in ['technician', 'client'] or current_user.role == 'client' %}
+                {# Plain technician or client — use their dedicated menu (NOT the office/staff menu) #}
+                {% if current_user.is_client %}
+                    <a href="{{ url_for('portal.dashboard') }}">{{ t('nav.portal_home') }}</a>
+                    <a href="{{ url_for('portal.devices') }}">{{ t('nav.my_devices') }}</a>
+                    <a href="{{ url_for('portal.requests_list') }}">{{ t('nav.my_requests') }}</a>
+                    <a href="{{ url_for('portal.account') }}">{{ t('nav.my_account') }}</a>
+                    <a href="{{ url_for('portal.projects_list') }}">🏗️ مشاريعي</a>
+                    <a href="{{ url_for('portal.request_new') }}" class="cta">{{ t('nav.new_request') }}</a>
+                {% else %}
+                    <a href="{{ url_for('tech.dashboard') }}">{{ t('nav.mytasks') }}</a>
+                    <a href="{{ url_for('scanner.scan_page') }}">{{ t('nav.scan') }}</a>
+                {% endif %}
+            {% else %}
+                {# Office staff with a custom role (e.g. receptionist, manager) — show only what they can access #}
+                {% if current_user.has_permission('requests.view_all') %}
                     <a href="{{ url_for('admin.requests_list') }}">{{ t('nav.requests') }}</a>
                 {% endif %}
                 {% if current_user.has_permission('leads.view') %}
@@ -100,16 +111,6 @@
                     <a href="{{ url_for('reports.home') }}">{{ t('nav.reports') }}</a>
                 {% endif %}
                 <a href="{{ url_for('scanner.scan_page') }}">{{ t('nav.scan') }}</a>
-            {% elif current_user.is_technician %}
-                <a href="{{ url_for('tech.dashboard') }}">{{ t('nav.mytasks') }}</a>
-                <a href="{{ url_for('scanner.scan_page') }}">{{ t('nav.scan') }}</a>
-            {% elif current_user.is_client %}
-                <a href="{{ url_for('portal.dashboard') }}">{{ t('nav.portal_home') }}</a>
-                <a href="{{ url_for('portal.devices') }}">{{ t('nav.my_devices') }}</a>
-                <a href="{{ url_for('portal.requests_list') }}">{{ t('nav.my_requests') }}</a>
-                <a href="{{ url_for('portal.account') }}">{{ t('nav.my_account') }}</a>
-                <a href="{{ url_for('portal.projects_list') }}">🏗️ مشاريعي</a>
-                <a href="{{ url_for('portal.request_new') }}" class="cta">{{ t('nav.new_request') }}</a>
             {% endif %}
 
             <a href="{{ url_for('public.switch_lang', lang='en' if current_lang == 'ar' else 'ar') }}"

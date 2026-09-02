@@ -161,7 +161,7 @@ def global_search():
 
 # ================= Clients =================
 @admin_bp.route("/clients")
-@admin_required
+@permission_required("clients.view")
 def clients_list():
     q = request.args.get("q", "").strip()
     flt = request.args.get("filter", "").strip()  # "" | debtors
@@ -182,7 +182,7 @@ def clients_list():
 
 
 @admin_bp.route("/clients/new", methods=["GET", "POST"])
-@admin_required
+@permission_required("clients.create")
 def client_new():
     if request.method == "POST":
         client = Client(
@@ -209,14 +209,14 @@ def client_new():
 
 
 @admin_bp.route("/clients/<int:cid>")
-@admin_required
+@permission_required("clients.view")
 def client_view(cid):
     client = Client.query.get_or_404(cid)
     return render_template("admin/client_view.html", client=client)
 
 
 @admin_bp.route("/clients/<int:cid>/edit", methods=["GET", "POST"])
-@admin_required
+@permission_required("clients.edit")
 def client_edit(cid):
     client = Client.query.get_or_404(cid)
     if request.method == "POST":
@@ -264,7 +264,7 @@ def amc_new(cid):
 
 # ================= Client Account (financial ledger) =================
 @admin_bp.route("/clients/<int:cid>/account")
-@admin_required
+@permission_required("clients.view")
 def client_account(cid):
     client = Client.query.get_or_404(cid)
     from services.settings_service import get_setting
@@ -280,7 +280,7 @@ def client_account(cid):
 
 
 @admin_bp.route("/clients/<int:cid>/account/charge", methods=["POST"])
-@admin_required
+@permission_required("clients.edit")
 def client_add_charge(cid):
     client = Client.query.get_or_404(cid)
     from services.account import add_charge
@@ -298,7 +298,7 @@ def client_add_charge(cid):
 
 
 @admin_bp.route("/clients/<int:cid>/account/payment", methods=["POST"])
-@admin_required
+@permission_required("clients.edit")
 def client_add_payment(cid):
     client = Client.query.get_or_404(cid)
     from services.account import add_payment
@@ -317,7 +317,7 @@ def client_add_payment(cid):
 
 
 @admin_bp.route("/clients/<int:cid>/account/entry/<int:eid>/delete", methods=["POST"])
-@admin_required
+@permission_required("clients.edit")
 def client_delete_entry(cid, eid):
     from models.client import AccountEntry
     from services.account import delete_entry
@@ -331,7 +331,7 @@ def client_delete_entry(cid, eid):
 
 
 @admin_bp.route("/clients/<int:cid>/account/settings", methods=["POST"])
-@admin_required
+@permission_required("clients.edit")
 def client_account_settings(cid):
     client = Client.query.get_or_404(cid)
     limit_raw = request.form.get("credit_limit", "").strip()
@@ -347,7 +347,7 @@ def client_account_settings(cid):
 
 
 @admin_bp.route("/clients/<int:cid>/account/request-payment", methods=["POST"])
-@admin_required
+@permission_required("clients.edit")
 def client_request_payment(cid):
     client = Client.query.get_or_404(cid)
     balance = client.balance
@@ -436,28 +436,32 @@ def device_view(did):
 @admin_bp.route("/devices/<int:did>/qr.png")
 @permission_required("devices.view")
 def device_qr_png(did):
-    """Serve the device's bound QR code as a PNG (points to the public /d/<code> page)."""
+    """Serve the device's QR code as a PNG.
+
+    If the device is bound to a QR code, the QR points at the public /d/<code>
+    scan page. Otherwise it points directly at the device's own stable page so
+    a label can still be printed and used immediately.
+    """
     device = Device.query.get_or_404(did)
-    if not device.qr_code:
-        abort(404)
     from services.qr_service import build_qr_image
-    scan_url = url_for("public.scan", code=device.qr_code.code, _external=True)
+    if device.qr_code:
+        scan_url = url_for("public.scan", code=device.qr_code.code, _external=True)
+    else:
+        scan_url = url_for("public.device_direct", did=device.id, _external=True)
     img = build_qr_image(scan_url, box_size=12)
     buf = BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)
-    return send_file(buf, mimetype="image/png",
-                     download_name=f"qr-{device.qr_code.code}.png")
+    code = device.qr_code.code if device.qr_code else f"dev-{device.id}"
+    return send_file(buf, mimetype="image/png", download_name=f"qr-{code}.png")
 
 
 @admin_bp.route("/devices/<int:did>/print-label")
 @permission_required("devices.view")
 def device_print_label(did):
-    """A print-ready page sized for a 48mm thermal label — QR only."""
+    """A print-ready page sized for a 48mm thermal label — QR only.
+    Works whether or not the device is bound to a QR batch code."""
     device = Device.query.get_or_404(did)
-    if not device.qr_code:
-        flash("لا يوجد QR مربوط بهذا الجهاز — اربط QR أولاً", "warning")
-        return redirect(url_for("admin.device_view", did=did))
     return render_template("admin/device_label.html", device=device)
 
 
