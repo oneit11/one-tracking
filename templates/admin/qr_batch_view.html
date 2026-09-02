@@ -16,8 +16,24 @@
 </div>
 
 <div class="card">
-    <div class="card-header"><h3 class="card-title">تحميل PDF للطباعة</h3></div>
-    <p class="text-muted">اختر المقاس المناسب لطباعة اللصقات:</p>
+    <div class="card-header"><h3 class="card-title">🖨️ طباعة على الطابعة الحرارية (48mm)</h3></div>
+    <p class="text-muted">طباعة مباشرة على طابعة الملصقات — ملصق QR لكل كود، واحد ورا التاني بمقاس 48mm.</p>
+    <div class="d-flex gap-2 flex-wrap mt-4">
+        <a href="{{ url_for('admin.qr_batch_thermal', bid=batch.id) }}" target="_blank" class="btn btn-primary">
+            🖨️ طباعة كل الأكواد ({{ batch.count }})
+        </a>
+        <a href="{{ url_for('admin.qr_batch_thermal', bid=batch.id, only='unused') }}" target="_blank" class="btn btn-secondary">
+            🖨️ الأكواد غير المستخدمة فقط ({{ batch.unused_count }})
+        </a>
+    </div>
+    <p class="form-hint mt-4">
+        بيفتح صفحة جاهزة — اضغط طباعة واختر Xprinter. تأكد إن مقاس الورق في إعدادات الطابعة = 48mm.
+    </p>
+</div>
+
+<div class="card">
+    <div class="card-header"><h3 class="card-title">تحميل PDF للطباعة (ورق عادي A4)</h3></div>
+    <p class="text-muted">اختر المقاس المناسب لطباعة اللصقات على ورق A4:</p>
     <div class="d-flex gap-2 flex-wrap mt-4">
         {% for key, cfg in sizes.items() %}
         <a href="{{ url_for('admin.qr_batch_pdf', bid=batch.id, size=key) }}" class="btn btn-primary">

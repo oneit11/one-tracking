@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طباعة حرارية — {{ batch.batch_code }}</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #f0f0f0;
+            text-align: center;
+        }
+        .toolbar {
+            padding: 16px;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .toolbar button {
+            font-size: 16px;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            background: #1a1d24;
+            color: #d4af37;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .toolbar a { display:inline-block; margin-inline-start:10px; color:#555; text-decoration:none; }
+        .toolbar .count { color:#888; font-size:14px; display:block; margin-top:6px; }
+
+        .sheet { padding: 20px 0; }
+        .label {
+            width: 48mm;
+            background: #fff;
+            margin: 8px auto;
+            padding: 2mm;
+            box-sizing: border-box;
+            box-shadow: 0 1px 4px rgba(0,0,0,.12);
+            text-align: center;
+            page-break-after: always;
+            break-after: page;
+        }
+        .label img { width: 40mm; height: 40mm; display: block; margin: 0 auto; }
+        .label .code { font-size: 9px; color: #333; margin-top: 1mm; direction: ltr; letter-spacing: .5px; }
+
+        @media print {
+            .toolbar { display: none; }
+            body { background: #fff; }
+            .sheet { padding: 0; }
+            .label { box-shadow: none; margin: 0 auto; }
+            @page { size: 48mm auto; margin: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <button onclick="window.print()">🖨️ طباعة {{ codes|length }} ملصق</button>
+        <a href="{{ url_for('admin.qr_batch_view', bid=batch.id) }}">← رجوع</a>
+        <span class="count">باتش {{ batch.batch_code }} — {{ codes|length }} كود · مقاس الملصق 48mm</span>
+    </div>
+
+    <div class="sheet">
+        {% for qr in codes %}
+        <div class="label">
+            <img src="{{ url_for('admin.qr_code_png', code=qr.code) }}" alt="QR" loading="eager">
+            <div class="code">{{ qr.code }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

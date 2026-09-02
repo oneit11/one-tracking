@@ -908,6 +908,34 @@ def qr_batch_new():
     return redirect(url_for("admin.qr_batch_view", bid=batch.id))
 
 
+@admin_bp.route("/qr/<int:bid>/thermal")
+@admin_required
+def qr_batch_thermal(bid):
+    """Print-ready page for a thermal label printer (48mm): one QR per label,
+    printed continuously so the whole batch comes out one after another."""
+    batch = QRBatch.query.get_or_404(bid)
+    # Optionally limit to unused codes only
+    only = request.args.get("only", "")
+    codes = batch.codes
+    if only == "unused":
+        codes = [c for c in codes if not c.device_id]
+    return render_template("admin/qr_thermal.html", batch=batch, codes=codes)
+
+
+@admin_bp.route("/qr/code/<code>.png")
+@admin_required
+def qr_code_png(code):
+    """Serve a single QR code (by its code string) as a PNG for label printing."""
+    qr = QRCode.query.filter_by(code=code).first_or_404()
+    from services.qr_service import build_qr_image
+    scan_url = url_for("public.scan", code=qr.code, _external=True)
+    img = build_qr_image(scan_url, box_size=12)
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return send_file(buf, mimetype="image/png", download_name=f"qr-{code}.png")
+
+
 @admin_bp.route("/qr/<int:bid>")
 @admin_required
 def qr_batch_view(bid):
