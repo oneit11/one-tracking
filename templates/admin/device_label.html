@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طباعة ملصق QR — {{ device.name }}</title>
+    <style>
+        /* Screen preview */
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #f0f0f0;
+            text-align: center;
+        }
+        .toolbar {
+            padding: 16px;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+        }
+        .toolbar button {
+            font-size: 16px;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            background: #1a1d24;
+            color: #d4af37;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .toolbar a { display:inline-block; margin-inline-start:10px; color:#555; text-decoration:none; }
+        .preview {
+            margin: 30px auto;
+            background: #fff;
+            width: 48mm;
+            padding: 6px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,.15);
+        }
+        .label {
+            width: 48mm;
+            box-sizing: border-box;
+            padding: 2mm;
+            text-align: center;
+        }
+        .label img {
+            width: 40mm;
+            height: 40mm;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* Print: only the label, sized to the 48mm roll */
+        @media print {
+            .toolbar { display: none; }
+            body { background: #fff; }
+            .preview { box-shadow: none; margin: 0; width: auto; }
+            @page {
+                size: 48mm auto;
+                margin: 0;
+            }
+            .label { padding: 1mm; }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <button onclick="window.print()">🖨️ طباعة</button>
+        <a href="{{ url_for('admin.device_view', did=device.id) }}">← رجوع</a>
+        <a href="{{ url_for('admin.device_qr_png', did=device.id) }}" download>⬇️ تحميل الصورة</a>
+    </div>
+
+    <div class="preview">
+        <div class="label">
+            <img src="{{ url_for('admin.device_qr_png', did=device.id) }}" alt="QR">
+        </div>
+    </div>
+
+    <script>
+        // Auto-open the print dialog once the QR image has loaded.
+        window.addEventListener('load', function () {
+            var img = document.querySelector('.label img');
+            if (img && !img.complete) {
+                img.addEventListener('load', function () { setTimeout(function(){ window.print(); }, 300); });
+            } else {
+                setTimeout(function(){ window.print(); }, 400);
+            }
+        });
+    </script>
+</body>
+</html>

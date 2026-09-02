@@ -433,6 +433,34 @@ def device_view(did):
     return render_template("admin/device_view.html", device=device)
 
 
+@admin_bp.route("/devices/<int:did>/qr.png")
+@permission_required("devices.view")
+def device_qr_png(did):
+    """Serve the device's bound QR code as a PNG (points to the public /d/<code> page)."""
+    device = Device.query.get_or_404(did)
+    if not device.qr_code:
+        abort(404)
+    from services.qr_service import build_qr_image
+    scan_url = url_for("public.scan", code=device.qr_code.code, _external=True)
+    img = build_qr_image(scan_url, box_size=12)
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return send_file(buf, mimetype="image/png",
+                     download_name=f"qr-{device.qr_code.code}.png")
+
+
+@admin_bp.route("/devices/<int:did>/print-label")
+@permission_required("devices.view")
+def device_print_label(did):
+    """A print-ready page sized for a 48mm thermal label — QR only."""
+    device = Device.query.get_or_404(did)
+    if not device.qr_code:
+        flash("لا يوجد QR مربوط بهذا الجهاز — اربط QR أولاً", "warning")
+        return redirect(url_for("admin.device_view", did=did))
+    return render_template("admin/device_label.html", device=device)
+
+
 @admin_bp.route("/devices/<int:did>/edit", methods=["GET", "POST"])
 @permission_required("devices.edit")
 def device_edit(did):

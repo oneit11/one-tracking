@@ -27,6 +27,14 @@
             <p>الجهاز مربوط بكود QR:</p>
             <div class="badge badge-closed" dir="ltr" style="font-size:14px;padding:8px 16px;">{{ device.qr_code.code }}</div>
             <p class="text-muted mt-4">تم الربط في: {{ device.qr_code.bound_at.strftime('%Y-%m-%d %H:%M') if device.qr_code.bound_at }}</p>
+            <div style="margin-top:14px;">
+                <img src="{{ url_for('admin.device_qr_png', did=device.id) }}" alt="QR"
+                     style="width:150px;height:150px;border:1px solid var(--border);border-radius:8px;padding:6px;background:#fff;">
+            </div>
+            <div class="d-flex gap-2 mt-4" style="flex-wrap:wrap;">
+                <a href="{{ url_for('admin.device_print_label', did=device.id) }}" target="_blank" class="btn btn-primary">🖨️ طباعة ملصق QR</a>
+                <a href="{{ url_for('admin.device_qr_png', did=device.id) }}" download class="btn btn-secondary">⬇️ تحميل الصورة</a>
+            </div>
         {% else %}
             <p class="text-muted">الجهاز غير مربوط بأي QR</p>
             <p class="form-hint">يمكن ربطه بعد المسح من قبل الفني</p>
