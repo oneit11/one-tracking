@@ -326,9 +326,35 @@ class PDFReport:
 
 
 def _resolve_upload_path(file_url, upload_folder):
-    """Map a stored /static/uploads/... URL to a real filesystem path."""
+    """Return a local filesystem path for an image URL so reportlab can embed it.
+
+    Handles three cases:
+      - local /static/uploads/... paths -> map to disk
+      - remote http(s) URLs (e.g. Cloudinary) -> download to a temp file
+      - anything else -> None
+    """
     if not file_url:
         return None
+
+    # Remote URL (Cloudinary / any http) — download to a temp file.
+    if file_url.startswith("http://") or file_url.startswith("https://"):
+        try:
+            import tempfile
+            import urllib.request
+            ext = os.path.splitext(file_url.split("?", 1)[0])[1].lower()
+            if ext not in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
+                ext = ".jpg"
+            req = urllib.request.Request(file_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = resp.read()
+            fd, tmp = tempfile.mkstemp(suffix=ext)
+            with os.fdopen(fd, "wb") as fh:
+                fh.write(data)
+            return tmp
+        except Exception:
+            return None
+
+    # Local file under /static/uploads/
     marker = "/static/uploads/"
     if marker in file_url:
         rel = file_url.split(marker, 1)[1]
