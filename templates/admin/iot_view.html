@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}{{ dev.name }} — أجهزة الاستشعار{% endblock %}
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">🌡️ {{ dev.name or dev.device_id }}</h1>
+        <p class="page-subtitle">
+            {% if dev.client %}{{ dev.client.company_name }} · {% endif %}
+            {{ dev.location or 'بدون موقع' }}
+        </p>
+    </div>
+    <div>
+        <a href="{{ url_for('admin_iot.edit_device', dev_id=dev.id) }}" class="btn btn-secondary">✏️ تعديل</a>
+        <a href="{{ url_for('admin_iot.list_devices') }}" class="btn btn-secondary">→ رجوع</a>
+    </div>
+</div>
+
+{% if not dev.api_key %}
+<div class="flash flash-warning">
+    <strong>الجهاز لم يُفعّل بعد.</strong>
+    كود التفعيل: <code style="font-size:20px;padding:4px 12px;background:#fff;border-radius:6px">{{ dev.claim_code }}</code>
+    <br>
+    <small>يُطلب من العميل الاتصال بشبكة WiFi اسمها <code>SR-Sensor-XXXXXX</code> ولصق هذا الكود في صفحة الإعداد.</small>
+</div>
+{% endif %}
+
+<!-- Live cards -->
+<div class="kpi-grid" id="liveCards">
+    <div class="kpi-card kpi-{{ 'success' if dev.temp_status == 'green' else ('warning' if dev.temp_status == 'yellow' else ('danger' if dev.temp_status == 'red' else 'secondary')) }}">
+        <div class="kpi-icon">🌡️</div>
+        <div class="kpi-body">
+            <div class="kpi-label">درجة الحرارة</div>
+            <div class="kpi-value" id="tempVal">
+                {% if dev.last_temp is not none %}{{ '%.1f'|format(dev.last_temp) }}°C{% else %}—{% endif %}
+            </div>
+            <small>النطاق: {{ dev.temp_min }} — {{ dev.temp_max }} °C</small>
+        </div>
+    </div>
+
+    <div class="kpi-card kpi-{{ 'success' if dev.humid_status == 'green' else ('warning' if dev.humid_status == 'yellow' else ('danger' if dev.humid_status == 'red' else 'secondary')) }}">
+        <div class="kpi-icon">💧</div>
+        <div class="kpi-body">
+            <div class="kpi-label">الرطوبة</div>
+            <div class="kpi-value" id="humidVal">
+                {% if dev.last_humid is not none %}{{ '%.0f'|format(dev.last_humid) }}%{% else %}—{% endif %}
+            </div>
+            <small>النطاق: {{ dev.humid_min }} — {{ dev.humid_max }} %</small>
+        </div>
+    </div>
+
+    <div class="kpi-card kpi-{{ 'success' if dev.smoke_status == 'green' else ('warning' if dev.smoke_status == 'yellow' else 'danger') }}">
+        <div class="kpi-icon">💨</div>
+        <div class="kpi-body">
+            <div class="kpi-label">مستوى الدخان</div>
+            <div class="kpi-value" id="smokeVal">
+                {% if dev.last_smoke_d %}🚨 دخان{% elif dev.last_smoke_a is not none %}{{ dev.last_smoke_a }}{% else %}—{% endif %}
+            </div>
+            <small>حد الإنذار: {{ dev.smoke_threshold }}</small>
+        </div>
+    </div>
+
+    <div class="kpi-card kpi-{{ 'success' if dev.online else 'secondary' }}">
+        <div class="kpi-icon">{{ '🟢' if dev.online else '⚫' }}</div>
+        <div class="kpi-body">
+            <div class="kpi-label">الحالة</div>
+            <div class="kpi-value" id="onlineVal" style="font-size:18px">
+                {{ 'متصل' if dev.online else 'غير متصل' }}
+            </div>
+            <small id="lastSeenVal">
+                {% if dev.last_seen %}{{ dev.last_seen.strftime('%Y-%m-%d %H:%M') }}{% endif %}
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- 24h chart -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">📈 آخر 24 ساعة</h3>
+    </div>
+    <canvas id="historyChart" height="80"></canvas>
+</div>
+
+<!-- Alarms -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">🚨 سجل الإنذارات (آخر 30)</h3>
+    </div>
+    {% if alarms %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead><tr><th>الوقت</th><th>النوع</th><th>القيمة</th><th>الرسالة</th></tr></thead>
+            <tbody>
+                {% for a in alarms %}
+                <tr>
+                    <td><small>{{ a.ts.strftime('%Y-%m-%d %H:%M:%S') }}</small></td>
+                    <td>
+                        {% if a.alarm_type == 'smoke' %}<span class="badge badge-danger">🔥 دخان</span>
+                        {% elif a.alarm_type.startswith('temp') %}<span class="badge badge-warning">🌡️ حرارة</span>
+                        {% elif a.alarm_type.startswith('humid') %}<span class="badge badge-warning">💧 رطوبة</span>
+                        {% else %}{{ a.alarm_type }}{% endif %}
+                    </td>
+                    <td>{{ '%.1f'|format(a.value) if a.value is not none else '—' }}</td>
+                    <td>{{ a.message }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">لا توجد إنذارات مسجلة — كل شيء سليم ✅</div>
+    {% endif %}
+</div>
+
+<!-- Danger zone -->
+<div class="card" style="border:1px dashed #dc3545;margin-top:16px">
+    <h3 class="card-title" style="color:#dc3545">⚙️ إجراءات متقدمة</h3>
+    <form method="post" action="{{ url_for('admin_iot.regenerate_claim', dev_id=dev.id) }}" style="display:inline-block;margin-left:8px"
+          onsubmit="return confirm('سيتم فصل الجهاز الحالي وطلب تفعيل جديد. متابعة؟')">
+        <button class="btn btn-secondary">🔑 توليد كود تفعيل جديد</button>
+    </form>
+    <form method="post" action="{{ url_for('admin_iot.delete_device', dev_id=dev.id) }}" style="display:inline-block"
+          onsubmit="return confirm('حذف الجهاز نهائياً؟ كل القراءات والإنذارات ستُحذف.')">
+        <button class="btn btn-danger">🗑️ حذف الجهاز</button>
+    </form>
+</div>
+
+<script>
+const DEV_ID = {{ dev.id }};
+
+async function refreshStatus() {
+    try {
+        const r = await fetch(`/api/iot/status/${DEV_ID}`);
+        const d = await r.json();
+        document.getElementById('tempVal').textContent  = d.temp  != null ? d.temp.toFixed(1) + '°C' : '—';
+        document.getElementById('humidVal').textContent = d.humid != null ? Math.round(d.humid) + '%' : '—';
+        document.getElementById('smokeVal').textContent = d.smoke_d ? '🚨 دخان' : (d.smoke_a != null ? d.smoke_a : '—');
+        document.getElementById('onlineVal').textContent = d.online ? 'متصل' : 'غير متصل';
+        if (d.last_seen) document.getElementById('lastSeenVal').textContent = new Date(d.last_seen).toLocaleString('ar-EG');
+    } catch(e) {}
+}
+
+let chart;
+async function loadChart() {
+    const r = await fetch(`/api/iot/history/${DEV_ID}`);
+    const rows = await r.json();
+    const labels = rows.map(x => new Date(x.t).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'}));
+    const temps  = rows.map(x => x.temp);
+    const humids = rows.map(x => x.humid);
+    const ctx = document.getElementById('historyChart').getContext('2d');
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {label: 'حرارة (°C)', data: temps, borderColor: '#dc3545', tension: 0.3, yAxisID: 'y'},
+                {label: 'رطوبة (%)',  data: humids, borderColor: '#0d6efd', tension: 0.3, yAxisID: 'y1'},
+            ]
+        },
+        options: {
+            responsive: true, interaction: {mode: 'index', intersect: false},
+            scales: {
+                y:  {type: 'linear', position: 'left',  title: {display: true, text: '°C'}},
+                y1: {type: 'linear', position: 'right', title: {display: true, text: '%'}, grid: {drawOnChartArea: false}},
+            }
+        }
+    });
+}
+
+loadChart();
+setInterval(refreshStatus, 10000);   // every 10s
+setInterval(loadChart, 60000);       // every minute
+</script>
+{% endblock %}

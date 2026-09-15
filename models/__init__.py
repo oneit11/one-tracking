@@ -18,3 +18,4 @@ from models.extras import (  # noqa: E402
     SparePart, StockMovement, PMSchedule, Followup, Lead,
     Survey, SurveyItem,
 )
+from models.iot_device import IoTDevice, IoTReading, IoTAlarm  # noqa: E402

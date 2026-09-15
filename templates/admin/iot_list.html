@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}أجهزة الاستشعار{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">🌡️ أجهزة الاستشعار ({{ devices|length }})</h1>
+        <p class="page-subtitle">مراقبة غرف السيرفر - حرارة، رطوبة، دخان</p>
+    </div>
+    <a href="{{ url_for('admin_iot.new_device') }}" class="btn btn-primary">➕ إضافة جهاز</a>
+</div>
+
+<div class="card">
+    {% if devices %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>الاسم</th>
+                    <th>العميل</th>
+                    <th>الموقع</th>
+                    <th>الحالة</th>
+                    <th>الحرارة</th>
+                    <th>الرطوبة</th>
+                    <th>الدخان</th>
+                    <th>آخر اتصال</th>
+                    <th>كود التفعيل</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in devices %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('admin_iot.view_device', dev_id=d.id) }}">
+                            <strong>{{ d.name or d.device_id or '(بدون اسم)' }}</strong>
+                        </a>
+                    </td>
+                    <td>{{ d.client.company_name if d.client else '—' }}</td>
+                    <td>{{ d.location or '—' }}</td>
+                    <td>
+                        {% if d.online %}
+                            <span class="badge badge-{{ 'success' if d.overall_status == 'green' else ('warning' if d.overall_status == 'yellow' else 'danger') }}">
+                                {{ 'سليم' if d.overall_status == 'green' else ('تنبيه' if d.overall_status == 'yellow' else 'خطر') }}
+                            </span>
+                        {% else %}
+                            <span class="badge badge-secondary">غير متصل</span>
+                        {% endif %}
+                    </td>
+                    <td>{% if d.last_temp is not none %}{{ '%.1f'|format(d.last_temp) }}°C{% else %}—{% endif %}</td>
+                    <td>{% if d.last_humid is not none %}{{ '%.0f'|format(d.last_humid) }}%{% else %}—{% endif %}</td>
+                    <td>{% if d.last_smoke_d %}🚨{% elif d.last_smoke_a is not none %}{{ d.last_smoke_a }}{% else %}—{% endif %}</td>
+                    <td>
+                        {% if d.last_seen %}
+                            <small>{{ d.last_seen.strftime('%Y-%m-%d %H:%M') }}</small>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {% if d.claim_code and not d.api_key %}
+                            <code style="font-size:14px;background:#fff3cd;padding:2px 8px;border-radius:4px">{{ d.claim_code }}</code>
+                        {% elif d.api_key %}
+                            <span class="badge badge-success">مُفعّل</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty">
+        <h3>لا توجد أجهزة استشعار</h3>
+        <p>ابدأ بإضافة جهاز جديد وسيتم توليد كود تفعيل يُعطى للعميل.</p>
+        <a href="{{ url_for('admin_iot.new_device') }}" class="btn btn-primary">➕ إضافة أول جهاز</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

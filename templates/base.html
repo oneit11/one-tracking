@@ -69,6 +69,7 @@
                 <a href="{{ url_for('admin.tickets_list') }}">{{ t('nav.tickets') }}</a>
                 <a href="{{ url_for('admin.clients_list') }}">{{ t('nav.clients') }}</a>
                 <a href="{{ url_for('admin.devices_list') }}">{{ t('nav.devices') }}</a>
+                <a href="{{ url_for('admin_iot.list_devices') }}">🌡️ الاستشعار</a>
                 <a href="{{ url_for('scanner.scan_page') }}">{{ t('nav.scan') }}</a>
                 <a href="{{ url_for('admin.qr_home') }}">{{ t('nav.qr') }}</a>
                 <a href="{{ url_for('reports.home') }}">{{ t('nav.reports') }}</a>
@@ -82,6 +83,7 @@
                 {% if current_user.is_client %}
                     <a href="{{ url_for('portal.dashboard') }}">{{ t('nav.portal_home') }}</a>
                     <a href="{{ url_for('portal.devices') }}">{{ t('nav.my_devices') }}</a>
+                    <a href="{{ url_for('portal_iot.dashboard') }}">🌡️ الاستشعار</a>
                     <a href="{{ url_for('portal.requests_list') }}">{{ t('nav.my_requests') }}</a>
                     <a href="{{ url_for('portal.account') }}">{{ t('nav.my_account') }}</a>
                     <a href="{{ url_for('portal.projects_list') }}">🏗️ مشاريعي</a>

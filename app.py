@@ -54,6 +54,9 @@ def create_app():
     from routes.audit import audit_bp
     from routes.rating import rating_bp
     from routes.pwa import pwa_bp
+    from routes.iot import iot_bp
+    from routes.admin_iot import admin_iot_bp
+    from routes.portal_iot import portal_iot_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp, url_prefix="/admin")
@@ -70,6 +73,11 @@ def create_app():
     app.register_blueprint(audit_bp, url_prefix="/admin/audit")
     app.register_blueprint(rating_bp)
     app.register_blueprint(pwa_bp)
+    # IoT: the device-facing API is at /api/iot/*, admin CRUD at /admin/iot,
+    # and the client-portal view at /portal/iot.
+    app.register_blueprint(iot_bp)                                      # /api/iot/*
+    app.register_blueprint(admin_iot_bp, url_prefix="/admin/iot")
+    app.register_blueprint(portal_iot_bp, url_prefix="/portal/iot")
 
     # Serve uploaded files from UPLOAD_FOLDER (works whether that's the default
     # static path or a mounted Railway volume). Shadows the default /static

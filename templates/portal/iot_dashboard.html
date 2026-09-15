@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}أجهزة الاستشعار{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">🌡️ أجهزة الاستشعار</h1>
+        <p class="page-subtitle">مراقبة غرفة السيرفر - حرارة، رطوبة، دخان</p>
+    </div>
+</div>
+
+{% if devices %}
+<div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">
+    {% for d in devices %}
+    <a href="{{ url_for('portal_iot.device_view', dev_id=d.id) }}"
+       class="kpi-card kpi-{{ 'success' if d.overall_status == 'green' else ('warning' if d.overall_status == 'yellow' else ('danger' if d.overall_status == 'red' else 'secondary')) }}">
+        <div class="kpi-icon">{% if not d.online %}⚫{% elif d.overall_status == 'green' %}🟢{% elif d.overall_status == 'yellow' %}🟡{% else %}🔴{% endif %}</div>
+        <div class="kpi-body">
+            <div class="kpi-label"><strong>{{ d.name }}</strong></div>
+            <div style="margin-top:6px;font-size:14px;line-height:1.7">
+                🌡️ {% if d.last_temp is not none %}{{ '%.1f'|format(d.last_temp) }}°C{% else %}—{% endif %}
+                &nbsp;·&nbsp;
+                💧 {% if d.last_humid is not none %}{{ '%.0f'|format(d.last_humid) }}%{% else %}—{% endif %}
+                <br>
+                💨 {% if d.last_smoke_d %}<strong style="color:#dc3545">دخان مكتشف!</strong>{% elif d.last_smoke_a is not none %}{{ d.last_smoke_a }}{% else %}—{% endif %}
+            </div>
+            <small style="opacity:.7">
+                {% if d.online %}
+                    ● متصل — {{ d.last_seen.strftime('%H:%M') if d.last_seen else '' }}
+                {% else %}
+                    ● غير متصل
+                    {% if d.last_seen %} منذ {{ d.last_seen.strftime('%Y-%m-%d %H:%M') }}{% endif %}
+                {% endif %}
+            </small>
+        </div>
+        <div class="kpi-arrow">←</div>
+    </a>
+    {% endfor %}
+</div>
+
+<script>
+// Auto-refresh the whole page every 30s so cards stay live
+setTimeout(() => location.reload(), 30000);
+</script>
+
+{% else %}
+<div class="card">
+    <div class="empty">
+        <h3>لا توجد أجهزة استشعار مسجلة</h3>
+        <p>للاستفسار عن إضافة جهاز مراقبة لغرفة السيرفر، برجاء التواصل مع الشركة.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
