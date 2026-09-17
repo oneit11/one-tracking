@@ -40,8 +40,18 @@ class Config:
 
     # WhatsApp (Baileys sidecar)
     WA_ENABLED = os.getenv("WA_ENABLED", "false").lower() == "true"
+    # WA_PROVIDER: "greenapi" (recommended, stable, managed by green-api.com)
+    #              or "baileys" (legacy local sidecar - kept for backward-compat)
+    WA_PROVIDER = os.getenv("WA_PROVIDER", "greenapi").lower()
+    # Baileys sidecar (legacy)
     WA_SIDECAR_URL = os.getenv("WA_SIDECAR_URL", "")
     WA_SIDECAR_API_KEY = os.getenv("WA_SIDECAR_API_KEY", "")
+    # Green API (green-api.com) — REST provider that manages the WhatsApp
+    # Web session for us, so we don't hit the Bad-MAC / conflict-replaced
+    # loop we used to see with our own Baileys instance.
+    GREENAPI_URL = os.getenv("GREENAPI_URL", "")
+    GREENAPI_INSTANCE_ID = os.getenv("GREENAPI_INSTANCE_ID", "")
+    GREENAPI_TOKEN = os.getenv("GREENAPI_TOKEN", "")
 
     # Emergency migration
     EMERGENCY_MIGRATE_SECRET = os.getenv("EMERGENCY_MIGRATE_SECRET", "ONE-Tracking-Emergency-2026")

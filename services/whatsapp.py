@@ -1,5 +1,11 @@
 """
-WhatsApp service v2 - Baileys sidecar + DB-driven message templates.
+WhatsApp service v3 - provider-agnostic (Green API + Baileys sidecar).
+
+Set WA_PROVIDER=greenapi (default) to use https://green-api.com — a hosted
+REST provider that keeps the WhatsApp Web session healthy for us and avoids
+the Bad-MAC / conflict-replaced churn we were fighting with Baileys.
+
+Set WA_PROVIDER=baileys to keep pointing at the old Node sidecar.
 """
 import threading
 import requests
@@ -10,6 +16,29 @@ from models.wa_log import WhatsAppLog
 from models.setting import MessageTemplate
 from utils.helpers import normalize_phone
 from services.settings_service import get_setting
+
+
+def _to_chat_id(number):
+    """Green API expects '<digits>@c.us' (no leading +)."""
+    digits = "".join(ch for ch in (number or "") if ch.isdigit())
+    return f"{digits}@c.us"
+
+
+def _send_greenapi(cfg, to_number, message):
+    """POST /waInstance<id>/sendMessage/<token> — {chatId, message}."""
+    url = f"{cfg['green_url'].rstrip('/')}/waInstance{cfg['green_id']}/sendMessage/{cfg['green_token']}"
+    payload = {"chatId": _to_chat_id(to_number), "message": message}
+    resp = requests.post(url, json=payload, timeout=30)
+    return resp
+
+
+def _send_baileys(cfg, to_number, message):
+    """POST /send on the legacy Baileys sidecar."""
+    url = cfg["sidecar_url"].rstrip("/") + "/send"
+    headers = {"X-API-Key": cfg["api_key"], "Content-Type": "application/json"}
+    payload = {"to": to_number.lstrip("+"), "message": message}
+    resp = requests.post(url, json=payload, headers=headers, timeout=30)
+    return resp
 
 
 def _send_sync(config, to_number, message, event_type, entity_type, entity_id):
@@ -23,19 +52,23 @@ def _send_sync(config, to_number, message, event_type, entity_type, entity_id):
             log.status = "skipped"; log.error_message = "WA disabled"
             db.session.add(log); db.session.commit(); return
 
-        if not config["sidecar_url"] or not config["api_key"]:
-            log.status = "failed"; log.error_message = "Missing sidecar config"
-            db.session.add(log); db.session.commit(); return
-
         if not to_number:
             log.status = "failed"; log.error_message = "Missing recipient"
             db.session.add(log); db.session.commit(); return
 
-        url = config["sidecar_url"].rstrip("/") + "/send"
-        headers = {"X-API-Key": config["api_key"], "Content-Type": "application/json"}
-        payload = {"to": to_number.lstrip("+"), "message": message}
+        provider = config.get("provider", "greenapi")
 
-        resp = requests.post(url, json=payload, headers=headers, timeout=30)
+        if provider == "greenapi":
+            if not (config.get("green_url") and config.get("green_id") and config.get("green_token")):
+                log.status = "failed"; log.error_message = "Missing Green API config"
+                db.session.add(log); db.session.commit(); return
+            resp = _send_greenapi(config, to_number, message)
+        else:
+            if not (config.get("sidecar_url") and config.get("api_key")):
+                log.status = "failed"; log.error_message = "Missing sidecar config"
+                db.session.add(log); db.session.commit(); return
+            resp = _send_baileys(config, to_number, message)
+
         log.provider_response = resp.text[:2000]
         if resp.status_code in (200, 201):
             log.status = "sent"
@@ -71,10 +104,18 @@ def send_wa(to_number, message, event_type="", entity_type="", entity_id=None, a
 
     # Load from settings (DB) first, fall back to config
     enabled = get_setting("wa_enabled", str(_app.config.get("WA_ENABLED", False))).lower() == "true"
+    provider = (get_setting("wa_provider", "") or _app.config.get("WA_PROVIDER", "greenapi")).lower()
     sidecar = get_setting("wa_sidecar_url", "") or _app.config.get("WA_SIDECAR_URL", "")
     api_key = _app.config.get("WA_SIDECAR_API_KEY", "")
+    green_url = _app.config.get("GREENAPI_URL", "")
+    green_id = _app.config.get("GREENAPI_INSTANCE_ID", "")
+    green_token = _app.config.get("GREENAPI_TOKEN", "")
 
-    config = {"enabled": enabled, "sidecar_url": sidecar, "api_key": api_key}
+    config = {
+        "enabled": enabled, "provider": provider,
+        "sidecar_url": sidecar, "api_key": api_key,
+        "green_url": green_url, "green_id": green_id, "green_token": green_token,
+    }
 
     def worker():
         with _app.app_context():
@@ -114,17 +155,53 @@ def render_template_msg(code, **kwargs):
     return tpl.render(**kwargs)
 
 
-# ============ Sidecar management ============
+# ============ Provider status / management ============
 
 def get_sidecar_status(app=None):
+    """Return a { status, phone, provider } dict for the admin panel — works
+    for both Green API and Baileys."""
     _app = app or current_app._get_current_object()
+    provider = (get_setting("wa_provider", "") or _app.config.get("WA_PROVIDER", "greenapi")).lower()
+
+    if provider == "greenapi":
+        base = _app.config.get("GREENAPI_URL", "").rstrip("/")
+        idi = _app.config.get("GREENAPI_INSTANCE_ID", "")
+        tok = _app.config.get("GREENAPI_TOKEN", "")
+        if not (base and idi and tok):
+            return None
+        try:
+            # getStateInstance returns {"stateInstance": "authorized" | "notAuthorized" | ...}
+            r = requests.get(f"{base}/waInstance{idi}/getStateInstance/{tok}", timeout=5)
+            if r.status_code != 200:
+                return {"provider": "greenapi", "status": "error", "error": r.text[:200]}
+            state = (r.json() or {}).get("stateInstance", "unknown")
+            phone = None
+            # getSettings returns the paired phone number as "wid" (best-effort)
+            try:
+                s = requests.get(f"{base}/waInstance{idi}/getSettings/{tok}", timeout=5)
+                if s.status_code == 200:
+                    phone = (s.json() or {}).get("wid", "").split("@")[0] or None
+            except Exception:
+                pass
+            return {
+                "provider": "greenapi",
+                "status": "connected" if state == "authorized" else state,
+                "phone": phone,
+            }
+        except Exception as e:
+            return {"provider": "greenapi", "status": "error", "error": str(e)[:200]}
+
+    # Legacy Baileys sidecar
     url = (get_setting("wa_sidecar_url") or _app.config.get("WA_SIDECAR_URL", "")).rstrip("/")
     api_key = _app.config.get("WA_SIDECAR_API_KEY", "")
     if not url:
         return None
     try:
         r = requests.get(f"{url}/status", headers={"X-API-Key": api_key}, timeout=5)
-        return r.json() if r.status_code == 200 else None
+        data = r.json() if r.status_code == 200 else None
+        if data:
+            data["provider"] = "baileys"
+        return data
     except Exception:
         return None
 
