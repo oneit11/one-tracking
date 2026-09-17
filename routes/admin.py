@@ -683,6 +683,31 @@ def request_close(rid):
     return redirect(url_for("admin.request_view", rid=rid))
 
 
+@admin_bp.route("/requests/<int:rid>/reopen", methods=["POST"])
+@admin_required
+def request_reopen(rid):
+    """Re-open a closed maintenance request.
+    - Status goes back to "in_progress" if a technician is still assigned,
+      otherwise to "assigned" so it goes back on the board.
+    - Clears closed_at.
+    - Keeps the visit report/photo and any account entries intact.
+    - Logs the action for the audit trail.
+    """
+    req = MaintenanceRequest.query.get_or_404(rid)
+    if req.status != "closed":
+        flash("الطلب مش مغلق أصلاً", "info")
+        return redirect(url_for("admin.request_view", rid=rid))
+    # Decide new status based on whether the tech is still on it
+    req.status = "in_progress" if req.technician_id else "new"
+    req.closed_at = None
+    reason = (request.form.get("reason") or "").strip()[:300]
+    db.session.commit()
+    log_action("request.reopened", entity_type="request", entity_id=req.id,
+               details=reason or None)
+    flash("تم إعادة فتح الطلب", "success")
+    return redirect(url_for("admin.request_view", rid=rid))
+
+
 # ================= Projects (was Support Tickets) =================
 @admin_bp.route("/tickets")
 @permission_required("tickets.view")
@@ -1190,6 +1215,29 @@ def ticket_close(tid):
         current_app.logger.warning(f"project close notify failed: {e}")
     log_action("ticket.closed", entity_type="ticket", entity_id=tid)
     flash("تم إغلاق المشروع وإصدار التقرير النهائي", "success")
+    return redirect(url_for("admin.ticket_view", tid=tid))
+
+
+@admin_bp.route("/tickets/<int:tid>/reopen", methods=["POST"])
+@admin_required
+def ticket_reopen(tid):
+    """Re-open a closed project.
+    - Status goes back to "in_progress" so the team can log more visits.
+    - Clears closed_at.
+    - Preserves the final report and every visit.
+    - Logs the action for the audit trail.
+    """
+    t = SupportTicket.query.get_or_404(tid)
+    if t.status != "closed":
+        flash("المشروع مش مغلق أصلاً", "info")
+        return redirect(url_for("admin.ticket_view", tid=tid))
+    t.status = "in_progress"
+    t.closed_at = None
+    reason = (request.form.get("reason") or "").strip()[:300]
+    db.session.commit()
+    log_action("ticket.reopened", entity_type="ticket", entity_id=t.id,
+               details=reason or None)
+    flash("تم إعادة فتح المشروع", "success")
     return redirect(url_for("admin.ticket_view", tid=tid))
 
 

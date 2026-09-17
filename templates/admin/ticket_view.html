@@ -83,6 +83,15 @@
               data-confirm="إغلاق المشروع وإصدار التقرير النهائي؟" class="mt-4">
             <button class="btn btn-danger btn-block">🔒 إغلاق المشروع + تقرير نهائي</button>
         </form>
+        {% elif project.status == 'closed' %}
+        <div class="mt-4" style="text-align:center">
+            <p class="text-muted" style="margin-bottom:12px">✅ المشروع مغلق</p>
+            <form method="post" action="{{ url_for('admin.ticket_reopen', tid=project.id) }}"
+                  data-confirm="إعادة فتح المشروع؟ الفريق هيقدر يضيف زيارات جديدة.">
+                <input type="text" name="reason" class="form-input" placeholder="سبب إعادة الفتح (اختياري)" style="margin-bottom:8px">
+                <button class="btn btn-secondary btn-block">🔓 إعادة فتح المشروع</button>
+            </form>
+        </div>
         {% endif %}
     </div>
 </div>

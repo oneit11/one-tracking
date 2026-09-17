@@ -97,7 +97,14 @@
             <button class="btn btn-danger btn-block mt-4">🔒 إغلاق الطلب</button>
         </form>
         {% else %}
-        <p class="text-muted">✅ تم إغلاق الطلب</p>
+        <div style="text-align:center;padding:8px 0">
+            <p class="text-muted" style="margin-bottom:12px">✅ تم إغلاق الطلب</p>
+            <form method="post" action="{{ url_for('admin.request_reopen', rid=req.id) }}"
+                  data-confirm="إعادة فتح الطلب؟ الحالة هترجع للفني أو للطابور من جديد.">
+                <input type="text" name="reason" class="form-input" placeholder="سبب إعادة الفتح (اختياري)" style="margin-bottom:8px">
+                <button class="btn btn-secondary btn-block">🔓 إعادة فتح الطلب</button>
+            </form>
+        </div>
         {% endif %}
     </div>
 </div>
