@@ -72,20 +72,65 @@ def _recent_alarm(dev, alarm_type, within_min):
     ).first()
 
 
-def _check_thresholds(dev, temp, humid):
-    """Fire warning alarms when readings escape the configured band.
-    Deduped to 30 minutes per (device, kind) to avoid WhatsApp spam."""
+def _open_alarm(dev, alarm_type):
+    """The most recent unresolved alarm of this type for this device, or None."""
+    return IoTAlarm.query.filter(
+        IoTAlarm.device_id == dev.id,
+        IoTAlarm.alarm_type == alarm_type,
+        IoTAlarm.resolved_at.is_(None),
+    ).order_by(IoTAlarm.ts.desc()).first()
+
+
+def _resolve_alarm(dev, alarm_type, current_value_msg):
+    """If there's an open alarm of this type, mark it resolved and send a
+    'back to normal' WhatsApp. Called after every reading that is in a safe range."""
+    open_a = _open_alarm(dev, alarm_type)
+    if not open_a:
+        return
+    open_a.resolved_at = datetime.utcnow()
+    duration_min = int((open_a.resolved_at - open_a.ts).total_seconds() / 60)
+    a = IoTAlarm(
+        device_id=dev.id,
+        alarm_type=f"{alarm_type}_ok",
+        value=0,
+        message=f"✅ عاد الوضع طبيعي — {current_value_msg} (استمر الإنذار ~{duration_min} دقيقة)",
+    )
+    db.session.add(a)
+    db.session.flush()
+    _send_alarm_wa(dev, a, "✅ *الوضع رجع طبيعي — غرفة السيرفر*",
+                   [a.message])
+    a.notified = True
+
+
+def _check_thresholds(dev, temp, humid, smoke_d, smoke_a):
+    """Fire alarms when readings escape safe range, AND clear them
+    (with a 'back to normal' WhatsApp) when they return."""
     events = []
+
+    # Temp
     if temp is not None:
         if temp > dev.temp_max:
             events.append(("temp_high", temp, f"⚠️ درجة الحرارة مرتفعة: {temp:.1f}°C (الحد: {dev.temp_max:.1f}°C)"))
         elif temp < dev.temp_min:
             events.append(("temp_low", temp, f"⚠️ درجة الحرارة منخفضة: {temp:.1f}°C (الحد: {dev.temp_min:.1f}°C)"))
+        else:
+            _resolve_alarm(dev, "temp_high", f"درجة الحرارة الآن {temp:.1f}°C")
+            _resolve_alarm(dev, "temp_low",  f"درجة الحرارة الآن {temp:.1f}°C")
+
+    # Humidity
     if humid is not None:
         if humid > dev.humid_max:
             events.append(("humid_high", humid, f"⚠️ الرطوبة مرتفعة: {humid:.0f}% (الحد: {dev.humid_max:.0f}%)"))
         elif humid < dev.humid_min:
             events.append(("humid_low", humid, f"⚠️ الرطوبة منخفضة: {humid:.0f}% (الحد: {dev.humid_min:.0f}%)"))
+        else:
+            _resolve_alarm(dev, "humid_high", f"الرطوبة الآن {humid:.0f}%")
+            _resolve_alarm(dev, "humid_low",  f"الرطوبة الآن {humid:.0f}%")
+
+    # Smoke recovery — if the digital pin is clear AND the analog reading is
+    # below threshold, resolve any open smoke alarm.
+    if smoke_d is False and smoke_a is not None and smoke_a < dev.smoke_threshold:
+        _resolve_alarm(dev, "smoke", f"مستوى الدخان الآن {smoke_a} (تحت الحد الآمن)")
 
     for kind, value, body in events:
         if _recent_alarm(dev, kind, within_min=30):
@@ -161,7 +206,7 @@ def telemetry():
     if rssi is not None:
         dev.last_rssi = rssi
 
-    _check_thresholds(dev, temp, humid)
+    _check_thresholds(dev, temp, humid, smoke_d, smoke_a)
     db.session.commit()
     return jsonify(ok=True)
 
@@ -190,6 +235,48 @@ def alarm():
     return jsonify(ok=True)
 
 
+def _check_offline_alarms():
+    """Cheap side-check called from status polls: if any active device hasn't
+    sent telemetry for >90s and doesn't already have an open 'offline' alarm,
+    fire one (with a WhatsApp) and clear it when the device returns."""
+    cutoff = datetime.utcnow() - timedelta(seconds=90)
+    devices = IoTDevice.query.filter(IoTDevice.is_active.is_(True),
+                                     IoTDevice.api_key != "").all()
+    for dev in devices:
+        is_offline = (not dev.last_seen) or dev.last_seen < cutoff
+        open_a = _open_alarm(dev, "offline")
+
+        if is_offline and not open_a:
+            # First time we notice: don't spam on brief blips — require the
+            # device to have been offline for at least 2 minutes total.
+            if dev.last_seen and (datetime.utcnow() - dev.last_seen) < timedelta(minutes=2):
+                continue
+            last_seen_txt = _fmt_time(dev.last_seen) if dev.last_seen else "لم يتصل بعد"
+            body = f"🔌 آخر اتصال: {last_seen_txt}"
+            a = IoTAlarm(device_id=dev.id, alarm_type="offline",
+                         value=0, message=body)
+            db.session.add(a)
+            db.session.flush()
+            _send_alarm_wa(dev, a, "🔌 *الجهاز غير متصل — غرفة السيرفر*",
+                           [body, "⚠️ لا نتلقى قراءات — تحقق من الكهرباء والواي فاي"])
+            a.notified = True
+            db.session.commit()
+
+        elif not is_offline and open_a:
+            # Device came back — resolve the offline alarm
+            open_a.resolved_at = datetime.utcnow()
+            duration_min = int((open_a.resolved_at - open_a.ts).total_seconds() / 60)
+            a = IoTAlarm(device_id=dev.id, alarm_type="offline_ok",
+                         value=0,
+                         message=f"✅ الجهاز عاد للاتصال (كان مقطوع ~{duration_min} دقيقة)")
+            db.session.add(a)
+            db.session.flush()
+            _send_alarm_wa(dev, a, "✅ *الجهاز رجع للاتصال — غرفة السيرفر*",
+                           [a.message])
+            a.notified = True
+            db.session.commit()
+
+
 # ================== public status (for admin/portal UIs) ==================
 @iot_bp.route("/api/iot/status/<int:dev_id>")
 def public_status(dev_id):
@@ -198,13 +285,22 @@ def public_status(dev_id):
     latest state — no history — so it stays cheap.
     The UI page itself is @login_required; this endpoint is unauthenticated
     on purpose so the poll doesn't die if a session lapses.
+    Piggybacks the offline-alarm check onto every poll so we don't need a
+    separate scheduler.
     """
+    try:
+        _check_offline_alarms()
+    except Exception:
+        db.session.rollback()
+
     dev = IoTDevice.query.get_or_404(dev_id)
     return jsonify(
         online=dev.online,
         last_seen=dev.last_seen.isoformat() if dev.last_seen else None,
-        temp=dev.last_temp, humid=dev.last_humid,
-        smoke_a=dev.last_smoke_a, smoke_d=dev.last_smoke_d,
+        temp=dev.last_temp if dev.online else None,
+        humid=dev.last_humid if dev.online else None,
+        smoke_a=dev.last_smoke_a if dev.online else None,
+        smoke_d=dev.last_smoke_d if dev.online else False,
         temp_status=dev.temp_status, humid_status=dev.humid_status,
         smoke_status=dev.smoke_status, overall=dev.overall_status,
     )

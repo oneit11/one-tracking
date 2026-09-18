@@ -69,15 +69,18 @@ class IoTDevice(db.Model):
     # ---- Derived helpers ----
     @property
     def online(self):
-        """A device is considered online if telemetry arrived within the last 3 minutes."""
+        """A device is considered online if telemetry arrived within the last 90 seconds.
+        This is critical for a safety-monitoring product: an offline device must be
+        visually distinct so operators don't misread a stale value as current."""
         if not self.last_seen:
             return False
-        return (datetime.utcnow() - self.last_seen) < timedelta(minutes=3)
+        return (datetime.utcnow() - self.last_seen) < timedelta(seconds=90)
 
     @property
     def temp_status(self):
-        """green | yellow | red — for a colour dot on the dashboard."""
-        if self.last_temp is None:
+        """green | yellow | red | gray — for a colour dot on the dashboard.
+        Gray when offline or no reading — never show a colour based on stale data."""
+        if not self.online or self.last_temp is None:
             return "gray"
         t = self.last_temp
         if t < self.temp_min - 2 or t > self.temp_max + 2:
@@ -88,7 +91,7 @@ class IoTDevice(db.Model):
 
     @property
     def humid_status(self):
-        if self.last_humid is None:
+        if not self.online or self.last_humid is None:
             return "gray"
         h = self.last_humid
         if h < self.humid_min - 5 or h > self.humid_max + 5:
@@ -99,6 +102,8 @@ class IoTDevice(db.Model):
 
     @property
     def smoke_status(self):
+        if not self.online:
+            return "gray"
         if self.last_smoke_d:
             return "red"
         if self.last_smoke_a is None:

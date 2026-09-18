@@ -34,7 +34,7 @@
         <div class="kpi-body">
             <div class="kpi-label">درجة الحرارة</div>
             <div class="kpi-value" id="tempVal">
-                {% if dev.last_temp is not none %}{{ '%.1f'|format(dev.last_temp) }}°C{% else %}—{% endif %}
+                {% if dev.online and dev.last_temp is not none %}{{ '%.1f'|format(dev.last_temp) }}°C{% else %}—{% endif %}
             </div>
             <small>النطاق: {{ dev.temp_min }} — {{ dev.temp_max }} °C</small>
         </div>
@@ -45,32 +45,32 @@
         <div class="kpi-body">
             <div class="kpi-label">الرطوبة</div>
             <div class="kpi-value" id="humidVal">
-                {% if dev.last_humid is not none %}{{ '%.0f'|format(dev.last_humid) }}%{% else %}—{% endif %}
+                {% if dev.online and dev.last_humid is not none %}{{ '%.0f'|format(dev.last_humid) }}%{% else %}—{% endif %}
             </div>
             <small>النطاق: {{ dev.humid_min }} — {{ dev.humid_max }} %</small>
         </div>
     </div>
 
-    <div class="kpi-card kpi-{{ 'success' if dev.smoke_status == 'green' else ('warning' if dev.smoke_status == 'yellow' else 'danger') }}">
+    <div class="kpi-card kpi-{{ 'success' if dev.smoke_status == 'green' else ('warning' if dev.smoke_status == 'yellow' else ('danger' if dev.smoke_status == 'red' else 'secondary')) }}">
         <div class="kpi-icon">💨</div>
         <div class="kpi-body">
             <div class="kpi-label">مستوى الدخان</div>
             <div class="kpi-value" id="smokeVal">
-                {% if dev.last_smoke_d %}🚨 دخان{% elif dev.last_smoke_a is not none %}{{ dev.last_smoke_a }}{% else %}—{% endif %}
+                {% if not dev.online %}—{% elif dev.last_smoke_d %}🚨 دخان{% elif dev.last_smoke_a is not none %}{{ dev.last_smoke_a }}{% else %}—{% endif %}
             </div>
             <small>حد الإنذار: {{ dev.smoke_threshold }}</small>
         </div>
     </div>
 
-    <div class="kpi-card kpi-{{ 'success' if dev.online else 'secondary' }}">
-        <div class="kpi-icon">{{ '🟢' if dev.online else '⚫' }}</div>
+    <div class="kpi-card kpi-{{ 'success' if dev.online else 'danger' }}">
+        <div class="kpi-icon">{{ '🟢' if dev.online else '⛔' }}</div>
         <div class="kpi-body">
             <div class="kpi-label">الحالة</div>
-            <div class="kpi-value" id="onlineVal" style="font-size:18px">
-                {{ 'متصل' if dev.online else 'غير متصل' }}
+            <div class="kpi-value" id="onlineVal" style="font-size:18px;{% if not dev.online %}color:#dc3545{% endif %}">
+                {{ 'متصل ✅' if dev.online else '⛔ غير متصل' }}
             </div>
             <small id="lastSeenVal">
-                {% if dev.last_seen %}{{ dev.last_seen.strftime('%Y-%m-%d %H:%M') }}{% endif %}
+                {% if dev.last_seen %}آخر اتصال: {{ dev.last_seen.strftime('%Y-%m-%d %H:%M:%S') }}{% else %}لم يتصل بعد{% endif %}
             </small>
         </div>
     </div>
@@ -141,10 +141,19 @@ async function refreshStatus() {
     try {
         const r = await fetch(`/api/iot/status/${DEV_ID}`);
         const d = await r.json();
-        document.getElementById('tempVal').textContent  = d.temp  != null ? d.temp.toFixed(1) + '°C' : '—';
-        document.getElementById('humidVal').textContent = d.humid != null ? Math.round(d.humid) + '%' : '—';
-        document.getElementById('smokeVal').textContent = d.smoke_d ? '🚨 دخان' : (d.smoke_a != null ? d.smoke_a : '—');
-        document.getElementById('onlineVal').textContent = d.online ? 'متصل' : 'غير متصل';
+        // When the device is offline, always show em-dashes — never a stale value
+        if (!d.online) {
+            document.getElementById('tempVal').textContent  = '—';
+            document.getElementById('humidVal').textContent = '—';
+            document.getElementById('smokeVal').textContent = '—';
+        } else {
+            document.getElementById('tempVal').textContent  = d.temp  != null ? d.temp.toFixed(1) + '°C' : '—';
+            document.getElementById('humidVal').textContent = d.humid != null ? Math.round(d.humid) + '%' : '—';
+            document.getElementById('smokeVal').textContent = d.smoke_d ? '🚨 دخان' : (d.smoke_a != null ? d.smoke_a : '—');
+        }
+        const onlineEl = document.getElementById('onlineVal');
+        onlineEl.textContent = d.online ? 'متصل ✅' : '⛔ غير متصل';
+        onlineEl.style.color = d.online ? '' : '#dc3545';
         if (d.last_seen) document.getElementById('lastSeenVal').textContent = new Date(d.last_seen).toLocaleString('ar-EG');
     } catch(e) {}
 }
