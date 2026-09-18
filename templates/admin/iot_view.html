@@ -88,6 +88,12 @@
 <div class="card">
     <div class="card-header">
         <h3 class="card-title">🚨 سجل الإنذارات (آخر 30)</h3>
+        {% if alarms %}
+        <form method="post" action="{{ url_for('admin_iot.clear_alarms', dev_id=dev.id) }}" style="display:inline"
+              onsubmit="return confirm('مسح كل الإنذارات المسجلة لهذا الجهاز؟')">
+            <button class="btn btn-warning btn-sm">🔄 Reset — مسح كل الإنذارات</button>
+        </form>
+        {% endif %}
     </div>
     {% if alarms %}
     <div class="table-wrap">

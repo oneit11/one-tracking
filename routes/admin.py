@@ -992,11 +992,25 @@ def wa_home():
     status = get_sidecar_status()
     qr_info = get_sidecar_qr()
     from services.settings_service import get_setting
-    sidecar_configured = bool(get_setting("wa_sidecar_url") or current_app.config.get("WA_SIDECAR_URL"))
+    sidecar_configured = bool(get_setting("wa_sidecar_url") or current_app.config.get("WA_SIDECAR_URL")
+                              or current_app.config.get("GREENAPI_INSTANCE_ID"))
     return render_template("admin/wa_home.html",
                            status=status, qr_info=qr_info,
                            sidecar_configured=sidecar_configured,
-                           wa_enabled=(get_setting("wa_enabled", "false").lower() == "true"))
+                           wa_enabled=(get_setting("wa_enabled", "false").lower() == "true"),
+                           notify_extra_numbers=get_setting("notify_extra_numbers", ""))
+
+
+@admin_bp.route("/wa/notify-numbers", methods=["POST"])
+@admin_required
+def wa_save_notify_numbers():
+    """Save the list of extra WhatsApp numbers that also receive alerts
+    (in addition to active admins)."""
+    from models.setting import Setting
+    raw = (request.form.get("notify_extra_numbers") or "").strip()
+    Setting.set("notify_extra_numbers", raw, category="notifications")
+    flash("تم حفظ الأرقام الإضافية للإشعارات ✅", "success")
+    return redirect(url_for("admin.wa_home"))
 
 
 @admin_bp.route("/wa/qr.json")

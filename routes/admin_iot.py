@@ -112,3 +112,15 @@ def delete_device(dev_id):
     db.session.commit()
     flash("تم حذف الجهاز", "success")
     return redirect(url_for("admin_iot.list_devices"))
+
+
+@admin_iot_bp.route("/<int:dev_id>/clear-alarms", methods=["POST"])
+@login_required
+@admin_required
+def clear_alarms(dev_id):
+    """Manual reset: clear the alarm log for this device."""
+    dev = IoTDevice.query.get_or_404(dev_id)
+    deleted = IoTAlarm.query.filter_by(device_id=dev.id).delete()
+    db.session.commit()
+    flash(f"تم مسح {deleted} إنذار بنجاح ✅", "success")
+    return redirect(url_for("admin_iot.view_device", dev_id=dev.id))

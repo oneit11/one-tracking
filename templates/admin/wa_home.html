@@ -63,6 +63,25 @@ WA_SIDECAR_API_KEY=ONE-Tracking-WA-Secret-2026</pre>
         </ol>
     </div>
 </div>
+
+<!-- Extra notification numbers -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h3 class="card-title">📞 أرقام إضافية للإشعارات</h3>
+    </div>
+    <form method="post" action="{{ url_for('admin.wa_save_notify_numbers') }}">
+        <div class="form-group">
+            <label class="form-label">أرقام تستقبل إشعارات الطلبات والتقارير والإنذارات (بالإضافة للمديرين)</label>
+            <textarea class="form-textarea" name="notify_extra_numbers" rows="4" dir="ltr"
+                      placeholder="01000000000&#10;01100000000&#10;01200000000">{{ notify_extra_numbers }}</textarea>
+            <span class="form-hint">
+                افصل الأرقام بسطر جديد أو فاصلة (,) أو فاصلة منقوطة (;). كل رقم هيتحول لصيغة دولية تلقائياً.
+                <br>مثال: <code dir="ltr">01000000000, 01100000000</code>
+            </span>
+        </div>
+        <button class="btn btn-primary">💾 حفظ الأرقام</button>
+    </form>
+</div>
 {% endif %}
 
 <script>
