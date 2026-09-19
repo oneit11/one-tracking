@@ -452,12 +452,24 @@ def notify_project_team_assigned(project, app=None):
 
     - Lead gets a message naming the rest of the team to coordinate with.
     - Each other member gets a message with the project + start date + lead name.
+
+    We re-query team members from ProjectMember + assignee to guarantee we
+    see freshly-committed rows (SQLAlchemy relationships can be stale after
+    a commit in the same request).
     """
+    from models.request import ProjectMember
+    from models.user import User
     _app = app or current_app._get_current_object()
     company_name = get_setting("company_name", "الشركة")
     start = project.start_date.strftime("%Y-%m-%d") if project.start_date else "غير محدد"
-    lead = project.assignee
-    team = project.team_users
+
+    # Fresh lead + member lookup (defensive against relationship staleness)
+    lead = User.query.get(project.assigned_to) if project.assigned_to else None
+    member_ids = [m.user_id for m in ProjectMember.query.filter_by(ticket_id=project.id).all()]
+    all_ids = set(member_ids)
+    if lead:
+        all_ids.add(lead.id)
+    team = User.query.filter(User.id.in_(all_ids)).all() if all_ids else []
     others = [u for u in team if not lead or u.id != lead.id]
     others_names = "، ".join(u.name for u in others) if others else "لا يوجد"
 

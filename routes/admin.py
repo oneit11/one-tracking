@@ -787,6 +787,12 @@ def ticket_assign(tid):
         project.status = "in_progress"
     db.session.commit()
 
+    # Force-refresh the relationships so team_users/assignee reflect the just-
+    # committed rows before we hand the project off to the WA notifier.
+    # Without this, the notifier sees stale members and skips the team messages.
+    db.session.expire(project)
+    project = SupportTicket.query.get(tid)
+
     # WhatsApp to the whole team + in-app notifications
     wa.notify_project_team_assigned(project)
     for u in project.team_users:
