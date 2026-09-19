@@ -2,8 +2,35 @@
 {% block title %}سجل رسائل WhatsApp{% endblock %}
 {% block content %}
 <div class="page-header">
-    <h1 class="page-title">سجل رسائل WhatsApp</h1>
+    <div>
+        <h1 class="page-title">سجل رسائل WhatsApp</h1>
+        <p class="page-subtitle">إجمالي السجل: <strong>{{ total_count }}</strong> رسالة</p>
+    </div>
     <a href="{{ url_for('admin.wa_home') }}" class="btn btn-secondary">← رجوع</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="card-title">🗑️ مسح السجلات القديمة</h3>
+    </div>
+    <form method="post" action="{{ url_for('admin.wa_logs_clear') }}"
+          onsubmit="return confirm('متأكد من مسح السجلات؟ ده مش هيتراجع.')"
+          style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+        <div class="form-group" style="flex:1;min-width:200px;margin:0">
+            <label class="form-label">امسح السجلات الأقدم من</label>
+            <select name="age" class="form-input">
+                <option value="7">7 أيام</option>
+                <option value="30">30 يوم</option>
+                <option value="90" selected>90 يوم (3 شهور)</option>
+                <option value="180">180 يوم (6 شهور)</option>
+                <option value="all">⚠️ كل السجل (مسح كامل)</option>
+            </select>
+        </div>
+        <button class="btn btn-danger">🗑️ مسح</button>
+    </form>
+    <small class="text-muted" style="display:block;margin-top:8px">
+        💡 النظام كمان بيمسح تلقائياً السجلات الأقدم من 90 يوم مرة في الشهر.
+    </small>
 </div>
 
 <div class="card">

@@ -1055,8 +1055,40 @@ def wa_test():
 @admin_bp.route("/wa/logs")
 @admin_required
 def wa_logs():
+    # Piggyback: auto-purge rows older than 90 days on each page view. Cheap
+    # (one delete with an indexed timestamp), keeps the table lean without a
+    # separate scheduler.
+    try:
+        cutoff = datetime.utcnow() - timedelta(days=90)
+        purged = WhatsAppLog.query.filter(WhatsAppLog.sent_at < cutoff).delete(synchronize_session=False)
+        if purged:
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
+
     logs = WhatsAppLog.query.order_by(desc(WhatsAppLog.sent_at)).limit(200).all()
-    return render_template("admin/wa_logs.html", logs=logs)
+    total_count = WhatsAppLog.query.count()
+    return render_template("admin/wa_logs.html", logs=logs, total_count=total_count)
+
+
+@admin_bp.route("/wa/logs/clear", methods=["POST"])
+@admin_required
+def wa_logs_clear():
+    """Delete WhatsApp log rows older than the requested age. Keeps the table
+    lean — thousands of rows slow down dedupe queries and the log page load."""
+    age = request.form.get("age", "90").strip()
+    if age == "all":
+        deleted = WhatsAppLog.query.delete(synchronize_session=False)
+    else:
+        try:
+            days = int(age)
+        except ValueError:
+            days = 90
+        cutoff = datetime.utcnow() - timedelta(days=days)
+        deleted = WhatsAppLog.query.filter(WhatsAppLog.sent_at < cutoff).delete(synchronize_session=False)
+    db.session.commit()
+    flash(f"تم مسح {deleted} سجل رسائل ✅", "success")
+    return redirect(url_for("admin.wa_logs"))
 
 
 # ================= Follow-up Appointments =================
