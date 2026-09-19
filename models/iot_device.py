@@ -64,6 +64,15 @@ class IoTDevice(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Per-device notification toggles. Offline notifications are off by default —
+    # you enable them only for devices that must be always-on (e.g. a production
+    # server room), so you don't get pinged for a Wi-Fi glitch on a test bench.
+    notify_offline = db.Column(db.Boolean, default=False)
+    # When the operator dismisses a smoke alarm manually we suppress smoke
+    # re-alerts until this time (typically now + 30 min). Lets you silence a
+    # faulty MQ sensor without turning the whole alarm off.
+    smoke_muted_until = db.Column(db.DateTime)
+
     client = db.relationship("Client", backref=db.backref("iot_devices", lazy="dynamic"))
 
     # ---- Derived helpers ----
@@ -101,14 +110,34 @@ class IoTDevice(db.Model):
         return "green"
 
     @property
+    def smoke_muted(self):
+        """True while the operator's manual dismiss is still in effect."""
+        return bool(self.smoke_muted_until and self.smoke_muted_until > datetime.utcnow())
+
+    @property
+    def smoke_percent(self):
+        """Analog reading as a % of the 12-bit ADC range (0..4095) — the number
+        an operator can actually reason about ('the room is at 12% smoke')."""
+        if self.last_smoke_a is None:
+            return None
+        return round((self.last_smoke_a / 4095) * 100)
+
+    @property
     def smoke_status(self):
+        """Smoke is judged ONLY by the analog reading against smoke_threshold.
+        The digital DO pin on MQ modules is unreliable (fixed comparator that
+        drifts and often stays HIGH even in clean air), so we intentionally
+        ignore it — this is a monitored safety product, false alarms burn trust
+        fast. If the operator muted the sensor recently, stay green."""
         if not self.online:
             return "gray"
-        if self.last_smoke_d:
-            return "red"
+        if self.smoke_muted:
+            return "green"
         if self.last_smoke_a is None:
             return "gray"
         if self.last_smoke_a > self.smoke_threshold:
+            return "red"
+        if self.last_smoke_a > self.smoke_threshold * 0.75:
             return "yellow"
         return "green"
 

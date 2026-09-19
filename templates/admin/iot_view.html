@@ -54,11 +54,22 @@
     <div class="kpi-card kpi-{{ 'success' if dev.smoke_status == 'green' else ('warning' if dev.smoke_status == 'yellow' else ('danger' if dev.smoke_status == 'red' else 'secondary')) }}">
         <div class="kpi-icon">💨</div>
         <div class="kpi-body">
-            <div class="kpi-label">مستوى الدخان</div>
-            <div class="kpi-value" id="smokeVal">
-                {% if not dev.online %}—{% elif dev.last_smoke_d %}🚨 دخان{% elif dev.last_smoke_a is not none %}{{ dev.last_smoke_a }}{% else %}—{% endif %}
+            <div class="kpi-label">
+                مستوى الدخان
+                {% if dev.smoke_muted %}<span class="badge badge-warning" style="font-size:10px">🔕 مكتوم</span>{% endif %}
             </div>
-            <small>حد الإنذار: {{ dev.smoke_threshold }}</small>
+            <div class="kpi-value" id="smokeVal">
+                {% if not dev.online %}—
+                {% elif dev.last_smoke_a is not none %}{{ dev.last_smoke_a }} <small style="font-size:14px">({{ dev.smoke_percent }}%)</small>
+                {% else %}—{% endif %}
+            </div>
+            <small>حد الإنذار: {{ dev.smoke_threshold }} ({{ ((dev.smoke_threshold/4095)*100)|round|int }}%)</small>
+            {% if dev.online and dev.smoke_status in ['red', 'yellow'] and not dev.smoke_muted %}
+            <form method="post" action="{{ url_for('admin_iot.dismiss_smoke', dev_id=dev.id) }}" style="margin-top:8px"
+                  onsubmit="return confirm('كتم إنذار الدخان لمدة 30 دقيقة وإرجاع الحساس لوضع طبيعي؟')">
+                <button class="btn btn-warning btn-sm" style="width:100%;font-size:12px">⛔ رجّع الحساس لوضع طبيعي</button>
+            </form>
+            {% endif %}
         </div>
     </div>
 
@@ -149,7 +160,9 @@ async function refreshStatus() {
         } else {
             document.getElementById('tempVal').textContent  = d.temp  != null ? d.temp.toFixed(1) + '°C' : '—';
             document.getElementById('humidVal').textContent = d.humid != null ? Math.round(d.humid) + '%' : '—';
-            document.getElementById('smokeVal').textContent = d.smoke_d ? '🚨 دخان' : (d.smoke_a != null ? d.smoke_a : '—');
+            document.getElementById('smokeVal').innerHTML = d.smoke_a != null
+                ? d.smoke_a + ' <small style="font-size:14px">(' + (d.smoke_pct ?? 0) + '%)</small>'
+                : '—';
         }
         const onlineEl = document.getElementById('onlineVal');
         onlineEl.textContent = d.online ? 'متصل ✅' : '⛔ غير متصل';

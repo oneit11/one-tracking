@@ -3,6 +3,7 @@ Admin routes for IoT devices — CRUD, live view, alarms log.
 Prefix: /admin/iot
 """
 import secrets
+from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required
 from models import db
@@ -44,6 +45,7 @@ def new_device():
             humid_min=float(request.form.get("humid_min") or 30),
             humid_max=float(request.form.get("humid_max") or 60),
             smoke_threshold=int(request.form.get("smoke_threshold") or 2000),
+            notify_offline=bool(request.form.get("notify_offline")),
             claim_code=_new_claim_code(),
         )
         db.session.add(d)
@@ -81,6 +83,7 @@ def edit_device(dev_id):
         dev.humid_max = float(request.form.get("humid_max") or 60)
         dev.smoke_threshold = int(request.form.get("smoke_threshold") or 2000)
         dev.is_active = bool(request.form.get("is_active"))
+        dev.notify_offline = bool(request.form.get("notify_offline"))
         db.session.commit()
         flash("تم حفظ التعديلات", "success")
         return redirect(url_for("admin_iot.view_device", dev_id=dev.id))
@@ -123,4 +126,27 @@ def clear_alarms(dev_id):
     deleted = IoTAlarm.query.filter_by(device_id=dev.id).delete()
     db.session.commit()
     flash(f"تم مسح {deleted} إنذار بنجاح ✅", "success")
+    return redirect(url_for("admin_iot.view_device", dev_id=dev.id))
+
+
+@admin_iot_bp.route("/<int:dev_id>/dismiss-smoke", methods=["POST"])
+@login_required
+@admin_required
+def dismiss_smoke(dev_id):
+    """Operator says 'the sensor is lying — reset it'. Resolves any open
+    smoke alarm and mutes new smoke alarms for the next 30 minutes so a
+    stuck MQ sensor doesn't keep spamming the client's WhatsApp."""
+    dev = IoTDevice.query.get_or_404(dev_id)
+    mute_minutes = int(request.form.get("mute_minutes") or 30)
+    dev.smoke_muted_until = datetime.utcnow() + timedelta(minutes=mute_minutes)
+    # Resolve open smoke alarms
+    open_alarms = IoTAlarm.query.filter(
+        IoTAlarm.device_id == dev.id,
+        IoTAlarm.alarm_type == "smoke",
+        IoTAlarm.resolved_at.is_(None),
+    ).all()
+    for a in open_alarms:
+        a.resolved_at = datetime.utcnow()
+    db.session.commit()
+    flash(f"تم إعادة الحساس للوضع الطبيعي — كتم إنذار الدخان لمدة {mute_minutes} دقيقة ✅", "success")
     return redirect(url_for("admin_iot.view_device", dev_id=dev.id))

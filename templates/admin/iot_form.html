@@ -71,6 +71,16 @@
             </label>
         </div>
         {% endif %}
+        <div class="form-row">
+            <label>إشعارات الاتصال والانقطاع</label>
+            <label style="display:flex;gap:8px;align-items:start;padding-top:8px;flex-direction:column">
+                <span style="display:flex;gap:8px;align-items:center">
+                    <input type="checkbox" name="notify_offline" {% if dev and dev.notify_offline %}checked{% endif %}>
+                    ابعت واتس لما الجهاز يقطع أو يرجع
+                </span>
+                <small class="text-muted">افضل للأجهزة اللي لازم تكون شغالة 24/7. سيبها مقفولة على أجهزة الاختبار.</small>
+            </label>
+        </div>
     </div>
 
     <div style="margin-top:20px">

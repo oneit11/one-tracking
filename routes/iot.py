@@ -127,10 +127,24 @@ def _check_thresholds(dev, temp, humid, smoke_d, smoke_a):
             _resolve_alarm(dev, "humid_high", f"الرطوبة الآن {humid:.0f}%")
             _resolve_alarm(dev, "humid_low",  f"الرطوبة الآن {humid:.0f}%")
 
-    # Smoke recovery — if the digital pin is clear AND the analog reading is
-    # below threshold, resolve any open smoke alarm.
-    if smoke_d is False and smoke_a is not None and smoke_a < dev.smoke_threshold:
-        _resolve_alarm(dev, "smoke", f"مستوى الدخان الآن {smoke_a} (تحت الحد الآمن)")
+    # Smoke — analog reading only. The digital DO pin on MQ modules is
+    # unreliable, so we ignore it entirely for alerting decisions (see the
+    # note on IoTDevice.smoke_status). Also respects the operator's manual
+    # dismiss (smoke_muted_until) — we don't trigger new smoke alarms during
+    # the mute window even if the sensor is stuck HIGH.
+    if smoke_a is not None:
+        pct = round((smoke_a / 4095) * 100)
+        if smoke_a > dev.smoke_threshold and not dev.smoke_muted:
+            if not _recent_alarm(dev, "smoke", within_min=5):
+                body = f"🔥 قراءة الدخان: {smoke_a} ({pct}%) — الحد: {dev.smoke_threshold}"
+                a = IoTAlarm(device_id=dev.id, alarm_type="smoke", value=float(smoke_a), message=body)
+                db.session.add(a)
+                db.session.flush()
+                _send_alarm_wa(dev, a, "🚨 *إنذار حريق - دخان مكتشف* 🚨",
+                               [body, "⚠️ يرجى المتابعة الفورية والتحقق من غرفة السيرفر"])
+                a.notified = True
+        elif smoke_a <= dev.smoke_threshold:
+            _resolve_alarm(dev, "smoke", f"مستوى الدخان الآن {smoke_a} ({pct}%) — تحت الحد الآمن")
 
     for kind, value, body in events:
         if _recent_alarm(dev, kind, within_min=30):
@@ -238,9 +252,12 @@ def alarm():
 def _check_offline_alarms():
     """Cheap side-check called from status polls: if any active device hasn't
     sent telemetry for >90s and doesn't already have an open 'offline' alarm,
-    fire one (with a WhatsApp) and clear it when the device returns."""
+    fire one (with a WhatsApp) and clear it when the device returns.
+    Only devices with notify_offline=True get the WhatsApp; the on-screen
+    status still turns red for everyone."""
     cutoff = datetime.utcnow() - timedelta(seconds=90)
     devices = IoTDevice.query.filter(IoTDevice.is_active.is_(True),
+                                     IoTDevice.notify_offline.is_(True),
                                      IoTDevice.api_key != "").all()
     for dev in devices:
         is_offline = (not dev.last_seen) or dev.last_seen < cutoff
@@ -300,7 +317,10 @@ def public_status(dev_id):
         temp=dev.last_temp if dev.online else None,
         humid=dev.last_humid if dev.online else None,
         smoke_a=dev.last_smoke_a if dev.online else None,
+        smoke_pct=dev.smoke_percent if dev.online else None,
         smoke_d=dev.last_smoke_d if dev.online else False,
+        smoke_muted=dev.smoke_muted,
+        smoke_muted_until=dev.smoke_muted_until.isoformat() if dev.smoke_muted_until else None,
         temp_status=dev.temp_status, humid_status=dev.humid_status,
         smoke_status=dev.smoke_status, overall=dev.overall_status,
     )
