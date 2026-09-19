@@ -29,14 +29,19 @@ def dashboard():
         Followup.status == "scheduled",
     ).order_by(Followup.scheduled_at.asc()).limit(20).all()
 
-    # Open projects this technician is on (lead or member)
-    my_project_ids = [m.ticket_id for m in ProjectMember.query.filter_by(user_id=current_user.id).all()]
-    my_projects = []
-    if my_project_ids:
-        my_projects = SupportTicket.query.filter(
-            SupportTicket.id.in_(my_project_ids),
-            SupportTicket.status != "closed",
-        ).order_by(desc(SupportTicket.created_at)).all()
+    # Open projects this technician is on — as a MEMBER (via ProjectMember)
+    # OR as the LEAD (via SupportTicket.assigned_to). Old projects created
+    # before the team system existed only have the assigned_to field, so we
+    # need to union both to see them.
+    from sqlalchemy import or_
+    member_project_ids = [m.ticket_id for m in ProjectMember.query.filter_by(user_id=current_user.id).all()]
+    my_projects = SupportTicket.query.filter(
+        or_(
+            SupportTicket.id.in_(member_project_ids) if member_project_ids else False,
+            SupportTicket.assigned_to == current_user.id,
+        ),
+        SupportTicket.status != "closed",
+    ).order_by(desc(SupportTicket.created_at)).all()
 
     # Surveys assigned to this technician (not yet inspected/closed)
     from models.extras import Survey
